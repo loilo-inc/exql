@@ -49,11 +49,15 @@ func Open(opts *OpenOptions) (DB, error) {
 	for retryCnt < maxRetryCount {
 		d, err = sql.Open("mysql", opts.Url)
 		if err != nil {
-			log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
-			time.Sleep(retryInterval)
+			goto retry
+		} else if err = d.Ping(); err != nil {
+			goto retry
 		} else {
 			goto success
 		}
+	retry:
+		log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
+		<-time.NewTimer(retryInterval).C
 		retryCnt++
 	}
 	if err != nil {
