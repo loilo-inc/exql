@@ -165,7 +165,8 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 	charPat := regexp.MustCompile("^(var)?char\\(\\d+?\\)$")
 	textPat := regexp.MustCompile("^(tiny|medium|long)?text$")
 	blobPat := regexp.MustCompile("^(tiny|medium|long)?blob$")
-	datePat := regexp.MustCompile("^(date|datetime|timestamp|time)$")
+	datePat := regexp.MustCompile("^(date|datetime|timestamp)$")
+	timePat := regexp.MustCompile("^time$")
 	if intPat.MatchString(t) {
 		m := intPat.FindStringSubmatch(t)
 		unsigned := strings.Contains(t, "unsigned")
@@ -195,6 +196,11 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 			return "null.Time", nil
 		}
 		return "time.Time", nil
+	} else if timePat.MatchString(t) {
+		if nullable {
+			return "null.String", nil
+		}
+		return "string", nil
 	} else if textPat.MatchString(t) || charPat.MatchString(t) {
 		if nullable {
 			return "null.String", nil

@@ -5,6 +5,7 @@ import "github.com/volatiletech/null"
 import "time"
 
 type Fields struct {
+	Id                             int64        `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
 	TinyintField                   int64        `exql:"column:tinyint_field;type:tinyint(4);not null" json:"tinyint_field"`
 	TinyintUnsignedField           int64        `exql:"column:tinyint_unsigned_field;type:tinyint(4) unsigned;not null" json:"tinyint_unsigned_field"`
 	TinyintNullableField           null.Int64   `exql:"column:tinyint_nullable_field;type:tinyint(4)" json:"tinyint_nullable_field"`
@@ -45,8 +46,8 @@ type Fields struct {
 	DateNullField                  null.Time    `exql:"column:date_null_field;type:date" json:"date_null_field"`
 	DatetimeField                  time.Time    `exql:"column:datetime_field;type:datetime;not null" json:"datetime_field"`
 	DatetimeNullField              null.Time    `exql:"column:datetime_null_field;type:datetime" json:"datetime_null_field"`
-	TimeField                      time.Time    `exql:"column:time_field;type:time;not null" json:"time_field"`
-	TimeNullField                  null.Time    `exql:"column:time_null_field;type:time" json:"time_null_field"`
+	TimeField                      string       `exql:"column:time_field;type:time;not null" json:"time_field"`
+	TimeNullField                  null.String  `exql:"column:time_null_field;type:time" json:"time_null_field"`
 	TimestampField                 time.Time    `exql:"column:timestamp_field;type:timestamp;not null;on;update;CURRENT_TIMESTAMP" json:"timestamp_field"`
 	TimestampNullField             time.Time    `exql:"column:timestamp_null_field;type:timestamp;not null" json:"timestamp_null_field"`
 	TinyblobField                  []byte       `exql:"column:tinyblob_field;type:tinyblob;not null" json:"tinyblob_field"`

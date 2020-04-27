@@ -44,7 +44,7 @@ func TestParser_ParseType(t *testing.T) {
 			{"date", "time.Time", "null.Time"},
 			{"datetime", "time.Time", "null.Time"},
 			{"timestamp", "time.Time", "null.Time"},
-			{"time", "time.Time", "null.Time"},
+			{"time", "string", "null.String"},
 		}
 		for _, v := range list {
 			t := v[0].(string)

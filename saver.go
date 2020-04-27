@@ -3,14 +3,16 @@ package exql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/apex/log"
 	"reflect"
 	"strings"
 )
 
 type saveQuery struct {
-	query  string
-	fields []string
-	values []interface{}
+	query           string
+	fields          []string
+	values          []interface{}
+	primaryKeyField *reflect.Value
 }
 
 func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
@@ -25,6 +27,7 @@ func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
 	// *User -> User
 	objType = objType.Elem()
 	hasPrimary := false
+	var primaryKeyField reflect.Value
 	for i := 0; i < objType.NumField(); i++ {
 		f := objType.Field(i)
 		if t, ok := f.Tag.Lookup("exql"); ok {
@@ -35,6 +38,7 @@ func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
 			}
 			if _, primary := tags["primary"]; primary {
 				hasPrimary = true
+				primaryKeyField = objValue.Elem().Field(i)
 				// 主キーはVALUESに含めない
 				continue
 			}
@@ -66,9 +70,10 @@ func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
 		strings.Join(placeholders, ", "),
 	)
 	return &saveQuery{
-		query:  query,
-		fields: columns,
-		values: values,
+		query:           query,
+		fields:          columns,
+		values:          values,
+		primaryKeyField: &primaryKeyField,
 	}, nil
 }
 
@@ -77,7 +82,23 @@ func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.db.Exec(s.query, s.values...)
+	result, err := d.db.Exec(s.query, s.values...)
+	if err != nil {
+		return nil, err
+	}
+	lid, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	kind := s.primaryKeyField.Kind()
+	if kind == reflect.Int64 {
+		s.primaryKeyField.Set(reflect.ValueOf(lid))
+	} else if kind == reflect.Uint64 {
+		s.primaryKeyField.Set(reflect.ValueOf(uint64(lid)))
+	} else {
+		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
+	}
+	return result, nil
 }
 
 func BuildUpdateQuery(table string, set map[string]interface{}, where WhereQuery) (*saveQuery, error) {

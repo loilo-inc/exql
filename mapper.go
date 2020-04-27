@@ -8,10 +8,7 @@ import (
 	"strings"
 )
 
-type mapper struct {
-}
-
-func (m *mapper) MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
+func (d *db) MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	destValue := reflect.ValueOf(structPtrOrSlicePtr)
 	destType := destValue.Type()
 	if destType.Kind() != reflect.Ptr {
@@ -30,7 +27,7 @@ func (m *mapper) MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error 
 		for rows.Next() {
 			// modelValue := SliceType{}
 			modelValue := reflect.New(sliceType).Elem()
-			if err := m.mapRow(rows, &modelValue); err != nil {
+			if err := d.mapRow(rows, &modelValue); err != nil {
 				return err
 			}
 			// *dest = append(*dest, i)
@@ -40,7 +37,7 @@ func (m *mapper) MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error 
 	} else if destType.Kind() == reflect.Struct {
 		if rows.Next() {
 			destValue = destValue.Elem()
-			return m.mapRow(rows, &destValue)
+			return d.mapRow(rows, &destValue)
 		} else {
 			return fmt.Errorf("rows is empty")
 		}
@@ -68,7 +65,7 @@ func ParseTags(tag string) map[string]string {
 	return ret
 }
 
-func (m *mapper) mapRow(row *sql.Rows, dest *reflect.Value) error {
+func (d *db) mapRow(row *sql.Rows, dest *reflect.Value) error {
 	// *Model
 	destType := dest.Type()
 	fields := make(map[string]int)
