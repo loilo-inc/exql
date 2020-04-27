@@ -9,4 +9,4 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
       MYSQL_DATABASE: exql
     volumes:
-      - ./model:/docker-entrypoint-initdb.d
+      - ./schema:/docker-entrypoint-initdb.d

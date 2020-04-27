@@ -13,8 +13,8 @@ func TestGenerator_Generate(t *testing.T) {
 		return
 	}
 	err = db.Generate(&GenerateOptions{
-		OutDir:  "model",
-		Package: "model",
+		OutDir:  "dist",
+		Package: "dist",
 	})
 	if err != nil {
 		log.Errorf(err.Error())

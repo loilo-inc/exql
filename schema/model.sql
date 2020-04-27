@@ -8,7 +8,7 @@ create table users (
 
 drop table if exists fields;
 create table fields (
-    id int not null ;
+    id int not null auto_increment,
     tinyint_field tinyint(4) not null,
     tinyint_unsigned_field tinyint(4) unsigned not null,
     tinyint_nullable_field tinyint(4),
