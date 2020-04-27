@@ -19,7 +19,7 @@ func TestMapper_MapRows(t *testing.T) {
 		rows, err := db.Query(`SELECT * FROM users LIMIT 1`)
 		assert.Nil(t, err)
 		defer rows.Close()
-		var dest model.Fields
+		var dest model.Users
 		err = mapper.MapRows(rows, &dest)
 		assert.Nil(t, err)
 		assert.Equal(t, dest.FirstName.String, "go")
@@ -29,7 +29,7 @@ func TestMapper_MapRows(t *testing.T) {
 		rows, err := db.Query(`SELECT * FROM users LIMIT 1`)
 		assert.Nil(t, err)
 		defer rows.Close()
-		var dest []*model.User
+		var dest []*model.Users
 		err = mapper.MapRows(rows, &dest)
 		assert.Nil(t, err)
 		assert.Equal(t, dest[0].FirstName.String, "go")
@@ -37,11 +37,9 @@ func TestMapper_MapRows(t *testing.T) {
 	})
 }
 
-
-
-func Test2(t *testing.T)  {
+func Test2(t *testing.T) {
 	co := func(dest *[]int) {
-		for i := 0; i< 10; i++ {
+		for i := 0; i < 10; i++ {
 			*dest = append(*dest, i)
 		}
 	}

@@ -22,16 +22,6 @@ func NewParser() Parser {
 	return &parser{}
 }
 
-type modelData struct {
-	Package       string
-	Model         string
-	Models        string
-	M             string
-	Fields        string
-	TableName     string
-	ScannedFields string
-}
-
 type Table struct {
 	TableName string    `json:"table_name"`
 	Columns   []*Column `json:"columns"`
@@ -62,9 +52,28 @@ func (t *Table) HasTimeField() bool {
 	return false
 }
 
+func (t *Table) HasPrimaryKey() bool {
+	for _, c := range t.Columns {
+		if c.IsPrimary() {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *Table) PrimaryKeyFieldIndex() int {
+	for _, c := range t.Columns {
+		if c.IsPrimary() {
+			return c.FieldIndex
+		}
+	}
+	return -1
+}
+
 type Column struct {
 	FieldName    string         `json:"field_name"`
 	FieldType    string         `json:"field_type"`
+	FieldIndex   int            `json:"field_index"`
 	GoFieldType  string         `json:"go_field_type"`
 	Nullable     bool           `json:"nullable"`
 	DefaultValue sql.NullString `json:"default_value"`
@@ -75,6 +84,7 @@ type Column struct {
 func (c *Column) IsPrimary() bool {
 	return c.Key.String == "PRI"
 }
+
 func (c *Column) ParseExtra() []string {
 	comps := strings.Split(c.Extra.String, " ")
 	empty := regexp.MustCompile("^\\s*$")
@@ -89,19 +99,22 @@ func (c *Column) ParseExtra() []string {
 	return ret
 }
 
-// `exql:"column:field_name;primary;auto_increment;"`
 func (c *Column) Field() string {
 	var tag []string
 	tag = append(tag, fmt.Sprintf("column:%s", c.FieldName))
+	tag = append(tag, fmt.Sprintf("type:%s", c.FieldType))
 	if c.IsPrimary() {
 		tag = append(tag, "primary")
+	}
+	if !c.Nullable {
+		tag = append(tag, "not null")
 	}
 	tag = append(tag, c.ParseExtra()...)
 	return fmt.Sprintf("%s %s `exql:\"%s\" json:\"%s\"`",
 		strcase.ToCamel(c.FieldName),
 		c.GoFieldType,
 		strings.Join(tag, ";"),
-		strcase.ToSnake(c.FieldType),
+		strcase.ToSnake(c.FieldName),
 	)
 }
 
@@ -112,6 +125,7 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 	}
 	defer rows.Close()
 	var cols []*Column
+	i := 0
 	for rows.Next() {
 		field := ""
 		_type := ""
@@ -128,13 +142,15 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 		}
 		cols = append(cols, &Column{
 			FieldName:    field,
-			FieldType:    field,
+			FieldType:    _type,
+			FieldIndex:   i,
 			GoFieldType:  parsedType,
 			Nullable:     _null.String == "YES",
 			DefaultValue: _default,
 			Key:          key,
 			Extra:        extra,
 		})
+		i++
 	}
 	return &Table{
 		TableName: table,
@@ -162,32 +178,16 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 			}
 		}
 		if nullable {
-			if unsigned {
-				if !is64 {
-					return "null.Uint", nil
-				} else {
-					return "null.Uint64", nil
-				}
+			if unsigned && is64 {
+				return "null.Uint64", nil
 			} else {
-				if !is64 {
-					return "null.Int", nil
-				} else {
-					return "null.Int64", nil
-				}
+				return "null.Int64", nil
 			}
 		} else {
-			if unsigned {
-				if !is64 {
-					return "uint", nil
-				} else {
-					return "uint64", nil
-				}
+			if unsigned && is64 {
+				return "uint64", nil
 			} else {
-				if !is64 {
-					return "int", nil
-				} else {
-					return "int64", nil
-				}
+				return "int64", nil
 			}
 		}
 	} else if datePat.MatchString(t) {

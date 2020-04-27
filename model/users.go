@@ -4,16 +4,20 @@ package model
 import "github.com/volatiletech/null"
 
 type Users struct {
-		Id int `exql:"column:id;primary;auto_increment" json:"id"`
-		FirstName null.String `exql:"column:first_name" json:"first_name"`
-		LastName null.String `exql:"column:last_name" json:"last_name"`
+	Id        int64       `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	FirstName null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
+	LastName  null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
-type usersExt struct {
+func (u *Users) TableName() string {
+	return "users"
 }
 
-var UsersExt = &usersExt{}
+type usersTable struct {
+}
 
-func (u *usersExt) TableName() string {
+var UsersTable = &usersTable{}
+
+func (u *usersTable) Name() string {
 	return "users"
 }

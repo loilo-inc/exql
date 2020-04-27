@@ -7,12 +7,15 @@ import (
 )
 
 func TestGenerator_Generate(t *testing.T) {
-	g := NewGenerator(&Options{
+	db, err := Open("root:@tcp(127.0.0.1:3326)/exql?charset=utf8mb4&parseTime=True&loc=Local")
+	if err != nil {
+		panic(err)
+		return
+	}
+	err = db.Generate(&GenerateOptions{
 		OutDir:  "model",
-		Url:     "root:@tcp(127.0.0.1:3326)/exql?charset=utf8mb4&parseTime=True&loc=Local",
 		Package: "model",
 	})
-	err := g.Generate()
 	if err != nil {
 		log.Errorf(err.Error())
 	}

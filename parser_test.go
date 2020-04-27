@@ -15,10 +15,10 @@ func TestParser_ParseType(t *testing.T) {
 	}
 	t.Run("int", func(t *testing.T) {
 		list := [][]interface{}{
-			{"int", "int", "uint", "null.Int", "null.Uint"},
-			{"tinyint", "int", "uint", "null.Int", "null.Uint"},
-			{"smallint", "int", "uint", "null.Int", "null.Uint"},
-			{"mediumint", "int", "uint", "null.Int", "null.Uint"},
+			{"int", "int64", "int64", "null.Int64", "null.Int64"},
+			{"tinyint", "int64", "int64", "null.Int64", "null.Int64"},
+			{"smallint", "int64", "int64", "null.Int64", "null.Int64"},
+			{"mediumint", "int64", "int64", "null.Int64", "null.Int64"},
 			{"bigint", "int64", "uint64", "null.Int64", "null.Uint64"},
 		}
 		for _, v := range list {
