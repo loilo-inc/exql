@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches:
+      - "**"
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "1.14"
+      - name: Check fmt
+        run: |
+          make fmt
+          git diff --exit-code
+      - name: Check mod
+        run: |
+          go mod tidy
+          go mod download
+          git diff --exit-code
+      - run: make updb
+      - run: make test
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.out
