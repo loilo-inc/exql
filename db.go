@@ -11,10 +11,15 @@ type DB interface {
 	Update(table string, set map[string]interface{}, where WhereQuery) (sql.Result, error)
 	Generate(opts *GenerateOptions) error
 	DB() *sql.DB
+	Close() error
 }
 
 type db struct {
 	db *sql.DB
+}
+
+func (d *db) Close() error {
+	return d.db.Close()
 }
 
 func (d *db) DB() *sql.DB {
@@ -47,12 +52,13 @@ func Open(opts *OpenOptions) (DB, error) {
 			log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
 			time.Sleep(retryInterval)
 		} else {
-			break
+			goto success
 		}
 		retryCnt++
 	}
 	if err != nil {
-		log.Fatalf("failed to connect database: %s", err)
+		return nil, err
 	}
+success:
 	return &db{db: d}, nil
 }
