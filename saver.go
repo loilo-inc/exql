@@ -13,14 +13,14 @@ type SaveQuery struct {
 	PrimaryKeyField *reflect.Value
 }
 
-type QueryBuilder interface {
+type Saver interface {
 	Insert(structPtr interface{}) (*SaveQuery, error)
-	Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error)
+	Update(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 }
-type queryBuilder struct {
+type saver struct {
 }
 
-func (q *queryBuilder) Insert(modelPtr interface{}) (*SaveQuery, error) {
+func (q *saver) Insert(modelPtr interface{}) (*SaveQuery, error) {
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
@@ -85,12 +85,15 @@ func (q *queryBuilder) Insert(modelPtr interface{}) (*SaveQuery, error) {
 	}, nil
 }
 
-func (q *queryBuilder) Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error) {
+func (q *saver) Update(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	if table == "" {
 		return nil, fmt.Errorf("empty table name")
 	}
 	if len(set) == 0 {
 		return nil, fmt.Errorf("empty field set")
+	}
+	if where.Type() != ClauseTypeWhere {
+		return nil, fmt.Errorf("where is not build by Where()")
 	}
 	var fields []string
 	var assignments []string

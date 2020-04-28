@@ -9,7 +9,7 @@ import (
 
 type DB interface {
 	Insert(modelPtr interface{}) (sql.Result, error)
-	Update(table string, set map[string]interface{}, where WhereQuery) (sql.Result, error)
+	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
 	MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error
 	Generate(opts *GenerateOptions) error
 	DB() *sql.DB
@@ -18,8 +18,7 @@ type DB interface {
 
 type db struct {
 	db *sql.DB
-	qb QueryBuilder
-	ps Parser
+	s  Saver
 }
 
 func (d *db) Close() error {
@@ -70,12 +69,12 @@ func Open(opts *OpenOptions) (DB, error) {
 success:
 	return &db{
 		db: d,
-		qb: &queryBuilder{},
+		s:  &saver{},
 	}, nil
 }
 
 func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
-	s, err := d.qb.Insert(modelPtr)
+	s, err := d.s.Insert(modelPtr)
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +97,8 @@ func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
 	return result, nil
 }
 
-func (d *db) Update(table string, set map[string]interface{}, where WhereQuery) (sql.Result, error) {
-	s, err := d.qb.Update(table, set, where)
+func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql.Result, error) {
+	s, err := d.s.Update(table, set, where)
 	if err != nil {
 		return nil, err
 	}

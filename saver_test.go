@@ -24,13 +24,13 @@ type sample3 struct {
 }
 
 func TestQueryBuilder_Insert(t *testing.T) {
-	qb := &queryBuilder{}
+	s := &saver{}
 	t.Run("basic", func(t *testing.T) {
 		user := model.Users{
 			FirstName: null.StringFrom("first"),
 			LastName:  null.StringFrom("name"),
 		}
-		s, err := qb.Insert(&user)
+		s, err := s.Insert(&user)
 		assert.Nil(t, err)
 		exp := "INSERT INTO `users` (first_name, last_name) VALUES (?, ?)"
 		assert.Equal(t, exp, s.Query)
@@ -40,46 +40,46 @@ func TestQueryBuilder_Insert(t *testing.T) {
 	})
 	t.Run("objがポインタでない場合エラーを返す", func(t *testing.T) {
 		user := model.Users{}
-		s, err := qb.Insert(user)
+		s, err := s.Insert(user)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "object must be pointer of struct")
 	})
 	t.Run("objが構造体のポインタでない場合エラーを返す", func(t *testing.T) {
 		var users []*model.Users
-		s, err := qb.Insert(&users)
+		s, err := s.Insert(&users)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "object must be pointer of struct")
 	})
 	t.Run("exqlタグのない構造体のポインタの場合エラーを返す", func(t *testing.T) {
 		var tim time.Time
-		s, err := qb.Insert(&tim)
+		s, err := s.Insert(&tim)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "obj doesn't have exql tags in any fields")
 	})
 	t.Run("TableName()がない構造体の場合エラーを返す", func(t *testing.T) {
 		var sam sample1
-		s, err := qb.Insert(&sam)
+		s, err := s.Insert(&sam)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "obj doesn't implement TableName() method")
 	})
 	t.Run("TableName()が文字列を返さない場合エラーを返す", func(t *testing.T) {
 		var sam sample2
-		s, err := qb.Insert(&sam)
+		s, err := s.Insert(&sam)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "wrong implementation of TableName()")
 	})
 	t.Run("主キーのないモデルはエラーを返す", func(t *testing.T) {
 		var sam sample3
-		s, err := qb.Insert(&sam)
+		s, err := s.Insert(&sam)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "table has no primary key")
 	})
 }
 
 func TestBuildUpdateQuery(t *testing.T) {
-	qb := &queryBuilder{}
+	s := &saver{}
 	t.Run("basic", func(t *testing.T) {
-		q, err := qb.Update("users", map[string]interface{}{
+		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "land",
 		}, Where(`id = ?`, 1))
@@ -90,20 +90,29 @@ func TestBuildUpdateQuery(t *testing.T) {
 		assert.ElementsMatch(t, []interface{}{"go", "land", 1}, q.Values)
 	})
 	t.Run("tableが空の場合はエラー", func(t *testing.T) {
-		q, err := qb.Update("", nil, nil)
+		q, err := s.Update("", nil, nil)
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty table name")
 	})
 	t.Run("setが空の場合はエラー", func(t *testing.T) {
-		q, err := qb.Update("users", make(map[string]interface{}), nil)
+		q, err := s.Update("users", make(map[string]interface{}), nil)
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty field set")
 	})
 	t.Run("Whereが空の場合はエラー", func(t *testing.T) {
-		q, err := qb.Update("users", map[string]interface{}{
+		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
 		}, Where(""))
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty where clause")
+	})
+	t.Run("return error if clause type is not where", func(t *testing.T) {
+		q, err := s.Update("users", map[string]interface{}{
+			"first_name": "go",
+		}, &clause{
+			t: "join",
+		})
+		assert.Nil(t, q)
+		assert.Errorf(t, err, "where is not build by Where()")
 	})
 }

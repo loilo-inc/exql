@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+type partialUser struct {
+	Id       int64       `exql:"column:id;primary"`
+	LastName null.String `exql:"column:last_name"`
+}
+
 func TestDb_MapRows(t *testing.T) {
 	db := testDb()
 	defer db.Close()
@@ -177,5 +182,23 @@ func TestDb_MapRows(t *testing.T) {
 			assert.ElementsMatch(t, dest.LongblobField, field.LongblobField)
 			assert.ElementsMatch(t, dest.LongblobNullField.Bytes, field.LongblobNullField.Bytes)
 		})
+	})
+	t.Run("partial", func(t *testing.T) {
+		user := &model.Users{
+			FirstName: null.StringFrom("first"),
+			LastName:  null.StringFrom("last"),
+		}
+		_, err := db.Insert(user)
+		assert.Nil(t, err)
+		defer func() {
+			db.DB().Exec("DELETE FROM users WHERE id = ?", user.Id)
+		}()
+		rows, err := db.DB().Query("SELECT * FROM users WHERE id = ?", user.Id)
+		assert.Nil(t, err)
+		var p partialUser
+		err = db.MapRows(rows, &p)
+		assert.Nil(t, err)
+		assert.Equal(t, user.Id, p.Id)
+		assert.Equal(t, user.LastName.String, p.LastName.String)
 	})
 }
