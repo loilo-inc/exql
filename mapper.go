@@ -3,7 +3,6 @@ package exql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/apex/log"
 	"reflect"
 )
 
@@ -155,7 +154,13 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
 	for _, model := range dest {
 		v := reflect.ValueOf(model)
+		if v.Kind() != reflect.Ptr {
+			return mapDestinationError()
+		}
 		v = v.Elem()
+		if v.Kind() != reflect.Struct {
+			return mapDestinationError()
+		}
 		values = append(values, &v)
 	}
 	if err := mapRowSerial(rows, values, s.splitter); err != nil {
@@ -178,14 +183,12 @@ func mapRowSerial(
 		}
 		destFields = append(destFields, fields)
 	}
-	list, _ := row.Columns()
-	log.Infof("%+v", list)
+	if len(destFields) == 0 {
+		return fmt.Errorf("empty dest list")
+	}
 	cols, err := row.ColumnTypes()
 	if err != nil {
 		return err
-	}
-	if len(destFields) == 0 {
-		return fmt.Errorf("empty dest list")
 	}
 	destVals := make([]interface{}, len(cols))
 	colIndex := 0
@@ -204,7 +207,7 @@ func mapRowSerial(
 		for ; colIndex < len(cols); colIndex++ {
 			col := cols[colIndex]
 			if colIndex > start && destIndex < len(destList)-1 {
-				// 次のテーブルの最初のカラムに到達した
+				// Reach next column's head
 				if col.Name() == headColProvider(destIndex+1) {
 					break
 				}

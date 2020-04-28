@@ -348,4 +348,81 @@ WHERE user_groups.id = ?
 		assert.Equal(t, user1.Id, users[0].Id)
 		assert.Equal(t, user2.Id, users[1].Id)
 	})
+	t.Run("subset", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users 
+JOIN group_users on group_users.user_id = users.id
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ?
+`
+		rows, err := db.DB().Query(query, group.Id)
+		assert.Nil(t, err)
+		var users []*model.Users
+		var groups []*model.UserGroups
+		for rows.Next() {
+			var group model.UserGroups
+			var user model.Users
+			err := m.Map(rows, &user, &group)
+			assert.Nil(t, err)
+			users = append(users, &user)
+			groups = append(groups, &group)
+		}
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(users))
+		if users == nil || groups == nil {
+			t.Fail()
+			return
+		}
+		assert.Equal(t, user1.Id, users[0].Id)
+		assert.Equal(t, user2.Id, users[1].Id)
+		assert.Equal(t, group.Id, groups[0].Id)
+	})
+
+	t.Run("should return error if head column is not found", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users 
+JOIN group_users on group_users.user_id = users.id
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
+`
+		rows, err := db.DB().Query(query, group.Id)
+		assert.Nil(t, err)
+		m := &serialMapper{splitter: func(i int) string {
+			return "var"
+		}}
+		for rows.Next() {
+			var user model.Users
+			var ug model.UserGroups
+			err := m.Map(rows, &user, &ug)
+			assert.Errorf(t, err, "head col mismatch: expected=%s, actual=%s", "var", "id")
+			break
+		}
+	})
+	t.Run("should return error if dest is empty", func(t *testing.T) {
+		err := m.Map(nil)
+		assert.Errorf(t, err, "empty dest list")
+	})
+	t.Run("should return error if destination is invalid", func(t *testing.T) {
+		doTest := func(i ...interface{}) {
+			assert.Errorf(t, m.Map(nil, i...), "destination must be pointer of struct")
+		}
+		t.Run("int", func(t *testing.T) {
+			doTest(0, 1, 2)
+		})
+		t.Run("*int", func(t *testing.T) {
+			i := 0
+			doTest(&i, &i)
+		})
+		t.Run("slice", func(t *testing.T) {
+			var i []*model.Users
+			doTest(&i, &i)
+		})
+		t.Run("*slice", func(t *testing.T) {
+			var i []*model.Users
+			doTest(&i, &i)
+		})
+		t.Run("nil", func(t *testing.T) {
+			doTest(nil, nil)
+		})
+	})
 }

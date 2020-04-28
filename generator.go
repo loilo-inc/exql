@@ -1,6 +1,7 @@
 package exql
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/iancoleman/strcase"
 	"os"
@@ -9,6 +10,12 @@ import (
 	"text/template"
 )
 
+type Generator interface {
+	Generate(opts *GenerateOptions) error
+}
+type generator struct {
+	db *sql.DB
+}
 type GenerateOptions struct {
 	OutDir  string
 	Package string
@@ -27,7 +34,11 @@ type templateData struct {
 	PrimaryKeyFieldIndex int
 }
 
-func (d *db) Generate(opts *GenerateOptions) error {
+func NewGenerator(db *sql.DB) Generator {
+	return &generator{db: db}
+}
+
+func (d *generator) Generate(opts *GenerateOptions) error {
 	rows, err := d.db.Query(`show tables`)
 	if err != nil {
 		return err
@@ -57,7 +68,7 @@ func (d *db) Generate(opts *GenerateOptions) error {
 	return nil
 }
 
-func (d *db) generateModelFile(tableName string, opt *GenerateOptions) error {
+func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) error {
 	tmpl := template.Must(template.New("model").Parse(modelTemplate))
 	p := NewParser()
 	table, err := p.ParseTable(d.db, tableName)

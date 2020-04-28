@@ -3,14 +3,12 @@ package exql
 import (
 	"database/sql"
 	"github.com/apex/log"
-	"reflect"
 	"time"
 )
 
 type DB interface {
-	Insert(modelPtr interface{}) (sql.Result, error)
-	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
-	Generate(opts *GenerateOptions) error
+	Saver
+	Mapper
 	DB() *sql.DB
 	Close() error
 }
@@ -18,14 +16,7 @@ type DB interface {
 type db struct {
 	db *sql.DB
 	s  Saver
-}
-
-func (d *db) Close() error {
-	return d.db.Close()
-}
-
-func (d *db) DB() *sql.DB {
-	return d.db
+	m  Mapper
 }
 
 type OpenOptions struct {
@@ -68,38 +59,39 @@ func Open(opts *OpenOptions) (DB, error) {
 success:
 	return &db{
 		db: d,
-		s:  &saver{},
+		s:  NewSaver(d),
+		m:  NewMapper(),
 	}, nil
 }
 
-func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
-	s, err := d.s.Insert(modelPtr)
-	if err != nil {
-		return nil, err
-	}
-	result, err := d.db.Exec(s.Query, s.Values...)
-	if err != nil {
-		return nil, err
-	}
-	lid, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-	kind := s.PrimaryKeyField.Kind()
-	if kind == reflect.Int64 {
-		s.PrimaryKeyField.Set(reflect.ValueOf(lid))
-	} else if kind == reflect.Uint64 {
-		s.PrimaryKeyField.Set(reflect.ValueOf(uint64(lid)))
-	} else {
-		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
-	}
-	return result, nil
+func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
+	return d.s.Insert(structPtr)
+}
+
+func (d *db) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
+	return d.s.QueryForInsert(structPtr)
 }
 
 func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql.Result, error) {
-	s, err := d.s.Update(table, set, where)
-	if err != nil {
-		return nil, err
-	}
-	return d.db.Exec(s.Query, s.Values...)
+	return d.s.Update(table, set, where)
+}
+
+func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
+	return d.s.QueryForUpdate(table, set, where)
+}
+
+func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
+	return d.m.Map(rows, pointerOfStruct)
+}
+
+func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
+	return d.m.MapMany(rows, pointerOfSliceOfStruct)
+}
+
+func (d *db) Close() error {
+	return d.db.Close()
+}
+
+func (d *db) DB() *sql.DB {
+	return d.db
 }
