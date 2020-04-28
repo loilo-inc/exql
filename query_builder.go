@@ -1,22 +1,27 @@
 package exql
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/apex/log"
 	"reflect"
 	"strings"
 )
 
-type saveQuery struct {
-	query           string
-	fields          []string
-	values          []interface{}
-	primaryKeyField *reflect.Value
+type SaveQuery struct {
+	Query           string
+	Fields          []string
+	Values          []interface{}
+	PrimaryKeyField *reflect.Value
 }
 
-func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
-	objValue := reflect.ValueOf(obj)
+type QueryBuilder interface {
+	Insert(structPtr interface{}) (*SaveQuery, error)
+	Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error)
+}
+type queryBuilder struct {
+}
+
+func (q *queryBuilder) Insert(modelPtr interface{}) (*SaveQuery, error) {
+	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
 		return nil, fmt.Errorf("object must be pointer of struct")
@@ -31,7 +36,10 @@ func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
 	for i := 0; i < objType.NumField(); i++ {
 		f := objType.Field(i)
 		if t, ok := f.Tag.Lookup("exql"); ok {
-			tags := ParseTags(t)
+			tags, err := ParseTags(t)
+			if err != nil {
+				return nil, err
+			}
 			colName, ok := tags["column"]
 			if !ok || colName == "" {
 				return nil, fmt.Errorf("column tag is not set")
@@ -69,39 +77,15 @@ func BuildInsertQuery(obj interface{}) (*saveQuery, error) {
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
-	return &saveQuery{
-		query:           query,
-		fields:          columns,
-		values:          values,
-		primaryKeyField: &primaryKeyField,
+	return &SaveQuery{
+		Query:           query,
+		Fields:          columns,
+		Values:          values,
+		PrimaryKeyField: &primaryKeyField,
 	}, nil
 }
 
-func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
-	s, err := BuildInsertQuery(modelPtr)
-	if err != nil {
-		return nil, err
-	}
-	result, err := d.db.Exec(s.query, s.values...)
-	if err != nil {
-		return nil, err
-	}
-	lid, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-	kind := s.primaryKeyField.Kind()
-	if kind == reflect.Int64 {
-		s.primaryKeyField.Set(reflect.ValueOf(lid))
-	} else if kind == reflect.Uint64 {
-		s.primaryKeyField.Set(reflect.ValueOf(uint64(lid)))
-	} else {
-		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
-	}
-	return result, nil
-}
-
-func BuildUpdateQuery(table string, set map[string]interface{}, where WhereQuery) (*saveQuery, error) {
+func (q *queryBuilder) Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error) {
 	if table == "" {
 		return nil, fmt.Errorf("empty table name")
 	}
@@ -126,17 +110,9 @@ func BuildUpdateQuery(table string, set map[string]interface{}, where WhereQuery
 		"UPDATE `%s` SET %s WHERE %s",
 		table, strings.Join(assignments, ", "), whereQ,
 	)
-	return &saveQuery{
-		query:  query,
-		fields: fields,
-		values: values,
+	return &SaveQuery{
+		Query:  query,
+		Fields: fields,
+		Values: values,
 	}, nil
-}
-
-func (d *db) Update(table string, set map[string]interface{}, where WhereQuery) (sql.Result, error) {
-	s, err := BuildUpdateQuery(table, set, where)
-	if err != nil {
-		return nil, err
-	}
-	return d.db.Exec(s.query, s.values...)
 }
