@@ -9,6 +9,7 @@ import (
 
 func TestDb_Insert(t *testing.T) {
 	d := testDb()
+	m := NewMapper()
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			FirstName: null.StringFrom("first"),
@@ -29,7 +30,7 @@ func TestDb_Insert(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.Nil(t, err)
 		var actual model.Users
-		err = d.MapRows(rows, &actual)
+		err = m.Map(rows, &actual)
 		assert.Nil(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
@@ -39,6 +40,7 @@ func TestDb_Insert(t *testing.T) {
 
 func TestDb_Update(t *testing.T) {
 	d := testDb()
+	m := NewMapper()
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)",
@@ -60,7 +62,7 @@ func TestDb_Update(t *testing.T) {
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.Nil(t, err)
-		err = d.MapRows(rows, &actual)
+		err = m.Map(rows, &actual)
 		assert.Nil(t, err)
 		assert.Equal(t, "go", actual.FirstName.String)
 		assert.Equal(t, "lang", actual.LastName.String)

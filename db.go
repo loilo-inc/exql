@@ -10,7 +10,6 @@ import (
 type DB interface {
 	Insert(modelPtr interface{}) (sql.Result, error)
 	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
-	MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error
 	Generate(opts *GenerateOptions) error
 	DB() *sql.DB
 	Close() error
