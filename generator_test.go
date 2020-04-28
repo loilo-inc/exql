@@ -8,7 +8,8 @@ import (
 
 func TestGenerator_Generate(t *testing.T) {
 	db := testDb()
-	err := db.Generate(&GenerateOptions{
+	g := NewGenerator(db.DB())
+	err := g.Generate(&GenerateOptions{
 		OutDir:  "dist",
 		Package: "dist",
 	})

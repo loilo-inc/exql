@@ -6,6 +6,25 @@ create table users (
     primary key (id)
 );
 
+drop table if exists group_users;
+create table user_groups (
+    id int(11) not null auto_increment,
+    name varchar(255) not null,
+    primary key (id)
+);
+
+drop table if exists group_users;
+create table group_users (
+    id int(11) not null auto_increment,
+    user_id int(11) not null,
+    group_id int(11) not null,
+    primary key (id),
+    foreign key (user_id) references users(id),
+    foreign key (group_id) references user_groups(id)
+);
+create index group_users_user_id on group_users(user_id);
+create index group_users_group_id on group_users(group_id);
+
 drop table if exists fields;
 create table fields (
     id int not null auto_increment,

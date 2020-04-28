@@ -7,3 +7,5 @@ fmt:
 test:
 	go test -race -cover -coverprofile=coverage.out -covermode=atomic \
 	github.com/loilo-inc/exql/... -count 1
+README.md: example/*.go
+	go run tool/main.go

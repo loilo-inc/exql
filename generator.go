@@ -1,6 +1,7 @@
 package exql
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/iancoleman/strcase"
 	"os"
@@ -9,9 +10,16 @@ import (
 	"text/template"
 )
 
+type Generator interface {
+	Generate(opts *GenerateOptions) error
+}
+type generator struct {
+	db *sql.DB
+}
 type GenerateOptions struct {
 	OutDir  string
 	Package string
+	Exclude []string
 }
 
 type templateData struct {
@@ -27,10 +35,20 @@ type templateData struct {
 	PrimaryKeyFieldIndex int
 }
 
-func (d *db) Generate(opts *GenerateOptions) error {
+func NewGenerator(db *sql.DB) Generator {
+	return &generator{db: db}
+}
+
+func (d *generator) Generate(opts *GenerateOptions) error {
 	rows, err := d.db.Query(`show tables`)
 	if err != nil {
 		return err
+	}
+	if opts.OutDir == "" {
+		opts.OutDir = "model"
+	}
+	if opts.Package == "" {
+		opts.Package = "model"
 	}
 	if _, err := os.Stat(opts.OutDir); os.IsNotExist(err) {
 		err := os.Mkdir(opts.OutDir, 0777)
@@ -47,6 +65,11 @@ func (d *db) Generate(opts *GenerateOptions) error {
 		if err := rows.Scan(&table); err != nil {
 			return err
 		}
+		for _, e := range opts.Exclude {
+			if e == table {
+				continue
+			}
+		}
 		tables = append(tables, table)
 	}
 	for _, table := range tables {
@@ -57,7 +80,7 @@ func (d *db) Generate(opts *GenerateOptions) error {
 	return nil
 }
 
-func (d *db) generateModelFile(tableName string, opt *GenerateOptions) error {
+func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) error {
 	tmpl := template.Must(template.New("model").Parse(modelTemplate))
 	p := NewParser()
 	table, err := p.ParseTable(d.db, tableName)

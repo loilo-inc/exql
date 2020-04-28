@@ -1,7 +1,9 @@
 package exql
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/apex/log"
 	"reflect"
 	"strings"
 )
@@ -13,14 +15,60 @@ type SaveQuery struct {
 	PrimaryKeyField *reflect.Value
 }
 
-type QueryBuilder interface {
-	Insert(structPtr interface{}) (*SaveQuery, error)
-	Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error)
-}
-type queryBuilder struct {
+type Saver interface {
+	Insert(structPtr interface{}) (sql.Result, error)
+	QueryForInsert(structPtr interface{}) (*SaveQuery, error)
+	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
+	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 }
 
-func (q *queryBuilder) Insert(modelPtr interface{}) (*SaveQuery, error) {
+type saver struct {
+	db *sql.DB
+}
+
+type SET map[string]interface{}
+
+func NewSaver(db *sql.DB) Saver {
+	return &saver{db: db}
+}
+
+func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
+	q, err := s.QueryForInsert(modelPtr)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.db.Exec(q.Query, q.Values...)
+	if err != nil {
+		return nil, err
+	}
+	lid, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	kind := q.PrimaryKeyField.Kind()
+	if kind == reflect.Int64 {
+		q.PrimaryKeyField.Set(reflect.ValueOf(lid))
+	} else if kind == reflect.Uint64 {
+		q.PrimaryKeyField.Set(reflect.ValueOf(uint64(lid)))
+	} else {
+		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
+	}
+	return result, nil
+}
+
+func (s *saver) Update(
+	table string,
+	set map[string]interface{},
+	where Clause,
+) (sql.Result, error) {
+	q, err := s.QueryForUpdate(table, set, where)
+	if err != nil {
+		return nil, err
+	}
+	return s.db.Exec(q.Query, q.Values...)
+}
+
+func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
@@ -85,12 +133,15 @@ func (q *queryBuilder) Insert(modelPtr interface{}) (*SaveQuery, error) {
 	}, nil
 }
 
-func (q *queryBuilder) Update(table string, set map[string]interface{}, where WhereQuery) (*SaveQuery, error) {
+func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	if table == "" {
 		return nil, fmt.Errorf("empty table name")
 	}
 	if len(set) == 0 {
 		return nil, fmt.Errorf("empty field set")
+	}
+	if where.Type() != ClauseTypeWhere {
+		return nil, fmt.Errorf("where is not build by Where()")
 	}
 	var fields []string
 	var assignments []string

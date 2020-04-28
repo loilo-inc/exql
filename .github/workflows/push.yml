@@ -22,6 +22,10 @@ jobs:
           go mod tidy
           go mod download
           git diff --exit-code
+      - name: Check README
+        run: |
+          go run tool/main.go
+          git diff --exit-code
       - run: make updb
       - run: make test
       - uses: codecov/codecov-action@v1
