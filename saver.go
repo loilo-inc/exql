@@ -26,6 +26,8 @@ type saver struct {
 	db *sql.DB
 }
 
+type SET map[string]interface{}
+
 func NewSaver(db *sql.DB) Saver {
 	return &saver{db: db}
 }

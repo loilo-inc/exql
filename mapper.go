@@ -41,7 +41,7 @@ type serialMapper struct {
 	splitter ColumnSplitter
 }
 
-func NewSerialRowsMapper(s ColumnSplitter) SerialMapper {
+func NewSerialMapper(s ColumnSplitter) SerialMapper {
 	return &serialMapper{splitter: s}
 }
 

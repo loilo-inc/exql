@@ -19,6 +19,7 @@ type generator struct {
 type GenerateOptions struct {
 	OutDir  string
 	Package string
+	Exclude []string
 }
 
 type templateData struct {
@@ -43,6 +44,12 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 	if err != nil {
 		return err
 	}
+	if opts.OutDir == "" {
+		opts.OutDir = "model"
+	}
+	if opts.Package == "" {
+		opts.Package = "model"
+	}
 	if _, err := os.Stat(opts.OutDir); os.IsNotExist(err) {
 		err := os.Mkdir(opts.OutDir, 0777)
 		if err != nil {
@@ -57,6 +64,11 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 		var table string
 		if err := rows.Scan(&table); err != nil {
 			return err
+		}
+		for _, e := range opts.Exclude {
+			if e == table {
+				continue
+			}
 		}
 		tables = append(tables, table)
 	}

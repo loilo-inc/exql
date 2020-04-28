@@ -22,19 +22,19 @@ type db struct {
 type OpenOptions struct {
 	Url string
 	// @default 5
-	MaxRetryCount *int
+	MaxRetryCount int
 	// @default 5s
-	RetryInterval *time.Duration
+	RetryInterval time.Duration
 }
 
 func Open(opts *OpenOptions) (DB, error) {
 	maxRetryCount := 5
 	retryInterval := 5 * time.Second
-	if opts.MaxRetryCount != nil {
-		maxRetryCount = *opts.MaxRetryCount
+	if opts.MaxRetryCount > 0 {
+		maxRetryCount = opts.MaxRetryCount
 	}
-	if opts.RetryInterval != nil {
-		retryInterval = *opts.RetryInterval
+	if opts.RetryInterval > 0 {
+		retryInterval = opts.RetryInterval
 	}
 	var d *sql.DB
 	var err error
