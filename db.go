@@ -3,6 +3,7 @@ package exql
 import (
 	"database/sql"
 	"github.com/apex/log"
+	"reflect"
 	"time"
 )
 
@@ -17,6 +18,8 @@ type DB interface {
 
 type db struct {
 	db *sql.DB
+	qb QueryBuilder
+	ps Parser
 }
 
 func (d *db) Close() error {
@@ -65,5 +68,40 @@ func Open(opts *OpenOptions) (DB, error) {
 		return nil, err
 	}
 success:
-	return &db{db: d}, nil
+	return &db{
+		db: d,
+		qb: &queryBuilder{},
+	}, nil
+}
+
+func (d *db) Insert(modelPtr interface{}) (sql.Result, error) {
+	s, err := d.qb.Insert(modelPtr)
+	if err != nil {
+		return nil, err
+	}
+	result, err := d.db.Exec(s.Query, s.Values...)
+	if err != nil {
+		return nil, err
+	}
+	lid, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	kind := s.PrimaryKeyField.Kind()
+	if kind == reflect.Int64 {
+		s.PrimaryKeyField.Set(reflect.ValueOf(lid))
+	} else if kind == reflect.Uint64 {
+		s.PrimaryKeyField.Set(reflect.ValueOf(uint64(lid)))
+	} else {
+		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
+	}
+	return result, nil
+}
+
+func (d *db) Update(table string, set map[string]interface{}, where WhereQuery) (sql.Result, error) {
+	s, err := d.qb.Update(table, set, where)
+	if err != nil {
+		return nil, err
+	}
+	return d.db.Exec(s.Query, s.Values...)
 }

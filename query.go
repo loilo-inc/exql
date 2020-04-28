@@ -2,6 +2,7 @@ package exql
 
 import (
 	"fmt"
+	"regexp"
 )
 
 type WhereQuery interface {
@@ -14,9 +15,18 @@ type whereQuery struct {
 	args  []interface{}
 }
 
+var emptyPat = regexp.MustCompile("^[\\s|\\t]*$")
+
+func IsSafeWhereClause(s string) bool {
+	if emptyPat.MatchString(s) {
+		return false
+	}
+	return true
+}
+
 func (w *whereQuery) Query() (string, error) {
-	if w.query == "" {
-		return "", fmt.Errorf("empty where clause")
+	if !IsSafeWhereClause(w.query) {
+		return "", fmt.Errorf("DANGER: empty where clause")
 	}
 	return w.query, nil
 }
