@@ -10,8 +10,8 @@ func GenerateModels() {
 	err := gen.Generate(&exql.GenerateOptions{
 		// Directory path for result. Default is `model`
 		OutDir: "dist",
-		// Package name for models. Default is `package`
-		Package: "",
+		// Package name for models. Default is `model`
+		Package: "dist",
 		// Exclude table names for generation. Default is []
 		Exclude: []string{
 			"internal",
