@@ -214,6 +214,13 @@ func TestMapper_MapMany(t *testing.T) {
 			doTest(nil)
 		})
 	})
+	t.Run("should return exql.ErrRecordNotFound if rows is empty", func(t *testing.T) {
+		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
+		assert.Nil(t, err)
+		var dest []*model.Users
+		err = m.MapMany(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound, err)
+	})
 }
 
 func TestMapper_Map(t *testing.T) {
@@ -278,6 +285,14 @@ func TestMapper_Map(t *testing.T) {
 			doTest(nil)
 		})
 	})
+
+	t.Run("should return exql.ErrRecordNotFound if rows is empty", func(t *testing.T) {
+		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
+		assert.Nil(t, err)
+		var dest model.Users
+		err = m.Map(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound, err)
+	})
 }
 
 func TestDb_MapRowsSerial(t *testing.T) {
@@ -318,9 +333,9 @@ func TestDb_MapRowsSerial(t *testing.T) {
 		db.DB().Exec(`DELETE FROM user_groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
-	m := &serialMapper{splitter: func(i int) string {
+	m := NewSerialMapper(func(i int) string {
 		return "id"
-	}}
+	})
 	t.Run("basic", func(t *testing.T) {
 		query := `
 SELECT * FROM users 

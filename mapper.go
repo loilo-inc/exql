@@ -2,20 +2,25 @@ package exql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 )
 
 type Mapper interface {
-	// rowsから一行読んで構造体にマップする
-	// pointerOfStructは必ず構造体へのポインタである必要がある
-	// var user User
-	// m.Map(rows, &user)
+	// Read single row and map columns to destination.
+	// pointerOfStruct MUST BE a pointer of struct.
+	// It closes rows after mapping regardless error occurred.
+	// example:
+	// 		var user User
+	// 		err := m.Map(rows, &user)
 	Map(rows *sql.Rows, pointerOfStruct interface{}) error
-	// rowsからすべての行を読んで構造体の配列にマップする
-	// pointerOfSliceOfStructは必ず構造体のポインタのスライスへのポインタである必要がある
-	// var users []*Users
-	// m.MapMany(rows, &users)
+	// Read all rows and map columns for each destination.
+	// pointerOfSliceOfStruct MUST BE a pointer of slices of pointer of struct.
+	// It closes rows after mapping regardless error occurred.
+	// example:
+	// 		var users []*Users
+	// 		m.MapMany(rows, &users)
 	MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error
 }
 
@@ -26,14 +31,19 @@ func NewMapper() Mapper {
 	return &mapper{}
 }
 
+// Error returned when record not found
+var ErrRecordNotFound = errors.New("record not found")
+
 type ColumnSplitter func(i int) string
 
 type SerialMapper interface {
-	// 結合されたrowから一行読んで構造体に順番にマップする
-	// pointerOfStructは必ず構造体へのポインタの列挙である必要がある
-	// var user User
-	// var favorite UserFavorite
-	// m.Map(rows, &user, &favorite)
+	// Read joined rows and map columns for each destination serially.
+	// pointerOfStruct MUST BE a pointer of struct
+	// NOTE: It WON'T close rows automatically. Close rows manually.
+	// example:
+	// 		var user User
+	// 		var favorite UserFavorite
+	// 		err := m.Map(rows, &user, &favorite)
 	Map(rows *sql.Rows, pointersOfStruct ...interface{}) error
 }
 
@@ -49,6 +59,11 @@ func mapDestinationError() error {
 	return fmt.Errorf("destination must be pointer of struct")
 }
 func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
+	defer func() {
+		if row != nil {
+			row.Close()
+		}
+	}()
 	if pointerOfStruct == nil {
 		return mapDestinationError()
 	}
@@ -63,9 +78,12 @@ func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
 	}
 	if row.Next() {
 		return mapRow(row, &destValue)
-	} else {
-		return fmt.Errorf("rows is empty")
 	}
+	err := row.Close()
+	if err != nil {
+		return err
+	}
+	return ErrRecordNotFound
 }
 
 func mapManyDestinationError() error {
@@ -73,6 +91,11 @@ func mapManyDestinationError() error {
 
 }
 func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	if structPtrOrSlicePtr == nil {
 		return mapManyDestinationError()
 	}
@@ -92,6 +115,7 @@ func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error 
 	}
 	// *Model -> Model
 	sliceType = sliceType.Elem()
+	cnt := 0
 	for rows.Next() {
 		// modelValue := SliceType{}
 		modelValue := reflect.New(sliceType).Elem()
@@ -100,9 +124,18 @@ func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error 
 		}
 		// *dest = append(*dest, i)
 		destValue.Elem().Set(reflect.Append(destValue.Elem(), modelValue.Addr()))
+		cnt++
+	}
+	err := rows.Close()
+	if err != nil {
+		return err
+	}
+	if cnt == 0 {
+		return ErrRecordNotFound
 	}
 	return nil
 }
+
 func mapRow(
 	row *sql.Rows,
 	dest *reflect.Value,
