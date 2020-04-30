@@ -214,6 +214,13 @@ func TestMapper_MapMany(t *testing.T) {
 			doTest(nil)
 		})
 	})
+	t.Run("should return exql.ErrRecordNotFound if rows is empty", func(t *testing.T) {
+		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
+		assert.Nil(t, err)
+		var dest []*model.Users
+		err = m.MapMany(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound, err)
+	})
 }
 
 func TestMapper_Map(t *testing.T) {
@@ -277,6 +284,14 @@ func TestMapper_Map(t *testing.T) {
 		t.Run("nil", func(t *testing.T) {
 			doTest(nil)
 		})
+	})
+
+	t.Run("should return exql.ErrRecordNotFound if rows is empty", func(t *testing.T) {
+		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
+		assert.Nil(t, err)
+		var dest model.Users
+		err = m.Map(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound, err)
 	})
 }
 
