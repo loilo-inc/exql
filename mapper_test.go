@@ -333,9 +333,9 @@ func TestDb_MapRowsSerial(t *testing.T) {
 		db.DB().Exec(`DELETE FROM user_groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
-	m := &serialMapper{splitter: func(i int) string {
+	m := NewSerialMapper(func(i int) string {
 		return "id"
-	}}
+	})
 	t.Run("basic", func(t *testing.T) {
 		query := `
 SELECT * FROM users 
