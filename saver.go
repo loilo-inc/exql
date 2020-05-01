@@ -23,14 +23,17 @@ type Saver interface {
 	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 }
 
+type Executor interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
 type saver struct {
-	db *sql.DB
+	ex Executor
 }
 
 type SET map[string]interface{}
 
-func NewSaver(db *sql.DB) Saver {
-	return &saver{db: db}
+func NewSaver(ex Executor) Saver {
+	return &saver{ex: ex}
 }
 
 func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
@@ -38,7 +41,7 @@ func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.db.Exec(q.Query, q.Values...)
+	result, err := s.ex.Exec(q.Query, q.Values...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +69,7 @@ func (s *saver) Update(
 	if err != nil {
 		return nil, err
 	}
-	return s.db.Exec(q.Query, q.Values...)
+	return s.ex.Exec(q.Query, q.Values...)
 }
 
 func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {

@@ -1,5 +1,5 @@
 package main
 
-var (
-	db = OpenDB()
-)
+import "github.com/loilo-inc/exql"
+
+var db exql.DB

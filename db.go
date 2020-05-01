@@ -1,6 +1,7 @@
 package exql
 
 import (
+	"context"
 	"database/sql"
 	"github.com/apex/log"
 	"time"
@@ -9,7 +10,16 @@ import (
 type DB interface {
 	Saver
 	Mapper
+	// Return *sql.DB instance
 	DB() *sql.DB
+	// Begin transaction and commit.
+	// If error returned from callback, transaction is rolled back.
+	// Internally call tx.BeginTx(context.Background(), nil)
+	Transaction(callback func(tx Tx) error) error
+	// Same as Transaction()
+	// Internally call tx.BeginTx(ctx, opts)
+	TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error
+	// Internally call db.Close()
 	Close() error
 }
 
@@ -94,4 +104,12 @@ func (d *db) Close() error {
 
 func (d *db) DB() *sql.DB {
 	return d.db
+}
+
+func (d *db) Transaction(callback func(tx Tx) error) error {
+	return d.TransactionWithContext(context.Background(), nil, callback)
+}
+
+func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
+	return transaction(d.db, ctx, opts, callback)
 }

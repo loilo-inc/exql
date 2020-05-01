@@ -24,6 +24,7 @@ func setupUsers(t *testing.T, db DB) ([]*model.Users, func()) {
 		LastName:  null.StringFrom("name"),
 	}
 	_, err := db.Insert(user1)
+	assert.Nil(t, err)
 	_, err = db.Insert(user2)
 	assert.Nil(t, err)
 	return []*model.Users{user1, user2}, func() {
@@ -161,7 +162,7 @@ func TestMapper_MapMany(t *testing.T) {
 		users, reset := setupUsers(t, db)
 		defer reset()
 		t.Run("basic", func(t *testing.T) {
-			rows, err := db.DB().Query(`SELECT * FROM users LIMIT 2`)
+			rows, err := db.DB().Query(`SELECT * FROM users WHERE id in (?,?) ORDER BY id`, users[0].Id, users[1].Id)
 			assert.Nil(t, err)
 			defer rows.Close()
 			var dest []*model.Users
@@ -230,7 +231,10 @@ func TestMapper_Map(t *testing.T) {
 		users, reset := setupUsers(t, db)
 		defer reset()
 		t.Run("basic", func(t *testing.T) {
-			rows, err := db.DB().Query(`SELECT * FROM users LIMIT 2`)
+			rows, err := db.DB().Query(
+				`SELECT * FROM users WHERE id IN (?, ?) ORDER BY id`,
+				users[0].Id, users[1].Id,
+			)
 			assert.Nil(t, err)
 			defer rows.Close()
 			var dest model.Users

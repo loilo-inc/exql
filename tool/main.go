@@ -15,6 +15,7 @@ func main() {
 		"Update":         catFile("update.go"),
 		"MapRows":        catFile("mapper.go"),
 		"MapJoinedRows":  catFile("serial_mapper.go"),
+		"Tx":             catFile("tx.go"),
 	}
 	o, err := os.Create("README.md")
 	if err != nil {
