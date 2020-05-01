@@ -144,14 +144,16 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 	s := &saver{}
 	t.Run("basic", func(t *testing.T) {
 		q, err := s.QueryForUpdate("users", map[string]interface{}{
-			"first_name": "go",
-			"last_name":  "land",
+			"beta":  "b",
+			"zeta":  "z",
+			"alpha": "a",
+			"gamma": "g",
 		}, Where(`id = ?`, 1))
 		assert.Nil(t, err)
-		exp := "UPDATE `users` SET `first_name` = ?, `last_name` = ? WHERE id = ?"
+		exp := "UPDATE `users` SET `alpha` = ?, `beta` = ?, `gamma` = ?, `zeta` = ? WHERE id = ?"
 		assert.Equal(t, exp, q.Query)
-		assert.ElementsMatch(t, []string{"first_name", "last_name"}, q.Fields)
-		assert.ElementsMatch(t, []interface{}{"go", "land", 1}, q.Values)
+		assert.ElementsMatch(t, []string{"alpha", "beta", "gamma", "zeta"}, q.Fields)
+		assert.ElementsMatch(t, []interface{}{"a", "b", "g", "z", 1}, q.Values)
 	})
 	t.Run("should error if tableName is empty", func(t *testing.T) {
 		q, err := s.Update("", nil, nil)
