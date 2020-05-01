@@ -40,4 +40,10 @@ Safe, Strict and Clear ORM for Go
 ```go
 {{.MapJoinedRows}}
 ```
+
+### Transaction
+
+```go
+{{.Tx}}
+```
  
