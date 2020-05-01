@@ -96,43 +96,43 @@ func TestSaver_QueryForInsert(t *testing.T) {
 		}
 		s, err := s.QueryForInsert(&user)
 		assert.Nil(t, err)
-		exp := "INSERT INTO `users` (first_name, last_name) VALUES (?, ?)"
+		exp := "INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)"
 		assert.Equal(t, exp, s.Query)
 		assert.ElementsMatch(t, s.Values, []interface{}{
 			user.FirstName, user.LastName,
 		})
 	})
-	t.Run("objがポインタでない場合エラーを返す", func(t *testing.T) {
+	t.Run("should error if dest is not pointer", func(t *testing.T) {
 		user := model.Users{}
 		s, err := s.QueryForInsert(user)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "object must be pointer of struct")
 	})
-	t.Run("objが構造体のポインタでない場合エラーを返す", func(t *testing.T) {
+	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
 		var users []*model.Users
 		s, err := s.QueryForInsert(&users)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "object must be pointer of struct")
 	})
-	t.Run("exqlタグのない構造体のポインタの場合エラーを返す", func(t *testing.T) {
+	t.Run("should error if dest has no exql tags in any field", func(t *testing.T) {
 		var tim time.Time
 		s, err := s.QueryForInsert(&tim)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "obj doesn't have exql tags in any fields")
 	})
-	t.Run("TableName()がない構造体の場合エラーを返す", func(t *testing.T) {
+	t.Run("should error if dest doesn't implement TableName()", func(t *testing.T) {
 		var sam sample1
 		s, err := s.QueryForInsert(&sam)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "obj doesn't implement TableName() method")
 	})
-	t.Run("TableName()が文字列を返さない場合エラーを返す", func(t *testing.T) {
+	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
 		var sam sample2
 		s, err := s.QueryForInsert(&sam)
 		assert.Nil(t, s)
 		assert.Errorf(t, err, "wrong implementation of TableName()")
 	})
-	t.Run("主キーのないモデルはエラーを返す", func(t *testing.T) {
+	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
 		var sam sample3
 		s, err := s.QueryForInsert(&sam)
 		assert.Nil(t, s)
@@ -153,24 +153,24 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 		assert.ElementsMatch(t, []string{"first_name", "last_name"}, q.Fields)
 		assert.ElementsMatch(t, []interface{}{"go", "land", 1}, q.Values)
 	})
-	t.Run("tableが空の場合はエラー", func(t *testing.T) {
+	t.Run("should error if tableName is empty", func(t *testing.T) {
 		q, err := s.Update("", nil, nil)
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty table name")
 	})
-	t.Run("setが空の場合はエラー", func(t *testing.T) {
+	t.Run("should error if where clause is nil", func(t *testing.T) {
 		q, err := s.Update("users", make(map[string]interface{}), nil)
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty field set")
 	})
-	t.Run("Whereが空の場合はエラー", func(t *testing.T) {
+	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
 		}, Where(""))
 		assert.Nil(t, q)
 		assert.Errorf(t, err, "empty where clause")
 	})
-	t.Run("return error if clause type is not where", func(t *testing.T) {
+	t.Run("should error if clause type is not where", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
 		}, &clause{

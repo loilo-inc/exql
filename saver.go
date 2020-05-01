@@ -98,7 +98,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 				// 主キーはVALUESに含めない
 				continue
 			}
-			columns = append(columns, fmt.Sprintf(`%s`, colName))
+			columns = append(columns, fmt.Sprintf("`%s`", colName))
 			placeholders = append(placeholders, "?")
 			values = append(values, objValue.Elem().Field(i).Interface())
 		}
