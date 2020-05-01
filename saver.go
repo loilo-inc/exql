@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -98,7 +99,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 				// 主キーはVALUESに含めない
 				continue
 			}
-			columns = append(columns, fmt.Sprintf(`%s`, colName))
+			columns = append(columns, fmt.Sprintf("`%s`", colName))
 			placeholders = append(placeholders, "?")
 			values = append(values, objValue.Elem().Field(i).Interface())
 		}
@@ -133,6 +134,12 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	}, nil
 }
 
+type assignment struct {
+	expression string
+	field      string
+	value      interface{}
+}
+
 func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	if table == "" {
 		return nil, fmt.Errorf("empty table name")
@@ -143,23 +150,34 @@ func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where C
 	if where.Type() != ClauseTypeWhere {
 		return nil, fmt.Errorf("where is not build by Where()")
 	}
-	var fields []string
-	var assignments []string
-	var values []interface{}
-	for k, v := range set {
-		f := fmt.Sprintf("`%s` = ?", k)
-		assignments = append(assignments, f)
-		fields = append(fields, k)
-		values = append(values, v)
-	}
 	whereQ, err := where.Query()
 	if err != nil {
 		return nil, err
 	}
+	var assignments []*assignment
+	for k, v := range set {
+		f := fmt.Sprintf("`%s` = ?", k)
+		assignments = append(assignments, &assignment{
+			expression: f,
+			field:      k,
+			value:      v,
+		})
+	}
+	sort.Slice(assignments, func(i, j int) bool {
+		return strings.Compare(assignments[i].field, assignments[j].field) < 0
+	})
+	var fields []string
+	var values []interface{}
+	var expressions []string
+	for _, v := range assignments {
+		fields = append(fields, v.field)
+		values = append(values, v.value)
+		expressions = append(expressions, v.expression)
+	}
 	values = append(values, where.Args()...)
 	query := fmt.Sprintf(
 		"UPDATE `%s` SET %s WHERE %s",
-		table, strings.Join(assignments, ", "), whereQ,
+		table, strings.Join(expressions, ", "), whereQ,
 	)
 	return &SaveQuery{
 		Query:  query,
