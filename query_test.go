@@ -30,7 +30,7 @@ func TestWhereQuery_Query(t *testing.T) {
 	t.Run("should return error if query has no expression", func(t *testing.T) {
 		q := Where("", 1)
 		_, err := q.Query()
-		assert.Errorf(t, err, "DANGER: empty where clause")
+		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
 }
 

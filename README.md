@@ -233,7 +233,7 @@ import (
 	"time"
 )
 
-func main() {
+func Transaction() {
 	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := db.TransactionWithContext(timeout, &sql.TxOptions{
 		Isolation: sql.LevelDefault,
