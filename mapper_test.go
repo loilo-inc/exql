@@ -188,7 +188,7 @@ func TestMapper_MapMany(t *testing.T) {
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
 		doTest := func(i interface{}) {
-			assert.Errorf(t, m.MapMany(nil, i),
+			assert.EqualError(t, m.MapMany(nil, i),
 				"destination must be pointer of slice of struct",
 			)
 		}
@@ -268,7 +268,7 @@ func TestMapper_Map(t *testing.T) {
 	})
 	t.Run("should return error if destination is not pointer of struct", func(t *testing.T) {
 		doTest := func(i interface{}) {
-			assert.Errorf(t, m.Map(nil, i), "destination must be pointer of struct")
+			assert.EqualError(t, m.Map(nil, i), "destination must be pointer of struct")
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0)
@@ -413,17 +413,17 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 			var user model.Users
 			var ug model.UserGroups
 			err := m.Map(rows, &user, &ug)
-			assert.Errorf(t, err, "head col mismatch: expected=%s, actual=%s", "var", "id")
+			assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
 			break
 		}
 	})
 	t.Run("should return error if dest is empty", func(t *testing.T) {
 		err := m.Map(nil)
-		assert.Errorf(t, err, "empty dest list")
+		assert.EqualError(t, err, "empty dest list")
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
 		doTest := func(i ...interface{}) {
-			assert.Errorf(t, m.Map(nil, i...), "destination must be pointer of struct")
+			assert.EqualError(t, m.Map(nil, i...), "destination must be pointer of struct")
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0, 1, 2)

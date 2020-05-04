@@ -13,16 +13,13 @@ func ParseTags(tag string) (map[string]string, error) {
 			return nil
 		}
 		if _, ok := ret[k]; ok {
-			return fmt.Errorf("duplicate tag: %s", k)
+			return fmt.Errorf("duplicated tag: %s", k)
 		}
 		ret[k] = v
 		return nil
 	}
 	for _, tag := range tags {
 		kv := strings.Split(tag, ":")
-		if len(kv) == 0 {
-			continue
-		}
 		if len(kv) == 1 {
 			if err := set(kv[0], ""); err != nil {
 				return nil, err
@@ -32,11 +29,11 @@ func ParseTags(tag string) (map[string]string, error) {
 				return nil, err
 			}
 		} else {
-			return nil, fmt.Errorf("invalid tag format: %s", tag)
+			return nil, fmt.Errorf("invalid tag format")
 		}
 	}
 	if len(ret) == 0 {
-		return nil, fmt.Errorf("empty tags")
+		return nil, fmt.Errorf("invalid tag format")
 	}
 	return ret, nil
 }

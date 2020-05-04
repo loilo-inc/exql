@@ -22,20 +22,20 @@ func TestParseTags(t *testing.T) {
 		assert.Equal(t, "", tags["b"])
 		assert.Equal(t, "", tags["c"])
 	})
-	t.Run("should return error for duplicate tag", func(t *testing.T) {
-		tags, err := ParseTags("a:1;a:2")
+	assertInvalid := func(s string, e string) {
+		tags, err := ParseTags(s)
 		assert.Nil(t, tags)
-		assert.Errorf(t, err, "duplicate tag: a")
+		assert.Errorf(t, err, "invalid tag format")
+	}
+	t.Run("should return error for duplicate tag", func(t *testing.T) {
+		assertInvalid("a:1;a:2", "duplicated tag: a")
+		assertInvalid("a;a;", "duplicated tag: a")
 	})
 	t.Run("should return error if tag is empty", func(t *testing.T) {
-		assertEmpty := func(s string) {
-			tags, err := ParseTags(s)
-			assert.Nil(t, tags)
-			assert.Errorf(t, err, "empty tags")
-		}
-		assertEmpty("")
-		assertEmpty(";:;")
-		assertEmpty(":::")
-		assertEmpty(";;;")
+		assertInvalid(";", "invalid tag format")
+		assertInvalid("", "invalid tag format")
+		assertInvalid(";:;", "invalid tag format")
+		assertInvalid(":::", "invalid tag format")
+		assertInvalid(";;;", "invalid tag format")
 	})
 }

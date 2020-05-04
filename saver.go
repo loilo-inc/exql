@@ -84,6 +84,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	// *User -> User
 	objType = objType.Elem()
 	hasPrimary := false
+	exqlTagCount := 0
 	var primaryKeyField reflect.Value
 	for i := 0; i < objType.NumField(); i++ {
 		f := objType.Field(i)
@@ -96,10 +97,11 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 			if !ok || colName == "" {
 				return nil, fmt.Errorf("column tag is not set")
 			}
+			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
 				hasPrimary = true
 				primaryKeyField = objValue.Elem().Field(i)
-				// 主キーはVALUESに含めない
+				// Not include primary key in insert query
 				continue
 			}
 			columns = append(columns, fmt.Sprintf("`%s`", colName))
@@ -107,20 +109,20 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 			values = append(values, objValue.Elem().Field(i).Interface())
 		}
 	}
+	if exqlTagCount == 0 {
+		return nil, fmt.Errorf("obj doesn't have exql tags in any fields")
+	}
+
 	if !hasPrimary {
 		return nil, fmt.Errorf("table has no primary key")
 	}
-	colCnt := len(columns)
-	valCnt := len(values)
-	if colCnt == 0 || valCnt == 0 {
-		return nil, fmt.Errorf("obj doesn't have exql tags in any fields")
-	}
+
 	getTableName := objValue.MethodByName("TableName")
-	if getTableName.IsNil() {
+	if !getTableName.IsValid() {
 		return nil, fmt.Errorf("obj doesn't implement TableName() method")
 	}
-	tableName := getTableName.Call(nil)[0].String()
-	if tableName == "" {
+	tableName := getTableName.Call(nil)[0]
+	if tableName.Type().Kind() != reflect.String {
 		return nil, fmt.Errorf("wrong implementation of TableName()")
 	}
 	query := fmt.Sprintf(

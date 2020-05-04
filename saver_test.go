@@ -8,19 +8,28 @@ import (
 	"time"
 )
 
-type sample1 struct {
-	Id int `exql:"column:id;primary"`
-}
-type sample2 struct {
+type sampleNoTableName struct {
 	Id int `exql:"column:id;primary"`
 }
 
-func (s *sample2) TableName() interface{} {
+type sampleBadTableName struct {
+	Id int `exql:"column:id;primary"`
+}
+
+func (s *sampleBadTableName) TableName() interface{} {
 	return 1
 }
 
-type sample3 struct {
+type sampleNoPrimaryKey struct {
 	Id int `exql:"column:id"`
+}
+
+type sampleNoColumnTag struct {
+	Id int `exql:"primary"`
+}
+
+type sampleBadTag struct {
+	Id int `exql:"a;a:1"`
 }
 
 func TestSaver_Insert(t *testing.T) {
@@ -102,41 +111,42 @@ func TestSaver_QueryForInsert(t *testing.T) {
 			user.FirstName, user.LastName,
 		})
 	})
+	assertInvalid := func(t *testing.T, m interface{}, e string) {
+		s, err := s.QueryForInsert(m)
+		assert.Nil(t, s)
+		assert.EqualError(t, err, e)
+	}
 	t.Run("should error if dest is not pointer", func(t *testing.T) {
 		user := model.Users{}
-		s, err := s.QueryForInsert(user)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "object must be pointer of struct")
+		assertInvalid(t, user, "object must be pointer of struct")
 	})
 	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
 		var users []*model.Users
-		s, err := s.QueryForInsert(&users)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "object must be pointer of struct")
+		assertInvalid(t, users, "object must be pointer of struct")
 	})
 	t.Run("should error if dest has no exql tags in any field", func(t *testing.T) {
 		var tim time.Time
-		s, err := s.QueryForInsert(&tim)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "obj doesn't have exql tags in any fields")
+		assertInvalid(t, &tim, "obj doesn't have exql tags in any fields")
 	})
 	t.Run("should error if dest doesn't implement TableName()", func(t *testing.T) {
-		var sam sample1
-		s, err := s.QueryForInsert(&sam)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "obj doesn't implement TableName() method")
+		var sam sampleNoTableName
+		assertInvalid(t, &sam, "obj doesn't implement TableName() method")
 	})
 	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
-		var sam sample2
-		s, err := s.QueryForInsert(&sam)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "wrong implementation of TableName()")
+		var sam sampleBadTableName
+		assertInvalid(t, &sam, "wrong implementation of TableName()")
+	})
+	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
+		var sam sampleNoColumnTag
+		assertInvalid(t, &sam, "column tag is not set")
+	})
+	t.Run("should error if field tag is invalid", func(t *testing.T) {
+		var sam sampleBadTag
+		assertInvalid(t, &sam, "duplicated tag: a")
 	})
 	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
-		var sam sample3
-		s, err := s.QueryForInsert(&sam)
-		assert.Nil(t, s)
-		assert.Errorf(t, err, "table has no primary key")
+		var sam sampleNoPrimaryKey
+		assertInvalid(t, &sam, "table has no primary key")
 	})
 }
 
@@ -158,19 +168,19 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 	t.Run("should error if tableName is empty", func(t *testing.T) {
 		q, err := s.Update("", nil, nil)
 		assert.Nil(t, q)
-		assert.Errorf(t, err, "empty table name")
+		assert.EqualError(t, err, "empty table name")
 	})
 	t.Run("should error if where clause is nil", func(t *testing.T) {
 		q, err := s.Update("users", make(map[string]interface{}), nil)
 		assert.Nil(t, q)
-		assert.Errorf(t, err, "empty field set")
+		assert.EqualError(t, err, "empty field set")
 	})
 	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
 		}, Where(""))
 		assert.Nil(t, q)
-		assert.Errorf(t, err, "empty where clause")
+		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
 	t.Run("should error if clause type is not where", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
@@ -179,6 +189,6 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 			t: "join",
 		})
 		assert.Nil(t, q)
-		assert.Errorf(t, err, "where is not build by Where()")
+		assert.EqualError(t, err, "where is not build by Where()")
 	})
 }
