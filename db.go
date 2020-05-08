@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/apex/log"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,8 @@ type DB interface {
 	Mapper
 	// Return *sql.DB instance
 	DB() *sql.DB
+	// Set db object
+	SetDB(db *sql.DB)
 	// Begin transaction and commit.
 	// If error returned from callback, transaction is rolled back.
 	// Internally call tx.BeginTx(context.Background(), nil)
@@ -19,14 +22,21 @@ type DB interface {
 	// Same as Transaction()
 	// Internally call tx.BeginTx(ctx, opts)
 	TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error
-	// Internally call db.Close()
+	// Call db.Close()
 	Close() error
 }
 
 type db struct {
-	db *sql.DB
-	s  Saver
-	m  Mapper
+	db    *sql.DB
+	s     Saver
+	m     Mapper
+	mutex sync.Mutex
+}
+
+func (d *db) SetDB(db *sql.DB) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.db = db
 }
 
 type OpenOptions struct {

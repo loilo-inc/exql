@@ -7,11 +7,13 @@ import (
 
 type Tx interface {
 	Saver
+	Mapper
 	Tx() *sql.Tx
 }
 
 type tx struct {
 	s  Saver
+	m  Mapper
 	tx *sql.Tx
 }
 
@@ -31,6 +33,14 @@ func (t *tx) QueryForUpdate(table string, set map[string]interface{}, where Clau
 	return t.s.QueryForUpdate(table, set, where)
 }
 
+func (t *tx) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
+	return t.m.Map(rows, pointerOfStruct)
+}
+
+func (t *tx) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
+	return t.m.MapMany(rows, pointerOfSliceOfStruct)
+}
+
 func (t *tx) Tx() *sql.Tx {
 	return t.tx
 }
@@ -40,7 +50,7 @@ func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	if err != nil {
 		return err
 	}
-	tx := &tx{tx: sqlTx, s: NewSaver(sqlTx)}
+	tx := &tx{tx: sqlTx, s: NewSaver(sqlTx), m: NewMapper()}
 	txErr := callback(tx)
 	if txErr != nil {
 		if err := sqlTx.Rollback(); err != nil {
