@@ -54,3 +54,56 @@ func TestTx_Transaction(t *testing.T) {
 		assert.Error(t, err, ErrRecordNotFound.Error())
 	})
 }
+func TestTx_Map(t *testing.T) {
+	db := testDb()
+	user := &model.Users{
+		FirstName: null.StringFrom("go"),
+		LastName:  null.StringFrom("land"),
+	}
+	defer func() {
+		db.DB().Exec(`delete from users where id = ?`, user.Id)
+	}()
+	var dest model.Users
+	err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+		if _, err := tx.Insert(user); err != nil {
+			return err
+		}
+		rows, err := tx.Tx().Query(`select * from users where id = ?`, user.Id)
+		if err != nil {
+			return err
+		}
+		if err := tx.Map(rows, &dest); err != nil {
+			return err
+		}
+		return nil
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, user.Id, dest.Id)
+}
+
+func TestTx_MapMany(t *testing.T) {
+	user := &model.Users{
+		FirstName: null.StringFrom("go"),
+		LastName:  null.StringFrom("land"),
+	}
+	db := testDb()
+	var dest []*model.Users
+	defer func() {
+		db.DB().Exec(`delete from users where id = ?`, user.Id)
+	}()
+	err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+		if _, err := tx.Insert(user); err != nil {
+			return err
+		}
+		rows, err := tx.Tx().Query(`select * from users where id = ?`, user.Id)
+		if err != nil {
+			return err
+		}
+		if err := tx.MapMany(rows, &dest); err != nil {
+			return err
+		}
+		return nil
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, user.Id, dest[0].Id)
+}
