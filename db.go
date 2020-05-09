@@ -28,15 +28,9 @@ type DB interface {
 
 type db struct {
 	db    *sql.DB
-	s     Saver
-	m     Mapper
+	s     *saver
+	m     *mapper
 	mutex sync.Mutex
-}
-
-func (d *db) SetDB(db *sql.DB) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	d.db = db
 }
 
 type OpenOptions struct {
@@ -77,11 +71,15 @@ func Open(opts *OpenOptions) (DB, error) {
 		return nil, err
 	}
 success:
+	return NewDB(d), nil
+}
+
+func NewDB(d *sql.DB) DB {
 	return &db{
 		db: d,
-		s:  NewSaver(d),
-		m:  NewMapper(),
-	}, nil
+		s:  &saver{ex: d},
+		m:  &mapper{},
+	}
 }
 
 func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
@@ -109,11 +107,20 @@ func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 }
 
 func (d *db) Close() error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 	return d.db.Close()
 }
 
 func (d *db) DB() *sql.DB {
 	return d.db
+}
+
+func (d *db) SetDB(db *sql.DB) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.db = db
+	d.s.ex = db
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
