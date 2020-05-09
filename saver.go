@@ -3,7 +3,6 @@ package exql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/apex/log"
 	"reflect"
 	"sort"
 	"strings"
@@ -26,6 +25,7 @@ type Saver interface {
 type Executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
+
 type saver struct {
 	ex Executor
 }
@@ -54,8 +54,6 @@ func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
 		q.PrimaryKeyField.Set(reflect.ValueOf(lid))
 	} else if kind == reflect.Uint64 {
 		q.PrimaryKeyField.Set(reflect.ValueOf(uint64(lid)))
-	} else {
-		log.Warn("primary key is not int64/uint64. assigning lastInsertedId is skipped")
 	}
 	return result, nil
 }
@@ -73,6 +71,9 @@ func (s *saver) Update(
 }
 
 func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
+	if modelPtr == nil {
+		return nil, fmt.Errorf("pointer is nil")
+	}
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {

@@ -1,6 +1,8 @@
 package exql
 
 import (
+	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
@@ -32,6 +34,15 @@ type sampleBadTag struct {
 	Id int `exql:"a;a:1"`
 }
 
+type samplePrimaryUint64 struct {
+	Id   uint64 `exql:"column:id;primary"`
+	Name string `exql:"column:name"`
+}
+
+func (s *samplePrimaryUint64) TableName() string {
+	return "samplePrimaryUint64"
+}
+
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
 	m := NewMapper()
@@ -61,6 +72,42 @@ func TestSaver_Insert(t *testing.T) {
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
 		assert.Equal(t, user.LastName.String, actual.LastName.String)
+	})
+	t.Run("should error if modelPtr is invalid", func(t *testing.T) {
+		res, err := s.Insert(nil)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+	})
+	t.Run("should error if db.Exec() failed", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		mock.ExpectExec("INSERT INTO `users`").WithArgs(null.String{}, null.String{}).WillReturnError(fmt.Errorf("err"))
+		s := NewSaver(db)
+		user := &model.Users{
+			FirstName: null.String{},
+			LastName:  null.String{},
+		}
+		_, err := s.Insert(user)
+		assert.EqualError(t, err, "err")
+	})
+	t.Run("should error if result.LastInsertId() failed", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		mock.ExpectExec("INSERT INTO `users`").WithArgs(null.String{}, null.String{}).WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("err")))
+		s := NewSaver(db)
+		user := &model.Users{
+			FirstName: null.String{},
+			LastName:  null.String{},
+		}
+		_, err := s.Insert(user)
+		assert.EqualError(t, err, "err")
+	})
+	t.Run("should assign lid to uint primary key", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
+		s := NewSaver(db)
+		user := &samplePrimaryUint64{}
+		_, err := s.Insert(user)
+		assert.Nil(t, err)
+		assert.Equal(t, uint64(11), user.Id)
 	})
 }
 
@@ -116,6 +163,9 @@ func TestSaver_QueryForInsert(t *testing.T) {
 		assert.Nil(t, s)
 		assert.EqualError(t, err, e)
 	}
+	t.Run("should error if dest is nil", func(t *testing.T) {
+		assertInvalid(t, nil, "pointer is nil")
+	})
 	t.Run("should error if dest is not pointer", func(t *testing.T) {
 		user := model.Users{}
 		assertInvalid(t, user, "object must be pointer of struct")

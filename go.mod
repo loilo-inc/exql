@@ -3,6 +3,7 @@ module github.com/loilo-inc/exql
 go 1.14
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.4.1
 	github.com/apex/log v1.1.4
 	github.com/friendsofgo/errors v0.9.2 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
