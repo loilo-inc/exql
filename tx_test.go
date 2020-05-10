@@ -53,6 +53,23 @@ func TestTx_Transaction(t *testing.T) {
 		err = db.Map(rows, &dest)
 		assert.Error(t, err, ErrRecordNotFound.Error())
 	})
+	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
+		var user *model.Users
+		err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+			user = &model.Users{
+				FirstName: null.String{},
+				LastName:  null.String{},
+			}
+			_, err := tx.Insert(user)
+			assert.Nil(t, err)
+			panic("panic")
+		})
+		assert.EqualError(t, err, "recovered: panic")
+		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
+		assert.Nil(t, err)
+		var dest model.Users
+		assert.Equal(t, db.Map(rows, &dest), ErrRecordNotFound)
+	})
 }
 func TestTx_Map(t *testing.T) {
 	db := testDb()

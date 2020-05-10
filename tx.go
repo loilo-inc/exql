@@ -3,6 +3,7 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 type Tx interface {
@@ -51,7 +52,16 @@ func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 		return err
 	}
 	tx := &tx{tx: sqlTx, s: NewSaver(sqlTx), m: NewMapper()}
-	txErr := callback(tx)
+	var p interface{}
+	txErr := func() error {
+		defer func() {
+			p = recover()
+		}()
+		return callback(tx)
+	}()
+	if p != nil {
+		txErr = fmt.Errorf("recovered: %s", p)
+	}
 	if txErr != nil {
 		if err := sqlTx.Rollback(); err != nil {
 			return err
