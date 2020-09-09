@@ -1,6 +1,7 @@
 package exql
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -17,13 +18,16 @@ type SaveQuery struct {
 
 type Saver interface {
 	Insert(structPtr interface{}) (sql.Result, error)
+	InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error)
 	QueryForInsert(structPtr interface{}) (*SaveQuery, error)
 	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
+	UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error)
 	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 }
 
 type Executor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
 
 type saver struct {
@@ -32,16 +36,20 @@ type saver struct {
 
 type SET map[string]interface{}
 
-func NewSaver(ex Executor) Saver {
+func NewSaver(ex Executor) *saver {
 	return &saver{ex: ex}
 }
 
 func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
+	return s.InsertContext(context.Background(), modelPtr)
+}
+
+func (s *saver) InsertContext(ctx context.Context, modelPtr interface{}) (sql.Result, error) {
 	q, err := s.QueryForInsert(modelPtr)
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.ex.Exec(q.Query, q.Values...)
+	result, err := s.ex.ExecContext(ctx, q.Query, q.Values...)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +71,20 @@ func (s *saver) Update(
 	set map[string]interface{},
 	where Clause,
 ) (sql.Result, error) {
+	return s.UpdateContext(context.Background(), table, set, where)
+}
+
+func (s *saver) UpdateContext(
+	ctx context.Context,
+	table string,
+	set map[string]interface{},
+	where Clause,
+) (sql.Result, error) {
 	q, err := s.QueryForUpdate(table, set, where)
 	if err != nil {
 		return nil, err
 	}
-	return s.ex.Exec(q.Query, q.Values...)
+	return s.ex.ExecContext(ctx, q.Query, q.Values...)
 }
 
 func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {

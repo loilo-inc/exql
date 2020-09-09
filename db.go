@@ -34,7 +34,9 @@ type db struct {
 }
 
 type OpenOptions struct {
-	Url string
+	// @default "mysql"
+	DriverName string
+	Url        string
 	// @default 5
 	MaxRetryCount int
 	// @default 5s
@@ -42,6 +44,10 @@ type OpenOptions struct {
 }
 
 func Open(opts *OpenOptions) (DB, error) {
+	driverName := "mysql"
+	if opts.DriverName != "" {
+		driverName = opts.DriverName
+	}
 	maxRetryCount := 5
 	retryInterval := 5 * time.Second
 	if opts.MaxRetryCount > 0 {
@@ -54,7 +60,7 @@ func Open(opts *OpenOptions) (DB, error) {
 	var err error
 	retryCnt := 0
 	for retryCnt < maxRetryCount {
-		d, err = sql.Open("mysql", opts.Url)
+		d, err = sql.Open(driverName, opts.Url)
 		if err != nil {
 			goto retry
 		} else if err = d.Ping(); err != nil {
@@ -86,12 +92,20 @@ func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
 	return d.s.Insert(structPtr)
 }
 
+func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
+	return d.s.InsertContext(ctx, structPtr)
+}
+
 func (d *db) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
 	return d.s.QueryForInsert(structPtr)
 }
 
 func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql.Result, error) {
 	return d.s.Update(table, set, where)
+}
+
+func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
+	return d.s.UpdateContext(ctx, table, set, where)
 }
 
 func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
