@@ -112,7 +112,7 @@ func TestSaver_Insert(t *testing.T) {
 	})
 }
 
-func TestSaver_InsertContext(t *testing.T) {
+func TestSaver_InsertWithContext(t *testing.T) {
 	d := testDb()
 	m := NewMapper()
 	s := NewSaver(d.DB())
@@ -121,7 +121,7 @@ func TestSaver_InsertContext(t *testing.T) {
 			FirstName: null.StringFrom("first"),
 			LastName:  null.StringFrom("last"),
 		}
-		result, err := s.InsertContext(context.Background(), user)
+		result, err := s.InsertWithContext(context.Background(), user)
 		assert.Nil(t, err)
 		assert.False(t, user.Id == 0)
 		defer func() {
@@ -176,7 +176,7 @@ func TestSaver_Update(t *testing.T) {
 	})
 }
 
-func TestSaver_UpdateContext(t *testing.T) {
+func TestSaver_UpdateWithContext(t *testing.T) {
 	d := testDb()
 	m := NewMapper()
 	s := NewSaver(d.DB())
@@ -190,7 +190,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, lid)
 		}()
-		result, err = s.UpdateContext(context.Background(), "users", map[string]interface{}{
+		result, err = s.UpdateWithContext(context.Background(), "users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "lang",
 		}, Where(`id = ?`, lid))
