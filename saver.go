@@ -18,10 +18,10 @@ type SaveQuery struct {
 
 type Saver interface {
 	Insert(structPtr interface{}) (sql.Result, error)
-	InsertWithContext(ctx context.Context, structPtr interface{}) (sql.Result, error)
+	InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error)
 	QueryForInsert(structPtr interface{}) (*SaveQuery, error)
 	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
-	UpdateWithContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error)
+	UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error)
 	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 }
 
@@ -41,10 +41,10 @@ func NewSaver(ex Executor) *saver {
 }
 
 func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
-	return s.InsertWithContext(context.Background(), modelPtr)
+	return s.InsertContext(context.Background(), modelPtr)
 }
 
-func (s *saver) InsertWithContext(ctx context.Context, modelPtr interface{}) (sql.Result, error) {
+func (s *saver) InsertContext(ctx context.Context, modelPtr interface{}) (sql.Result, error) {
 	q, err := s.QueryForInsert(modelPtr)
 	if err != nil {
 		return nil, err
@@ -71,10 +71,10 @@ func (s *saver) Update(
 	set map[string]interface{},
 	where Clause,
 ) (sql.Result, error) {
-	return s.UpdateWithContext(context.Background(), table, set, where)
+	return s.UpdateContext(context.Background(), table, set, where)
 }
 
-func (s *saver) UpdateWithContext(
+func (s *saver) UpdateContext(
 	ctx context.Context,
 	table string,
 	set map[string]interface{},

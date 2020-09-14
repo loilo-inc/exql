@@ -22,8 +22,8 @@ func (t *tx) Insert(structPtr interface{}) (sql.Result, error) {
 	return t.s.Insert(structPtr)
 }
 
-func (t *tx) InsertWithContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return t.s.InsertWithContext(ctx, structPtr)
+func (t *tx) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
+	return t.s.InsertContext(ctx, structPtr)
 }
 
 func (t *tx) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
@@ -34,8 +34,8 @@ func (t *tx) Update(table string, set map[string]interface{}, where Clause) (sql
 	return t.s.Update(table, set, where)
 }
 
-func (t *tx) UpdateWithContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
-	return t.s.UpdateWithContext(ctx, table, set, where)
+func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
+	return t.s.UpdateContext(ctx, table, set, where)
 }
 
 func (t *tx) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
