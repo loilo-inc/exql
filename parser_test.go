@@ -43,8 +43,11 @@ func TestParser_ParseType(t *testing.T) {
 		list := [][]interface{}{
 			{"date", "time.Time", "null.Time"},
 			{"datetime", "time.Time", "null.Time"},
+			{"datetime(6)", "time.Time", "null.Time"},
 			{"timestamp", "time.Time", "null.Time"},
+			{"timestamp(6)", "time.Time", "null.Time"},
 			{"time", "string", "null.String"},
+			{"time(6)", "string", "null.String"},
 		}
 		for _, v := range list {
 			t := v[0].(string)

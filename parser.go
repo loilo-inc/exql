@@ -165,8 +165,8 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 	charPat := regexp.MustCompile("^(var)?char\\(\\d+?\\)$")
 	textPat := regexp.MustCompile("^(tiny|medium|long)?text$")
 	blobPat := regexp.MustCompile("^(tiny|medium|long)?blob$")
-	datePat := regexp.MustCompile("^(date|datetime|timestamp)$")
-	timePat := regexp.MustCompile("^time$")
+	datePat := regexp.MustCompile("^(date|datetime|datetime\\(\\d\\)|timestamp|timestamp\\(\\d\\))$")
+	timePat := regexp.MustCompile("^(time|time\\(\\d\\))$")
 	if intPat.MatchString(t) {
 		m := intPat.FindStringSubmatch(t)
 		unsigned := strings.Contains(t, "unsigned")
