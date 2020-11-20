@@ -2,8 +2,9 @@ package exql
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParser_ParseType(t *testing.T) {
@@ -82,5 +83,9 @@ func TestParser_ParseType(t *testing.T) {
 			assertType(t, false, v[1].(string))
 			assertType(t, true, v[2].(string))
 		}
+	})
+	t.Run("json", func(t *testing.T) {
+		assertType("json", false, "[]byte")
+		assertType("json", true, "null.Bytes")
 	})
 }

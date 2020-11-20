@@ -3,10 +3,11 @@ package exql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/iancoleman/strcase"
 )
 
 type parser struct {
@@ -167,6 +168,7 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 	blobPat := regexp.MustCompile("^(tiny|medium|long)?blob$")
 	datePat := regexp.MustCompile("^(date|datetime|datetime\\(\\d\\)|timestamp|timestamp\\(\\d\\))$")
 	timePat := regexp.MustCompile("^(time|time\\(\\d\\))$")
+	jsonPat := regexp.MustCompile("^json$")
 	if intPat.MatchString(t) {
 		m := intPat.FindStringSubmatch(t)
 		unsigned := strings.Contains(t, "unsigned")
@@ -217,6 +219,11 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 		}
 		return "float64", nil
 	} else if blobPat.MatchString(t) {
+		if nullable {
+			return "null.Bytes", nil
+		}
+		return "[]byte", nil
+	} else if jsonPat.MatchString(t) {
 		if nullable {
 			return "null.Bytes", nil
 		}

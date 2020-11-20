@@ -71,7 +71,7 @@ create table fields (
     time_field time not null,
     time_null_field time,
     timestamp_field timestamp not null,
-    timestamp_null_field timestamp,
+    timestamp_null_field timestamp null,
     tinyblob_field tinyblob not null,
     tinyblob_null_field tinyblob,
     mediumblob_field mediumblob not null,
@@ -80,5 +80,7 @@ create table fields (
     blob_null_field blob,
     longblob_field longblob not null,
     longblob_null_field longblob,
+    json_field json not null,
+    json_null_field json,
     primary key (id)
 );

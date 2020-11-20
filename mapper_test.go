@@ -1,12 +1,13 @@
 package exql
 
 import (
+	"testing"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
-	"testing"
-	"time"
 )
 
 type partialUser struct {
@@ -38,6 +39,7 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 	mediumBlob := []byte("mediumblob")
 	blob := []byte("blob")
 	longblob := []byte("longblob")
+	json := []byte(`{"string":"json","number":123.456,"boolean":true,"array":["Apple","Orange"]}`)
 	field := model.Fields{
 		TinyintField:                   2,
 		TinyintUnsignedField:           3,
@@ -82,7 +84,7 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 		TimeField:                      "12:34:56",
 		TimeNullField:                  null.StringFrom("12:34:56"),
 		TimestampField:                 now,
-		TimestampNullField:             now,
+		TimestampNullField:             null.Time{},
 		TinyblobField:                  tinyBlob,
 		TinyblobNullField:              null.BytesFrom(tinyBlob),
 		MediumblobField:                mediumBlob,
@@ -91,6 +93,8 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 		BlobNullField:                  null.BytesFrom(blob),
 		LongblobField:                  longblob,
 		LongblobNullField:              null.BytesFrom(longblob),
+		JsonField:                      json,
+		JsonNullField:                  null.BytesFrom(json),
 	}
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)
@@ -143,7 +147,7 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.Equal(t, dest.TimeField, field.TimeField)
 	assert.Equal(t, dest.TimeNullField.String, field.TimeNullField.String)
 	assert.Equal(t, dest.TimestampField.Unix(), field.TimestampField.Unix())
-	assert.Equal(t, dest.TimestampNullField.Unix(), field.TimestampNullField.Unix())
+	assert.Equal(t, dest.TimestampNullField.Time.Unix(), field.TimestampNullField.Time.Unix())
 	assert.ElementsMatch(t, dest.TinyblobField, field.TinyblobField)
 	assert.ElementsMatch(t, dest.TinyblobNullField.Bytes, field.TinyblobNullField.Bytes)
 	assert.ElementsMatch(t, dest.MediumblobField, field.MediumblobField)
@@ -152,7 +156,8 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.ElementsMatch(t, dest.BlobNullField.Bytes, field.BlobNullField.Bytes)
 	assert.ElementsMatch(t, dest.LongblobField, field.LongblobField)
 	assert.ElementsMatch(t, dest.LongblobNullField.Bytes, field.LongblobNullField.Bytes)
-
+	assert.JSONEq(t, string(dest.JsonField), string(field.JsonField))
+	assert.JSONEq(t, string(dest.JsonNullField.Bytes), string(field.JsonNullField.Bytes))
 }
 func TestMapper_MapMany(t *testing.T) {
 	db := testDb()
