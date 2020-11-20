@@ -2,7 +2,7 @@ version: "3.7"
 services:
   mysql:
     container_name: exql_mysql
-    image: mysql:5.6
+    image: mysql:5.7
     ports:
       - 3326:3306
     environment:
