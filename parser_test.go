@@ -86,6 +86,6 @@ func TestParser_ParseType(t *testing.T) {
 	})
 	t.Run("json", func(t *testing.T) {
 		assertType("json", false, "[]byte")
-		assertType("json", true, "null.Bytes")
+		assertType("json", true, "null.JSON")
 	})
 }

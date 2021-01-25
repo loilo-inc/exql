@@ -62,7 +62,7 @@ type Fields struct {
 	LongblobField                  []byte       `exql:"column:longblob_field;type:longblob;not null" json:"longblob_field"`
 	LongblobNullField              null.Bytes   `exql:"column:longblob_null_field;type:longblob" json:"longblob_null_field"`
 	JsonField                      []byte       `exql:"column:json_field;type:json;not null" json:"json_field"`
-	JsonNullField                  null.Bytes   `exql:"column:json_null_field;type:json" json:"json_null_field"`
+	JsonNullField                  null.JSON    `exql:"column:json_null_field;type:json" json:"json_null_field"`
 }
 
 func (f *Fields) TableName() string {

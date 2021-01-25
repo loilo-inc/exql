@@ -225,7 +225,7 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 		return "[]byte", nil
 	} else if jsonPat.MatchString(t) {
 		if nullable {
-			return "null.Bytes", nil
+			return "null.JSON", nil
 		}
 		return "[]byte", nil
 	}
