@@ -1,6 +1,7 @@
 package exql
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 	mediumBlob := []byte("mediumblob")
 	blob := []byte("blob")
 	longblob := []byte("longblob")
-	json := []byte(`{"string":"json","number":123.456,"boolean":true,"array":["Apple","Orange"]}`)
+	rawJson := json.RawMessage(`{"string":"json","number":123.456,"boolean":true,"array":["Apple","Orange"]}`)
 	field := model.Fields{
 		TinyintField:                   2,
 		TinyintUnsignedField:           3,
@@ -93,8 +94,8 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 		BlobNullField:                  null.BytesFrom(blob),
 		LongblobField:                  longblob,
 		LongblobNullField:              null.BytesFrom(longblob),
-		JsonField:                      json,
-		JsonNullField:                  null.JSONFrom(json),
+		JsonField:                      rawJson,
+		JsonNullField:                  null.JSONFrom(rawJson),
 	}
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)

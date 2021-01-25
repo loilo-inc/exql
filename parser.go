@@ -227,7 +227,7 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 		if nullable {
 			return "null.JSON", nil
 		}
-		return "[]byte", nil
+		return "json.RawMessage", nil
 	}
 	return "", fmt.Errorf("unknown type: %s", t)
 }
