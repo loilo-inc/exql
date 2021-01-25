@@ -94,7 +94,7 @@ func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
 		LongblobField:                  longblob,
 		LongblobNullField:              null.BytesFrom(longblob),
 		JsonField:                      json,
-		JsonNullField:                  null.BytesFrom(json),
+		JsonNullField:                  null.JSONFrom(json),
 	}
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)
@@ -157,7 +157,7 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.ElementsMatch(t, dest.LongblobField, field.LongblobField)
 	assert.ElementsMatch(t, dest.LongblobNullField.Bytes, field.LongblobNullField.Bytes)
 	assert.JSONEq(t, string(dest.JsonField), string(field.JsonField))
-	assert.JSONEq(t, string(dest.JsonNullField.Bytes), string(field.JsonNullField.Bytes))
+	assert.JSONEq(t, string(dest.JsonNullField.JSON), string(field.JsonNullField.JSON))
 }
 func TestMapper_MapMany(t *testing.T) {
 	db := testDb()
