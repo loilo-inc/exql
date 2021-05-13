@@ -65,12 +65,16 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 		if err := rows.Scan(&table); err != nil {
 			return err
 		}
+		exclude := false
 		for _, e := range opts.Exclude {
 			if e == table {
+				exclude = true
 				continue
 			}
 		}
-		tables = append(tables, table)
+		if !exclude {
+			tables = append(tables, table)
+		}
 	}
 	for _, table := range tables {
 		if err := d.generateModelFile(table, opts); err != nil {
