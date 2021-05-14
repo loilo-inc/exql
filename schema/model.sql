@@ -6,7 +6,7 @@ create table users (
     primary key (id)
 );
 
-drop table if exists group_users;
+drop table if exists user_groups;
 create table user_groups (
     id int(11) not null auto_increment,
     name varchar(255) not null,
