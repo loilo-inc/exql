@@ -19,8 +19,7 @@ jobs:
           git diff --exit-code
       - name: Check mod
         run: |
-          go mod tidy
-          go mod download
+          go install
           git diff --exit-code
       - name: Check README
         run: |
