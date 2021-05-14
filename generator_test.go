@@ -1,7 +1,6 @@
 package exql
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -13,7 +12,7 @@ func TestGenerator_Generate(t *testing.T) {
 	db := testDb()
 	g := NewGenerator(db.DB())
 	checkFiles := func(dir string, elements []string) {
-		entries, err := ioutil.ReadDir(dir)
+		entries, err := os.ReadDir(dir)
 		assert.Nil(t, err)
 		var files []string
 		for _, e := range entries {
@@ -22,8 +21,9 @@ func TestGenerator_Generate(t *testing.T) {
 		assert.ElementsMatch(t, files, elements)
 	}
 	t.Run("bsaic", func(t *testing.T) {
-		dir, _ := ioutil.TempDir(os.TempDir(), "dist")
-		err := g.Generate(&GenerateOptions{
+		dir, err := os.MkdirTemp(os.TempDir(), "dist")
+		assert.Nil(t, err)
+		err = g.Generate(&GenerateOptions{
 			OutDir:  dir,
 			Package: "dist",
 		})
@@ -34,7 +34,7 @@ func TestGenerator_Generate(t *testing.T) {
 		checkFiles(dir, []string{"users.go", "user_groups.go", "group_users.go", "fields.go"})
 	})
 	t.Run("exclude", func(t *testing.T) {
-		dir, _ := ioutil.TempDir(os.TempDir(), "dist")
+		dir, _ := os.MkdirTemp(os.TempDir(), "dist")
 		err := g.Generate(&GenerateOptions{
 			OutDir:  dir,
 			Package: "dist",
