@@ -67,10 +67,11 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 		}
 		for _, e := range opts.Exclude {
 			if e == table {
-				continue
+				goto EOL
 			}
 		}
 		tables = append(tables, table)
+	EOL:
 	}
 	for _, table := range tables {
 		if err := d.generateModelFile(table, opts); err != nil {
