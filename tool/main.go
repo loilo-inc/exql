@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"text/template"
 )
@@ -27,7 +26,7 @@ func main() {
 }
 
 func catFile(f string) string {
-	s, err := ioutil.ReadFile("example/" + f)
+	s, err := os.ReadFile("example/" + f)
 	if err != nil {
 		panic(err)
 	}
