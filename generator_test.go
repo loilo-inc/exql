@@ -13,7 +13,7 @@ func TestGenerator_Generate(t *testing.T) {
 	db := testDb()
 	g := NewGenerator(db.DB())
 	checkFiles := func(dir string, elements []string) {
-		entries, err := os.ReadDir(dir)
+		entries, err := ioutil.ReadDir(dir)
 		assert.Nil(t, err)
 		var files []string
 		for _, e := range entries {
