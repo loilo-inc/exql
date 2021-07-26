@@ -212,16 +212,7 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 
 		}
 	}
-	if first := reflect.TypeOf(dest[0]).Elem(); first.Kind() == reflect.Ptr {
-		if err := mapOuterJoinRowSerial(rows, values, s.splitter); err != nil {
-			return err
-		}
-	} else {
-		if err := mapRowSerial(rows, values, s.splitter); err != nil {
-			return err
-		}
-	}
-	return nil
+	return mapRowSerial(rows, values, s.splitter)
 }
 
 func mapRowSerial(
@@ -229,60 +220,7 @@ func mapRowSerial(
 	destList []*reflect.Value,
 	headColProvider ColumnSplitter,
 ) error {
-	// *Model
-	var destFields []map[string]int
-	for _, dest := range destList {
-		fields, err := aggregateFields(dest)
-		if err != nil {
-			return err
-		}
-		destFields = append(destFields, fields)
-	}
-	cols, err := row.ColumnTypes()
-	if err != nil {
-		return err
-	}
-	destVals := make([]interface{}, len(cols))
-	colIndex := 0
-	for destIndex, dest := range destList {
-		fields := destFields[destIndex]
-		headCol := cols[colIndex]
-		expectedHeadCol := headColProvider(destIndex)
-		if headCol.Name() != expectedHeadCol {
-			return fmt.Errorf(
-				"head col mismatch: expected=%s, actual=%s",
-				expectedHeadCol, headCol.Name(),
-			)
-		}
-		start := colIndex
-		ns := &noopScanner{}
-		for ; colIndex < len(cols); colIndex++ {
-			col := cols[colIndex]
-			if colIndex > start && destIndex < len(destList)-1 {
-				// Reach next column's head
-				if col.Name() == headColProvider(destIndex+1) {
-					break
-				}
-			}
-			if fIndex, ok := fields[col.Name()]; ok {
-				f := dest.Field(fIndex)
-				destVals[colIndex] = f.Addr().Interface()
-			} else {
-				destVals[colIndex] = ns
-			}
-		}
-	}
-	return row.Scan(destVals...)
-}
-
-// mapOuterJoinRowSerial maps rows to **Model. NULL value in ColumnSplitter column sets *Model = nil.
-// It can map inner join rows as well but using mapRowSerial is faster because less reflection logics.
-func mapOuterJoinRowSerial(
-	row *sql.Rows,
-	destList []*reflect.Value,
-	headColProvider ColumnSplitter,
-) error {
-	// **Model
+	// *Model || **Model
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
@@ -291,7 +229,7 @@ func mapOuterJoinRowSerial(
 			return err
 		}
 		destFields = append(destFields, fields)
-		destTypes[destIndex] = dest.Type().Elem() // Model
+		destTypes[destIndex] = dest.Type() // Model || *Model
 	}
 	cols, err := row.ColumnTypes()
 	if err != nil {
@@ -299,7 +237,7 @@ func mapOuterJoinRowSerial(
 	}
 	destVals := make([]interface{}, len(cols))
 	colIndex := 0
-	for destIndex := range destList {
+	for destIndex, dest := range destList {
 		fields := destFields[destIndex]
 		headCol := cols[colIndex]
 		expectedHeadCol := headColProvider(destIndex)
@@ -311,7 +249,11 @@ func mapOuterJoinRowSerial(
 		}
 		start := colIndex
 		ns := &noopScanner{}
-		model := reflect.New(destTypes[destIndex]).Elem() // Model
+		model := dest
+		if destTypes[destIndex].Kind() == reflect.Ptr {
+			m := reflect.New(destTypes[destIndex].Elem()).Elem() // Model
+			model = &m
+		}
 		for ; colIndex < len(cols); colIndex++ {
 			col := cols[colIndex]
 			if colIndex > start && destIndex < len(destList)-1 {
@@ -322,8 +264,11 @@ func mapOuterJoinRowSerial(
 			}
 			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Field(fIndex)
-				value := reflect.New(f.Addr().Type()) // **(Model.Field)
-				destVals[colIndex] = value.Interface()
+				if destTypes[destIndex].Kind() == reflect.Ptr {
+					destVals[colIndex] = reflect.New(f.Addr().Type()).Interface() // **(Model.Field)
+				} else {
+					destVals[colIndex] = f.Addr().Interface() // *(Model.Field)
+				}
 			} else {
 				destVals[colIndex] = ns
 			}
@@ -335,12 +280,15 @@ func mapOuterJoinRowSerial(
 
 	colIndex = 0
 	for destIndex, dest := range destList {
+		if destTypes[0].Kind() == reflect.Struct {
+			colIndex += len(destList)
+			continue // row.Scan already fill in dest.Field
+		}
 		if reflect.ValueOf(destVals[colIndex]).Elem().IsNil() { // *(Model.Field) == nil
 			colIndex += len(destList)
-			dest.Set(reflect.Zero(dest.Type()))
-			continue
+			continue // dest is already nil
 		}
-		model := reflect.New(destTypes[destIndex]) // *Model
+		model := reflect.New(destTypes[destIndex].Elem()) // *Model
 		fields := destFields[destIndex]
 		start := colIndex
 		for ; colIndex < len(cols); colIndex++ {
@@ -356,7 +304,7 @@ func mapOuterJoinRowSerial(
 				f.Set(reflect.ValueOf(destVals[colIndex]).Elem().Elem())
 			}
 		}
-		dest.Set(model)
+		dest.Set(model) // dest = *Model
 	}
 
 	return nil

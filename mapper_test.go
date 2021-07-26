@@ -511,6 +511,23 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 
 		})
 	})
+	t.Run("should return error if dest is *struct and left join column is null", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users
+LEFT JOIN group_users on group_users.user_id = users.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE users.id = ?
+`
+		rows, err := db.DB().Query(query, user3.Id)
+
+		assert.Nil(t, err)
+		for rows.Next() {
+			var group model.UserGroups
+			var user model.Users
+			err := m.Map(rows, &user, &group)
+			assert.NotNil(t, err)
+		}
+	})
 	t.Run("should return error if dest is empty", func(t *testing.T) {
 		err := m.Map(nil)
 		assert.EqualError(t, err, "empty dest list")
