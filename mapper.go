@@ -210,10 +210,9 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 		values = append(values, &v)
 	}
 	if kind == destKindPtrPtrStruct {
-		return mapDestinationError()
-		//if err := mapOuterJoinRowSerial(rows, values, s.splitter); err != nil {
-		//	return err
-		//}
+		if err := mapOuterJoinRowSerial(rows, values, s.splitter); err != nil {
+			return err
+		}
 	} else {
 		if err := mapRowSerial(rows, values, s.splitter); err != nil {
 			return err
@@ -290,6 +289,95 @@ func mapRowSerial(
 		}
 	}
 	return row.Scan(destVals...)
+}
+
+// mapOuterJoinRowSerial maps rows to **Model. NULL value in ColumnSplitter column sets *Model = nil.
+// It can map inner join rows as well but using mapRowSerial is faster because less reflection logics.
+func mapOuterJoinRowSerial(
+	row *sql.Rows,
+	destList []*reflect.Value,
+	headColProvider ColumnSplitter,
+) error {
+	var destFields []map[string]int
+	destTypes := map[int]reflect.Type{}
+	for destIndex, dest := range destList {
+		fields, err := aggregateFields(dest)
+		if err != nil {
+			return err
+		}
+		destFields = append(destFields, fields)
+		destTypes[destIndex] = dest.Type().Elem() // Model
+	}
+	if len(destFields) == 0 {
+		return fmt.Errorf("empty dest list")
+	}
+	cols, err := row.ColumnTypes()
+	if err != nil {
+		return err
+	}
+	destVals := make([]interface{}, len(cols))
+	colIndex := 0
+	for destIndex := range destList {
+		fields := destFields[destIndex]
+		headCol := cols[colIndex]
+		expectedHeadCol := headColProvider(destIndex)
+		if headCol.Name() != expectedHeadCol {
+			return fmt.Errorf(
+				"head col mismatch: expected=%s, actual=%s",
+				expectedHeadCol, headCol.Name(),
+			)
+		}
+		start := colIndex
+		ns := &noopScanner{}
+		model := reflect.New(destTypes[destIndex]).Elem() // Model
+		for ; colIndex < len(cols); colIndex++ {
+			col := cols[colIndex]
+			if colIndex > start && destIndex < len(destList)-1 {
+				// Reach next column's head
+				if col.Name() == headColProvider(destIndex+1) {
+					break
+				}
+			}
+			if fIndex, ok := fields[col.Name()]; ok {
+				f := model.Field(fIndex)
+				value := reflect.New(f.Addr().Type()) // **(Model.Field)
+				destVals[colIndex] = value.Interface()
+			} else {
+				destVals[colIndex] = ns
+			}
+		}
+	}
+	if err := row.Scan(destVals...); err != nil {
+		return err
+	}
+
+	colIndex = 0
+	for destIndex, dest := range destList {
+		if reflect.ValueOf(destVals[colIndex]).Elem().IsNil() { // *(Model.Field) == nil
+			colIndex += len(destList)
+			dest.Set(reflect.Zero(dest.Type()))
+			continue
+		}
+		model := reflect.New(destTypes[destIndex]) // *Model
+		fields := destFields[destIndex]
+		start := colIndex
+		for ; colIndex < len(cols); colIndex++ {
+			col := cols[colIndex]
+			if colIndex > start && destIndex < len(destList)-1 {
+				// Reach next column's head
+				if col.Name() == headColProvider(destIndex+1) {
+					break
+				}
+			}
+			if fIndex, ok := fields[col.Name()]; ok {
+				f := model.Elem().Field(fIndex)
+				f.Set(reflect.ValueOf(destVals[colIndex]).Elem().Elem())
+			}
+		}
+		dest.Set(model)
+	}
+
+	return nil
 }
 
 type noopScanner struct {

@@ -317,9 +317,15 @@ func TestDb_MapRowsSerial(t *testing.T) {
 		FirstName: null.StringFrom("user2"),
 		LastName:  null.StringFrom("name"),
 	}
+	user3 := &model.Users{
+		FirstName: null.StringFrom("user3"),
+		LastName:  null.StringFrom("name"),
+	}
 	_, err := db.Insert(user1)
 	assert.Nil(t, err)
 	_, err = db.Insert(user2)
+	assert.Nil(t, err)
+	_, err = db.Insert(user3)
 	assert.Nil(t, err)
 	group := &model.UserGroups{
 		Name: "group1",
@@ -339,7 +345,7 @@ func TestDb_MapRowsSerial(t *testing.T) {
 	_, err = db.Insert(member2)
 	assert.Nil(t, err)
 	defer func() {
-		db.DB().Exec(`DELETE FROM users WHERE id IN (?,?)`, user1.Id, user2.Id)
+		db.DB().Exec(`DELETE FROM users WHERE id IN (?,?,?)`, user1.Id, user2.Id, user3.Id)
 		db.DB().Exec(`DELETE FROM user_groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
@@ -401,6 +407,32 @@ WHERE user_groups.id = ?
 		assert.Equal(t, user1.Id, users[0].Id)
 		assert.Equal(t, user2.Id, users[1].Id)
 		assert.Equal(t, group.Id, groups[0].Id)
+	})
+	t.Run("outer join", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users
+LEFT JOIN group_users on group_users.user_id = users.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE users.id = ?
+`
+		rows, err := db.DB().Query(query, user3.Id)
+
+		assert.Nil(t, err)
+		var users []*model.Users
+		var groups []*model.UserGroups
+		for rows.Next() {
+			var group *model.UserGroups
+			var user *model.Users
+			err := m.Map(rows, &user, &group)
+			assert.Nil(t, err)
+			users = append(users, user)
+			groups = append(groups, group)
+		}
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(users))
+		assert.Equal(t, 1, len(groups))
+		assert.Equal(t, user3.Id, users[0].Id)
+		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
 	})
 
 	t.Run("should return error if head column is not found", func(t *testing.T) {
