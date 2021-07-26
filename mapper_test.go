@@ -466,24 +466,47 @@ WHERE users.id = ?
 	})
 
 	t.Run("should return error if head column is not found", func(t *testing.T) {
-		query := `
+		t.Run("inner join case", func(t *testing.T) {
+			query := `
 SELECT users.*, user_groups.* FROM users 
 JOIN group_users on group_users.user_id = users.id
 JOIN user_groups on group_users.group_id = user_groups.id
 WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
-		rows, err := db.DB().Query(query, group.Id)
-		assert.Nil(t, err)
-		m := &serialMapper{splitter: func(i int) string {
-			return "var"
-		}}
-		for rows.Next() {
-			var user model.Users
-			var ug model.UserGroups
-			err := m.Map(rows, &user, &ug)
-			assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
-			break
-		}
+			rows, err := db.DB().Query(query, group.Id)
+			assert.Nil(t, err)
+			m := &serialMapper{splitter: func(i int) string {
+				return "var"
+			}}
+			for rows.Next() {
+				var user model.Users
+				var ug model.UserGroups
+				err := m.Map(rows, &user, &ug)
+				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
+				break
+			}
+		})
+		t.Run("outer join case", func(t *testing.T) {
+			query := `
+SELECT users.*, user_groups.* FROM users 
+LEFT JOIN group_users on group_users.user_id = users.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
+`
+			rows, err := db.DB().Query(query, group.Id)
+			assert.Nil(t, err)
+			m := &serialMapper{splitter: func(i int) string {
+				return "var"
+			}}
+			for rows.Next() {
+				var user *model.Users
+				var ug *model.UserGroups
+				err := m.Map(rows, &user, &ug)
+				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
+				break
+			}
+
+		})
 	})
 	t.Run("should return error if dest is empty", func(t *testing.T) {
 		err := m.Map(nil)

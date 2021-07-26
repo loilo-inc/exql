@@ -199,6 +199,11 @@ var errMapRowSerialDestination = fmt.Errorf("destination must be either *struct 
 func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
 	var kind destKind
+
+	if len(dest) == 0 {
+		return fmt.Errorf("empty dest list")
+	}
+
 	for modelIdx, model := range dest {
 		if modelIdx == 0 {
 			kind = determineDestKind(reflect.TypeOf(model))
@@ -252,9 +257,6 @@ func mapRowSerial(
 			return err
 		}
 		destFields = append(destFields, fields)
-	}
-	if len(destFields) == 0 {
-		return fmt.Errorf("empty dest list")
 	}
 	cols, err := row.ColumnTypes()
 	if err != nil {
@@ -310,9 +312,6 @@ func mapOuterJoinRowSerial(
 		}
 		destFields = append(destFields, fields)
 		destTypes[destIndex] = dest.Type().Elem() // Model
-	}
-	if len(destFields) == 0 {
-		return fmt.Errorf("empty dest list")
 	}
 	cols, err := row.ColumnTypes()
 	if err != nil {
