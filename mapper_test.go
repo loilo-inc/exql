@@ -511,6 +511,11 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 		t.Run("nil", func(t *testing.T) {
 			doTest(nil, nil)
 		})
+		t.Run("***struct", func(t *testing.T) {
+			var user **model.Users
+			var group **model.GroupUsers
+			doTest(&user, &group)
+		})
 		t.Run("mix of *struct and **struct", func(t *testing.T) {
 			var user model.Users
 			var group *model.GroupUsers
