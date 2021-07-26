@@ -465,6 +465,36 @@ WHERE users.id = ?
 		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
 	})
 
+	t.Run("partial", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users
+LEFT JOIN group_users on group_users.user_id = users.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE users.id IN (?, ?)
+ORDER BY users.id
+`
+		rows, err := db.DB().Query(query, user1.Id, user3.Id)
+
+		assert.Nil(t, err)
+		var users []*partialUser
+		var groups []*model.UserGroups
+		for rows.Next() {
+			var group *model.UserGroups
+			var user *partialUser
+			err := m.Map(rows, &user, &group)
+			assert.Nil(t, err)
+			users = append(users, user)
+			groups = append(groups, group)
+		}
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(users))
+		assert.Equal(t, 2, len(groups))
+		assert.Equal(t, user1.Id, users[0].Id)
+		assert.Equal(t, group, groups[0])
+		assert.Equal(t, user3.Id, users[1].Id)
+		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
+	})
+
 	t.Run("should return error if head column is not found", func(t *testing.T) {
 		t.Run("inner join case", func(t *testing.T) {
 			query := `
