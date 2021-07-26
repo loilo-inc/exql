@@ -162,8 +162,11 @@ func mapRow(
 }
 
 func aggregateFields(dest *reflect.Value) (map[string]int, error) {
-	// *Model
+	// *Model || **Model
 	destType := dest.Type()
+	if dest.Kind() == reflect.Ptr {
+		destType = destType.Elem()
+	}
 	fields := make(map[string]int)
 	for i := 0; i < destType.NumField(); i++ {
 		f := destType.Field(i)
@@ -183,23 +186,56 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 	return fields, nil
 }
 
+type destKind uint
+
+const (
+	destKindInvalid destKind = iota
+	destKindPtrStruct
+	destKindPtrPtrStruct
+)
+
 func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
-	for _, model := range dest {
-		v := reflect.ValueOf(model)
-		if v.Kind() != reflect.Ptr {
+	var kind destKind
+	for modelIdx, model := range dest {
+		if modelIdx == 0 {
+			kind = determineDestKind(reflect.TypeOf(model))
+			if kind == destKindInvalid {
+				return mapDestinationError()
+			}
+		} else if kind != determineDestKind(reflect.TypeOf(model)) {
 			return mapDestinationError()
 		}
-		v = v.Elem()
-		if v.Kind() != reflect.Struct {
-			return mapDestinationError()
-		}
+		v := reflect.ValueOf(model).Elem()
 		values = append(values, &v)
 	}
-	if err := mapRowSerial(rows, values, s.splitter); err != nil {
-		return err
+	if kind == destKindPtrPtrStruct {
+		return mapDestinationError()
+		//if err := mapOuterJoinRowSerial(rows, values, s.splitter); err != nil {
+		//	return err
+		//}
+	} else {
+		if err := mapRowSerial(rows, values, s.splitter); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func determineDestKind(destType reflect.Type) destKind {
+	if destType == nil {
+		return destKindInvalid
+	} else if destType.Kind() != reflect.Ptr {
+		return destKindInvalid
+	} else if destType := destType.Elem(); destType.Kind() == reflect.Struct {
+		return destKindPtrStruct
+	} else if destType.Kind() != reflect.Ptr {
+		return destKindInvalid
+	} else if destType := destType.Elem(); destType.Kind() == reflect.Struct {
+		return destKindPtrPtrStruct
+	} else {
+		return destKindInvalid
+	}
 }
 
 func mapRowSerial(
