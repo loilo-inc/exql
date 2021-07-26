@@ -408,41 +408,15 @@ WHERE user_groups.id = ?
 		assert.Equal(t, user2.Id, users[1].Id)
 		assert.Equal(t, group.Id, groups[0].Id)
 	})
-	t.Run("basic with pointer", func(t *testing.T) {
-		query := `
-SELECT * FROM users 
-JOIN group_users on group_users.user_id = users.id
-JOIN user_groups on group_users.group_id = user_groups.id
-WHERE user_groups.id = ?
-`
-		rows, err := db.DB().Query(query, group.Id)
-		assert.Nil(t, err)
-		var users []*model.Users
-		for rows.Next() {
-			var group *model.UserGroups
-			var user *model.Users
-			var mem *model.GroupUsers
-			err := m.Map(rows, &user, &group, &mem)
-			assert.Nil(t, err)
-			users = append(users, user)
-		}
-		assert.Nil(t, err)
-		assert.Equal(t, 2, len(users))
-		if users == nil {
-			t.Fail()
-			return
-		}
-		assert.Equal(t, user1.Id, users[0].Id)
-		assert.Equal(t, user2.Id, users[1].Id)
-	})
 	t.Run("outer join", func(t *testing.T) {
 		query := `
 SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
 LEFT JOIN user_groups on group_users.group_id = user_groups.id
-WHERE users.id = ?
+WHERE users.id IN (?, ?)
+ORDER BY users.id
 `
-		rows, err := db.DB().Query(query, user3.Id)
+		rows, err := db.DB().Query(query, user1.Id, user3.Id)
 
 		assert.Nil(t, err)
 		var users []*model.Users
@@ -456,10 +430,12 @@ WHERE users.id = ?
 			groups = append(groups, group)
 		}
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(users))
-		assert.Equal(t, 1, len(groups))
-		assert.Equal(t, user3.Id, users[0].Id)
-		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
+		assert.Equal(t, 2, len(users))
+		assert.Equal(t, 2, len(groups))
+		assert.Equal(t, user1, users[0])
+		assert.Equal(t, group, groups[0])
+		assert.Equal(t, user3, users[1])
+		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 
 	t.Run("outer join 2", func(t *testing.T) {
@@ -485,7 +461,7 @@ WHERE users.id = ?
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(users))
 		assert.Equal(t, 1, len(groups))
-		assert.Equal(t, user3.Id, users[0].Id)
+		assert.Equal(t, user3, users[0])
 		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
 	})
 

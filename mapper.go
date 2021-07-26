@@ -300,6 +300,7 @@ func mapOuterJoinRowSerial(
 	destList []*reflect.Value,
 	headColProvider ColumnSplitter,
 ) error {
+	// **Model
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
