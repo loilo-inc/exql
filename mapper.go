@@ -194,6 +194,8 @@ const (
 	destKindPtrPtrStruct
 )
 
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *struct or **struct")
+
 func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
 	var kind destKind
@@ -201,10 +203,10 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 		if modelIdx == 0 {
 			kind = determineDestKind(reflect.TypeOf(model))
 			if kind == destKindInvalid {
-				return mapDestinationError()
+				return errMapRowSerialDestination
 			}
 		} else if kind != determineDestKind(reflect.TypeOf(model)) {
-			return mapDestinationError()
+			return errMapRowSerialDestination
 		}
 		v := reflect.ValueOf(model).Elem()
 		values = append(values, &v)

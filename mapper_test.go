@@ -408,6 +408,33 @@ WHERE user_groups.id = ?
 		assert.Equal(t, user2.Id, users[1].Id)
 		assert.Equal(t, group.Id, groups[0].Id)
 	})
+	t.Run("basic with pointer", func(t *testing.T) {
+		query := `
+SELECT * FROM users 
+JOIN group_users on group_users.user_id = users.id
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ?
+`
+		rows, err := db.DB().Query(query, group.Id)
+		assert.Nil(t, err)
+		var users []*model.Users
+		for rows.Next() {
+			var group *model.UserGroups
+			var user *model.Users
+			var mem *model.GroupUsers
+			err := m.Map(rows, &user, &group, &mem)
+			assert.Nil(t, err)
+			users = append(users, user)
+		}
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(users))
+		if users == nil {
+			t.Fail()
+			return
+		}
+		assert.Equal(t, user1.Id, users[0].Id)
+		assert.Equal(t, user2.Id, users[1].Id)
+	})
 	t.Run("outer join", func(t *testing.T) {
 		query := `
 SELECT users.*, user_groups.* FROM users
@@ -423,6 +450,33 @@ WHERE users.id = ?
 		for rows.Next() {
 			var group *model.UserGroups
 			var user *model.Users
+			err := m.Map(rows, &user, &group)
+			assert.Nil(t, err)
+			users = append(users, user)
+			groups = append(groups, group)
+		}
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(users))
+		assert.Equal(t, 1, len(groups))
+		assert.Equal(t, user3.Id, users[0].Id)
+		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
+	})
+
+	t.Run("outer join 2", func(t *testing.T) {
+		query := `
+SELECT users.*, user_groups.* FROM users
+LEFT JOIN group_users on group_users.user_id = users.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE users.id = ?
+`
+		rows, err := db.DB().Query(query, user3.Id)
+
+		assert.Nil(t, err)
+		var users []*model.Users
+		var groups []*model.UserGroups
+		for rows.Next() {
+			group := &model.UserGroups{}
+			user := &model.Users{}
 			err := m.Map(rows, &user, &group)
 			assert.Nil(t, err)
 			users = append(users, user)
@@ -461,7 +515,7 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
 		doTest := func(i ...interface{}) {
-			assert.EqualError(t, m.Map(nil, i...), "destination must be pointer of struct")
+			assert.Equal(t, ErrMapRowSerialDestination, m.Map(nil, i...))
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0, 1, 2)
@@ -480,6 +534,11 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 		})
 		t.Run("nil", func(t *testing.T) {
 			doTest(nil, nil)
+		})
+		t.Run("mix of *struct and **struct", func(t *testing.T) {
+			var user model.Users
+			var group *model.GroupUsers
+			doTest(&user, &group)
 		})
 	})
 }
