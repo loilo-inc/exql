@@ -217,6 +217,36 @@ func MapSerial() {
 	// enumerate users...
 }
 
+func MapSerialLeftJoin() {
+	query := `
+	SELECT * FROM users
+	LEFT JOIN school_users ON school_users.user_id = users.id
+	LEFT JOIN schools ON schools.id = school_users.id
+	WHERE schools.id = ?`
+	rows, err := db.DB().Query(query, "goland")
+	if err != nil {
+		log.Errorf("err")
+		return
+	}
+	defer rows.Close()
+	serialMapper := exql.NewSerialMapper(func(i int) string {
+		// Each column's separator is `id`
+		return "id"
+	})
+	var users []*User
+	for rows.Next() {
+		var user *User              // Use *Model for outer join.
+		var schoolUser *SchoolUsers // If school is not found for the user,
+		var school *School          // schoolUser = school = nil
+		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
+			log.Error(err.Error())
+			return
+		}
+		users = append(users, user)
+	}
+	// enumerate users...
+}
+
 ```
 
 ### Transaction
