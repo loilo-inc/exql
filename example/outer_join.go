@@ -24,14 +24,14 @@ func MapSerialOuterJoin() {
 	var users []*User
 	var schools []*School
 	for rows.Next() {
-		var user *User              // Use *Model so that mapper can set *Model = nil
-		var schoolUser *SchoolUsers // when the separator column's value is NULL
-		var school *School          // in the joined columns.
+		var user User
+		var schoolUser *SchoolUsers // Use *SchoolUsers/*School so that schoolUser/school can be nil
+		var school *School          // when the values of outer joined columns are NULL.
 		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
 			log.Error(err.Error())
 			return
 		}
-		users = append(users, user)
+		users = append(users, &user)
 		schools = append(schools, school) // school = nil when the user does not belong to any school.
 	}
 	// enumerate users and schools.
