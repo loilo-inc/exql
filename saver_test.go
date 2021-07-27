@@ -146,6 +146,32 @@ func TestSaver_InsertContext(t *testing.T) {
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
 		assert.Equal(t, user.LastName.String, actual.LastName.String)
 	})
+	t.Run("inserting to composite primary key table", func(t *testing.T) {
+		history := &model.UserLoginHistories{
+			UserId:    1,
+			CreatedAt: time.Now(),
+		}
+		result, err := s.InsertContext(context.Background(), history)
+		assert.Nil(t, err)
+		assert.False(t, history.Id == 0)
+		defer func() {
+			d.DB().Exec(`DELETE FROM user_login_histries WHERE id = ?`, history.Id)
+		}()
+		r, err := result.RowsAffected()
+		assert.Nil(t, err)
+		assert.Equal(t, int64(1), r)
+		lid, err := result.LastInsertId()
+		assert.Nil(t, err)
+		assert.Equal(t, history.Id, lid)
+		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
+		assert.Nil(t, err)
+		var actual model.UserLoginHistories
+		err = m.Map(rows, &actual)
+		assert.Nil(t, err)
+		assert.Equal(t, lid, actual.Id)
+		assert.Equal(t, history.UserId, actual.UserId)
+		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
+	})
 }
 
 func TestSaver_Update(t *testing.T) {
