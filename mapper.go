@@ -264,10 +264,10 @@ func mapRowSerial(
 			}
 			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Field(fIndex)
-				if destTypes[destIndex].Kind() == reflect.Ptr {
-					destVals[colIndex] = reflect.New(f.Addr().Type()).Interface() // **(Model.Field)
-				} else {
+				if destTypes[destIndex].Kind() == reflect.Struct {
 					destVals[colIndex] = f.Addr().Interface() // *(Model.Field)
+				} else {
+					destVals[colIndex] = reflect.New(f.Addr().Type()).Interface() // **(Model.Field)
 				}
 			} else {
 				destVals[colIndex] = ns
@@ -280,16 +280,19 @@ func mapRowSerial(
 
 	colIndex = 0
 	for destIndex, dest := range destList {
-		if destTypes[0].Kind() == reflect.Struct {
-			colIndex += len(destList)
-			continue // row.Scan already fill in dest.Field
-		}
-		if reflect.ValueOf(destVals[colIndex]).Elem().IsNil() { // *(Model.Field) == nil
-			colIndex += len(destList)
-			continue // dest is already nil
-		}
-		model := reflect.New(destTypes[destIndex].Elem()) // *Model
 		fields := destFields[destIndex]
+		if destTypes[destIndex].Kind() == reflect.Struct || reflect.ValueOf(destVals[colIndex]).Elem().IsNil() {
+			colIndex += len(destFields[destIndex])
+			for ; colIndex < len(cols); colIndex++ {
+				col := cols[colIndex]
+				if col.Name() == headColProvider(destIndex+1) {
+					break
+				}
+			}
+			continue
+		}
+
+		model := reflect.New(destTypes[destIndex].Elem()) // *Model
 		start := colIndex
 		for ; colIndex < len(cols); colIndex++ {
 			col := cols[colIndex]

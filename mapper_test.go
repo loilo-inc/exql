@@ -422,11 +422,11 @@ ORDER BY users.id
 		var users []*model.Users
 		var groups []*model.UserGroups
 		for rows.Next() {
+			var user model.Users
 			var group *model.UserGroups
-			var user *model.Users
 			err := m.Map(rows, &user, &group)
 			assert.Nil(t, err)
-			users = append(users, user)
+			users = append(users, &user)
 			groups = append(groups, group)
 		}
 		assert.Nil(t, err)
@@ -502,7 +502,7 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 				return "var"
 			}}
 			for rows.Next() {
-				var user *model.Users
+				var user model.Users
 				var ug *model.UserGroups
 				err := m.Map(rows, &user, &ug)
 				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
