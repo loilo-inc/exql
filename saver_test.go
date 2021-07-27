@@ -12,11 +12,11 @@ import (
 )
 
 type sampleNoTableName struct {
-	Id int `exql:"column:id;primary"`
+	Id int `exql:"column:id;primary;auto_increment"`
 }
 
 type sampleBadTableName struct {
-	Id int `exql:"column:id;primary"`
+	Id int `exql:"column:id;primary;auto_increment"`
 }
 
 func (s *sampleBadTableName) TableName() interface{} {
@@ -24,19 +24,23 @@ func (s *sampleBadTableName) TableName() interface{} {
 }
 
 type sampleNoPrimaryKey struct {
-	Id int `exql:"column:id"`
+	Id int `exql:"column:id;auto_increment"`
 }
 
 type sampleNoColumnTag struct {
-	Id int `exql:"primary"`
+	Id int `exql:"primary;auto_increment"`
 }
 
 type sampleBadTag struct {
 	Id int `exql:"a;a:1"`
 }
 
+type sampleNoAutoIncrementKey struct {
+	Id int `exql:"column:id;primary"`
+}
+
 type samplePrimaryUint64 struct {
-	Id   uint64 `exql:"column:id;primary"`
+	Id   uint64 `exql:"column:id;primary;auto_increment"`
 	Name string `exql:"column:name"`
 }
 
@@ -262,6 +266,10 @@ func TestSaver_QueryForInsert(t *testing.T) {
 	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
 		var sam sampleNoPrimaryKey
 		assertInvalid(t, &sam, "table has no primary key")
+	})
+	t.Run("should error if dest has no auto_increment tag", func(t *testing.T) {
+		var sam sampleNoAutoIncrementKey
+		assertInvalid(t, &sam, "table has no auto_increment field")
 	})
 }
 
