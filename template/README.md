@@ -41,6 +41,12 @@ Safe, Strict and Clear ORM for Go
 {{.MapJoinedRows}}
 ```
 
+#### In case of outer join
+
+```go
+{{.MapOuterJoinedRows}}
+```
+
 ### Transaction
 
 ```go
