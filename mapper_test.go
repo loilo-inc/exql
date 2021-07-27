@@ -438,33 +438,6 @@ ORDER BY users.id
 		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 
-	t.Run("outer join 2", func(t *testing.T) {
-		query := `
-SELECT users.*, user_groups.* FROM users
-LEFT JOIN group_users on group_users.user_id = users.id
-LEFT JOIN user_groups on group_users.group_id = user_groups.id
-WHERE users.id = ?
-`
-		rows, err := db.DB().Query(query, user3.Id)
-
-		assert.Nil(t, err)
-		var users []*model.Users
-		var groups []*model.UserGroups
-		for rows.Next() {
-			group := &model.UserGroups{}
-			user := &model.Users{}
-			err := m.Map(rows, &user, &group)
-			assert.Nil(t, err)
-			users = append(users, user)
-			groups = append(groups, group)
-		}
-		assert.Nil(t, err)
-		assert.Equal(t, 1, len(users))
-		assert.Equal(t, 1, len(groups))
-		assert.Equal(t, user3, users[0])
-		assert.Equal(t, (*model.UserGroups)(nil), groups[0])
-	})
-
 	t.Run("partial", func(t *testing.T) {
 		query := `
 SELECT users.*, user_groups.* FROM users
@@ -569,10 +542,9 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 			var group **model.GroupUsers
 			doTest(&user, &group)
 		})
-		t.Run("mix of *struct and **struct", func(t *testing.T) {
-			var user model.Users
-			var group *model.GroupUsers
-			doTest(&user, &group)
+		t.Run("non nil **struct", func(t *testing.T) {
+			var user = &model.Users{}
+			doTest(&user)
 		})
 	})
 }

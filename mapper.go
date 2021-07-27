@@ -186,37 +186,33 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 	return fields, nil
 }
 
-type destKind uint
-
-const (
-	destKindInvalid destKind = iota
-	destKindPtrStruct
-	destKindPtrPtrStruct
-)
-
-var errMapRowSerialDestination = fmt.Errorf("destination must be either *struct or **struct")
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *struct{} or **struct(nil)")
 
 func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
-	var kind destKind
 
 	if len(dest) == 0 {
 		return fmt.Errorf("empty dest list")
 	}
 
-	for modelIdx, model := range dest {
-		if modelIdx == 0 {
-			kind = determineDestKind(reflect.TypeOf(model))
-			if kind == destKindInvalid {
-				return errMapRowSerialDestination
-			}
-		} else if kind != determineDestKind(reflect.TypeOf(model)) {
+	for _, model := range dest {
+		v := reflect.ValueOf(model)
+		if v.Kind() != reflect.Ptr {
 			return errMapRowSerialDestination
 		}
-		v := reflect.ValueOf(model).Elem()
-		values = append(values, &v)
+		v = v.Elem()
+		if v.Kind() == reflect.Struct {
+			values = append(values, &v)
+		} else if v.Kind() != reflect.Ptr {
+			return errMapRowSerialDestination
+		} else if !v.IsNil() || v.Type().Elem().Kind() != reflect.Struct {
+			return errMapRowSerialDestination
+		} else {
+			values = append(values, &v)
+
+		}
 	}
-	if kind == destKindPtrPtrStruct {
+	if first := reflect.TypeOf(dest[0]).Elem(); first.Kind() == reflect.Ptr {
 		if err := mapOuterJoinRowSerial(rows, values, s.splitter); err != nil {
 			return err
 		}
@@ -226,22 +222,6 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 		}
 	}
 	return nil
-}
-
-func determineDestKind(destType reflect.Type) destKind {
-	if destType == nil {
-		return destKindInvalid
-	} else if destType.Kind() != reflect.Ptr {
-		return destKindInvalid
-	} else if destType := destType.Elem(); destType.Kind() == reflect.Struct {
-		return destKindPtrStruct
-	} else if destType.Kind() != reflect.Ptr {
-		return destKindInvalid
-	} else if destType := destType.Elem(); destType.Kind() == reflect.Struct {
-		return destKindPtrPtrStruct
-	} else {
-		return destKindInvalid
-	}
 }
 
 func mapRowSerial(
