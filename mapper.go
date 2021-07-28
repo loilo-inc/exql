@@ -186,7 +186,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 	return fields, nil
 }
 
-var errMapRowSerialDestination = fmt.Errorf("destination must be either *struct{} or **struct(nil)")
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
 func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 	var values []*reflect.Value
