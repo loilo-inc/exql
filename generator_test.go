@@ -20,7 +20,7 @@ func TestGenerator_Generate(t *testing.T) {
 		}
 		assert.ElementsMatch(t, files, elements)
 	}
-	t.Run("bsaic", func(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
 		dir, err := os.MkdirTemp(os.TempDir(), "dist")
 		assert.Nil(t, err)
 		err = g.Generate(&GenerateOptions{
@@ -31,7 +31,7 @@ func TestGenerator_Generate(t *testing.T) {
 			log.Errorf(err.Error())
 		}
 		assert.Nil(t, err)
-		checkFiles(dir, []string{"users.go", "user_groups.go", "group_users.go", "fields.go"})
+		checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go", "fields.go"})
 	})
 	t.Run("exclude", func(t *testing.T) {
 		dir, _ := os.MkdirTemp(os.TempDir(), "dist")
@@ -44,6 +44,6 @@ func TestGenerator_Generate(t *testing.T) {
 			log.Errorf(err.Error())
 		}
 		assert.Nil(t, err)
-		checkFiles(dir, []string{"users.go", "user_groups.go", "group_users.go"})
+		checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go"})
 	})
 }

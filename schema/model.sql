@@ -25,6 +25,14 @@ create table group_users (
 create index group_users_user_id on group_users(user_id);
 create index group_users_group_id on group_users(group_id);
 
+drop table if exists user_login_histories;
+create table user_login_histories (
+    id int(11) not null auto_increment,
+    user_id int(11) not null,
+    created_at datetime not null,
+    primary key (id, created_at)
+) partition by hash(year(created_at)) partitions 16;
+
 drop table if exists fields;
 create table fields (
     id int not null auto_increment,

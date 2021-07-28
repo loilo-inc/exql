@@ -10,10 +10,10 @@ import (
 )
 
 type SaveQuery struct {
-	Query           string
-	Fields          []string
-	Values          []interface{}
-	PrimaryKeyField *reflect.Value
+	Query              string
+	Fields             []string
+	Values             []interface{}
+	AutoIncrementField *reflect.Value
 }
 
 type Saver interface {
@@ -53,15 +53,17 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr interface{}) (sql.Re
 	if err != nil {
 		return nil, err
 	}
-	lid, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-	kind := q.PrimaryKeyField.Kind()
-	if kind == reflect.Int64 {
-		q.PrimaryKeyField.Set(reflect.ValueOf(lid))
-	} else if kind == reflect.Uint64 {
-		q.PrimaryKeyField.Set(reflect.ValueOf(uint64(lid)))
+	if q.AutoIncrementField != nil {
+		lid, err := result.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
+		kind := q.AutoIncrementField.Kind()
+		if kind == reflect.Int64 {
+			q.AutoIncrementField.Set(reflect.ValueOf(lid))
+		} else if kind == reflect.Uint64 {
+			q.AutoIncrementField.Set(reflect.ValueOf(uint64(lid)))
+		}
 	}
 	return result, nil
 }
@@ -101,9 +103,9 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	var placeholders []string
 	// *User -> User
 	objType = objType.Elem()
-	hasPrimary := false
 	exqlTagCount := 0
-	var primaryKeyField reflect.Value
+	var primaryKeyFields []*reflect.Value
+	var autoIncrementField *reflect.Value
 	for i := 0; i < objType.NumField(); i++ {
 		f := objType.Field(i)
 		if t, ok := f.Tag.Lookup("exql"); ok {
@@ -117,9 +119,13 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 			}
 			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
-				hasPrimary = true
-				primaryKeyField = objValue.Elem().Field(i)
-				// Not include primary key in insert query
+				primaryKeyField := objValue.Elem().Field(i)
+				primaryKeyFields = append(primaryKeyFields, &primaryKeyField)
+			}
+			if _, autoIncrement := tags["auto_increment"]; autoIncrement {
+				field := objValue.Elem().Field(i)
+				autoIncrementField = &field
+				// Not include auto_increment field in insert query
 				continue
 			}
 			columns = append(columns, fmt.Sprintf("`%s`", colName))
@@ -131,7 +137,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 		return nil, fmt.Errorf("obj doesn't have exql tags in any fields")
 	}
 
-	if !hasPrimary {
+	if len(primaryKeyFields) == 0 {
 		return nil, fmt.Errorf("table has no primary key")
 	}
 
@@ -150,10 +156,10 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 		strings.Join(placeholders, ", "),
 	)
 	return &SaveQuery{
-		Query:           query,
-		Fields:          columns,
-		Values:          values,
-		PrimaryKeyField: &primaryKeyField,
+		Query:              query,
+		Fields:             columns,
+		Values:             values,
+		AutoIncrementField: autoIncrementField,
 	}, nil
 }
 
