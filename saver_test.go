@@ -36,7 +36,7 @@ type sampleBadTag struct {
 }
 
 type sampleNoAutoIncrementKey struct {
-	Id int `exql:"column:id;primary"`
+	Id   int    `exql:"column:id;primary"`
 	Name string `exql:"column:name"`
 }
 
