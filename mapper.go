@@ -237,6 +237,7 @@ func mapRowSerial(
 	}
 	destVals := make([]interface{}, len(cols))
 	colIndex := 0
+	columnCounts := map[int]int{}
 	for destIndex, dest := range destList {
 		fields := destFields[destIndex]
 		headCol := cols[colIndex]
@@ -259,8 +260,11 @@ func mapRowSerial(
 			if colIndex > start && destIndex < len(destList)-1 {
 				// Reach next column's head
 				if col.Name() == headColProvider(destIndex+1) {
+					columnCounts[destIndex] = colIndex - start
 					break
 				}
+			} else if destIndex == len(destList)-1 {
+				columnCounts[destIndex]++
 			}
 			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Field(fIndex)
@@ -282,26 +286,16 @@ func mapRowSerial(
 	for destIndex, dest := range destList {
 		fields := destFields[destIndex]
 		if destTypes[destIndex].Kind() == reflect.Struct || reflect.ValueOf(destVals[colIndex]).Elem().IsNil() {
-			colIndex += len(destFields[destIndex])
-			for ; colIndex < len(cols); colIndex++ {
-				col := cols[colIndex]
-				if col.Name() == headColProvider(destIndex+1) {
-					break
-				}
+			if destIndex < len(destList)-1 {
+				colIndex += columnCounts[destIndex]
 			}
 			continue
 		}
 
 		model := reflect.New(destTypes[destIndex].Elem()) // *Model
 		start := colIndex
-		for ; colIndex < len(cols); colIndex++ {
+		for ; colIndex < start+columnCounts[destIndex]; colIndex++ {
 			col := cols[colIndex]
-			if colIndex > start && destIndex < len(destList)-1 {
-				// Reach next column's head
-				if col.Name() == headColProvider(destIndex+1) {
-					break
-				}
-			}
 			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Elem().Field(fIndex)
 				f.Set(reflect.ValueOf(destVals[colIndex]).Elem().Elem())
