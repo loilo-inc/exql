@@ -8,13 +8,14 @@ import (
 func main() {
 	t := template.Must(template.ParseFiles("template/README.md"))
 	data := map[string]string{
-		"Open":           catFile("open.go"),
-		"GenerateModels": catFile("generator.go"),
-		"Insert":         catFile("insert.go"),
-		"Update":         catFile("update.go"),
-		"MapRows":        catFile("mapper.go"),
-		"MapJoinedRows":  catFile("serial_mapper.go"),
-		"Tx":             catFile("tx.go"),
+		"Open":               catFile("open.go"),
+		"GenerateModels":     catFile("generator.go"),
+		"Insert":             catFile("insert.go"),
+		"Update":             catFile("update.go"),
+		"MapRows":            catFile("mapper.go"),
+		"MapJoinedRows":      catFile("serial_mapper.go"),
+		"MapOuterJoinedRows": catFile("outer_join.go"),
+		"Tx":                 catFile("tx.go"),
 	}
 	o, err := os.Create("README.md")
 	if err != nil {
