@@ -249,7 +249,7 @@ func MapSerialOuterJoin() {
 	var schools []*School
 	for rows.Next() {
 		var user User
-		var schoolUser *SchoolUsers // Use *SchoolUsers/*School so that schoolUser/school can be nil
+		var schoolUser *SchoolUsers // Use *SchoolUsers/*School for outer join so that it can be nil
 		var school *School          // when the values of outer joined columns are NULL.
 		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
 			log.Error(err.Error())
