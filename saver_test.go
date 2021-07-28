@@ -37,6 +37,11 @@ type sampleBadTag struct {
 
 type sampleNoAutoIncrementKey struct {
 	Id int `exql:"column:id;primary"`
+	Name string `exql:"column:name"`
+}
+
+func (s *sampleNoAutoIncrementKey) TableName() string {
+	return "sampleNoAutoIncrementKey"
 }
 
 type samplePrimaryUint64 struct {
@@ -114,6 +119,17 @@ func TestSaver_Insert(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, uint64(11), user.Id)
 	})
+	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
+		s := NewSaver(db)
+		user := &sampleNoAutoIncrementKey{
+			Id: 1,
+		}
+		_, err := s.Insert(user)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, user.Id)
+	})
 }
 
 func TestSaver_InsertContext(t *testing.T) {
@@ -171,6 +187,58 @@ func TestSaver_InsertContext(t *testing.T) {
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
 		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
+	})
+	t.Run("inserting to composite primary key table", func(t *testing.T) {
+		history := &model.UserLoginHistories{
+			UserId:    1,
+			CreatedAt: time.Now(),
+		}
+		result, err := s.InsertContext(context.Background(), history)
+		assert.Nil(t, err)
+		assert.False(t, history.Id == 0)
+		defer func() {
+			d.DB().Exec(`DELETE FROM user_login_histries WHERE id = ?`, history.Id)
+		}()
+		r, err := result.RowsAffected()
+		assert.Nil(t, err)
+		assert.Equal(t, int64(1), r)
+		lid, err := result.LastInsertId()
+		assert.Nil(t, err)
+		assert.Equal(t, history.Id, lid)
+		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
+		assert.Nil(t, err)
+		var actual model.UserLoginHistories
+		err = m.Map(rows, &actual)
+		assert.Nil(t, err)
+		assert.Equal(t, lid, actual.Id)
+		assert.Equal(t, history.UserId, actual.UserId)
+		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
+	})
+	t.Run("inserting to no auto_increment key table", func(t *testing.T) {
+		user := &model.Users{
+			FirstName: null.StringFrom("first"),
+			LastName:  null.StringFrom("last"),
+		}
+		result, err := s.InsertContext(context.Background(), user)
+		assert.Nil(t, err)
+		assert.False(t, user.Id == 0)
+		defer func() {
+			d.DB().Exec(`DELETE FROM users WHERE id = ?`, user.Id)
+		}()
+		r, err := result.RowsAffected()
+		assert.Nil(t, err)
+		assert.Equal(t, int64(1), r)
+		lid, err := result.LastInsertId()
+		assert.Nil(t, err)
+		assert.Equal(t, user.Id, lid)
+		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
+		assert.Nil(t, err)
+		var actual model.Users
+		err = m.Map(rows, &actual)
+		assert.Nil(t, err)
+		assert.Equal(t, lid, actual.Id)
+		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
+		assert.Equal(t, user.LastName.String, actual.LastName.String)
 	})
 }
 
@@ -292,10 +360,6 @@ func TestSaver_QueryForInsert(t *testing.T) {
 	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
 		var sam sampleNoPrimaryKey
 		assertInvalid(t, &sam, "table has no primary key")
-	})
-	t.Run("should error if dest has no auto_increment tag", func(t *testing.T) {
-		var sam sampleNoAutoIncrementKey
-		assertInvalid(t, &sam, "table has no auto_increment field")
 	})
 }
 
