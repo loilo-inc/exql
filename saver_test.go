@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/model"
+	"github.com/loilo-inc/exql/v2/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 	"testing"

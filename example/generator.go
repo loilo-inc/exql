@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 	"log"
 )
 
