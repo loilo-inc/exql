@@ -3,11 +3,12 @@ package exql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/iancoleman/strcase"
 )
 
 type Generator interface {
@@ -23,16 +24,15 @@ type GenerateOptions struct {
 }
 
 type templateData struct {
-	Imports              string
-	Model                string
-	ModelLower           string
-	M                    string
-	Package              string
-	Fields               string
-	ScannedFields        string
-	TableName            string
-	HasPrimaryKey        bool
-	PrimaryKeyFieldIndex int
+	Imports       string
+	Model         string
+	ModelLower    string
+	M             string
+	Package       string
+	Fields        string
+	UpdaterFields string
+	ScannedFields string
+	TableName     string
 }
 
 func NewGenerator(db *sql.DB) Generator {
@@ -89,38 +89,44 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		return err
 	}
 	var imports []string
-	if table.HasNullField() {
-		imports = append(imports, `import "github.com/volatiletech/null"`)
+
+	if table.HasJsonField() {
+		imports = append(imports, `import "encoding/json"`)
 	}
 	if table.HasTimeField() {
 		imports = append(imports, `import "time"`)
 	}
+	if table.HasNullField() {
+		imports = append(imports, `import "github.com/volatiletech/null"`)
+	}
 	fields := strings.Builder{}
+	updateFields := strings.Builder{}
 	scannedFields := strings.Builder{}
 	for i, col := range table.Columns {
 		scannedFields.WriteString(fmt.Sprintf(
 			"\t\t&%s.%s,", table.TableName[0:1], col.Field()),
 		)
 		fields.WriteString(fmt.Sprintf("\t\t%s", col.Field()))
+		updateFields.WriteString(fmt.Sprintf("\t\t%s", col.UpdateField()))
 		if i < len(table.Columns)-1 {
 			scannedFields.WriteString("\n")
 			fields.WriteString("\n")
+			updateFields.WriteString("\n")
 		}
 	}
 	data := &templateData{
-		Imports:              strings.Join(imports, "\n"),
-		Model:                strcase.ToCamel(table.TableName),
-		ModelLower:           strcase.ToLowerCamel(table.TableName),
-		M:                    table.TableName[0:1],
-		Package:              opt.Package,
-		Fields:               fields.String(),
-		TableName:            tableName,
-		ScannedFields:        scannedFields.String(),
-		HasPrimaryKey:        table.HasPrimaryKey(),
-		PrimaryKeyFieldIndex: table.PrimaryKeyFieldIndex(),
+		Imports:       strings.Join(imports, "\n"),
+		Model:         strcase.ToCamel(table.TableName),
+		ModelLower:    strcase.ToLowerCamel(table.TableName),
+		M:             table.TableName[0:1],
+		UpdaterFields: updateFields.String(),
+		Package:       opt.Package,
+		Fields:        fields.String(),
+		TableName:     tableName,
+		ScannedFields: scannedFields.String(),
 	}
 	fileName := fmt.Sprintf("%s.go", strcase.ToSnake(table.TableName))
-	outFile, err := os.Create(filepath.Join(opt.OutDir, fmt.Sprintf(fileName)))
+	outFile, err := os.Create(filepath.Join(opt.OutDir, fileName))
 	if err != nil {
 		return err
 	}
@@ -141,7 +147,15 @@ type {{.Model}} struct {
 }
 
 func ({{.M}} *{{.Model}}) TableName() string {
-    return "{{.TableName}}"
+	return "{{.TableName}}"
+}
+
+type Update{{.Model}} struct {
+{{.UpdaterFields}}
+}
+
+func ({{.M}} *Update{{.Model}}) ForTableName() string {
+	return "{{.TableName}}"
 }
 
 type {{.ModelLower}}Table struct {
@@ -152,4 +166,5 @@ var {{.Model}}Table = &{{.ModelLower}}Table{}
 func ({{.M}} *{{.ModelLower}}Table) Name() string {
 	return "{{.TableName}}"
 }
+
 `

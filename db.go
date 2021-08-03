@@ -3,9 +3,10 @@ package exql
 import (
 	"context"
 	"database/sql"
-	"github.com/apex/log"
 	"sync"
 	"time"
+
+	"github.com/apex/log"
 )
 
 type DB interface {
@@ -104,12 +105,24 @@ func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql
 	return d.s.Update(table, set, where)
 }
 
+func (d *db) UpdateModel(ptr interface{}, where Clause) (sql.Result, error) {
+	return d.s.UpdateModel(ptr, where)
+}
+
 func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
 	return d.s.UpdateContext(ctx, table, set, where)
 }
 
+func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where Clause) (sql.Result, error) {
+	return d.s.UpdateModelContext(ctx, ptr, where)
+}
+
 func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	return d.s.QueryForUpdate(table, set, where)
+}
+
+func (d *db) QueryForUpdateModel(ptr interface{}, where Clause) (*SaveQuery, error) {
+	return d.s.QueryForUpdateModel(ptr, where)
 }
 
 func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {

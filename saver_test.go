@@ -3,12 +3,13 @@ package exql
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
-	"testing"
-	"time"
 )
 
 type sampleNoTableName struct {
@@ -363,6 +364,29 @@ func TestSaver_QueryForInsert(t *testing.T) {
 	})
 }
 
+func TestSave_QueryForUpdateModel(t *testing.T) {
+	s := &saver{}
+	t.Run("basic", func(t *testing.T) {
+		user := &model.Users{}
+		user.FirstName.SetValid("new")
+		user.LastName.SetValid("name")
+		q, err := s.QueryForUpdateModel(&model.UpdateUsers{
+			FirstName: &user.FirstName,
+			LastName:  &user.LastName,
+		}, Where(`id = ?`, 1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, q.Query,
+			"UPDATE `users` SET `first_name` = ?, `last_name` = ? WHERE id = ?",
+		)
+		assert.ElementsMatch(t, q.Values, []interface{}{user.FirstName, user.LastName, 1})
+	})
+	t.Run("should error if failed to collect values", func(t *testing.T) {
+		_, err := s.QueryForUpdateModel(nil, Where(`id = ?`))
+		assert.EqualError(t, err, "pointer is nil")
+	})
+}
 func TestSaver_QueryForUpdate(t *testing.T) {
 	s := &saver{}
 	t.Run("basic", func(t *testing.T) {
@@ -403,5 +427,99 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 		})
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "where is not build by Where()")
+	})
+}
+
+type upSampleInvalidTag struct {
+	Id *int `exql:"column::"`
+}
+type upSampleNotPtr struct {
+	Id int `exql:"column:id"`
+}
+type upSample struct {
+	Id *int `exql:"column:id"`
+}
+type upSampleNoFields struct {
+}
+type upSampleWrongImpl struct {
+	Id *int `exql:"column:id"`
+}
+
+func (upSampleWrongImpl) ForTableName() int {
+	return 1
+}
+
+type upSampleNoColumn struct {
+	Id *int `exql:"row:id"`
+}
+
+func (upSampleNoColumn) ForTableName() string {
+	return "table"
+}
+
+func TestSaver_ValuesForUpdateModel(t *testing.T) {
+	s := &saver{}
+	t.Run("basic", func(t *testing.T) {
+		firstName := null.StringFrom("new")
+		lastName := null.StringFrom("name")
+		table, values, err := s.ValuesForUpdateModel(&model.UpdateUsers{
+			FirstName: &firstName,
+			LastName:  &lastName,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, "users", table)
+		assert.Equal(t, "new", values["first_name"].(null.String).String)
+		assert.Equal(t, "name", values["last_name"].(null.String).String)
+	})
+	t.Run("should error if pointer is nil", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(nil)
+		assert.EqualError(t, err, "pointer is nil")
+	})
+	t.Run("should error if not pointer", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(model.UpdateUsers{})
+		assert.EqualError(t, err, "must be pointer of struct")
+	})
+	t.Run("should error if not pointer of struct", func(t *testing.T) {
+		d := 1
+		_, _, err := s.ValuesForUpdateModel(&d)
+		assert.EqualError(t, err, "must be pointer of struct")
+	})
+	t.Run("should error if has invalid tag", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(&upSampleInvalidTag{})
+		assert.EqualError(t, err, "invalid tag format")
+	})
+	t.Run("should error if field is not pointer", func(t *testing.T) {
+
+		_, _, err := s.ValuesForUpdateModel(&upSampleNotPtr{})
+		assert.EqualError(t, err, "field must be pointer")
+	})
+	t.Run("should error if struct has no fields for update", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(&time.Time{})
+		assert.EqualError(t, err, "no value for update")
+	})
+	t.Run("should ignore if field is nil", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(&upSample{})
+		assert.EqualError(t, err, "no value for update")
+	})
+	t.Run("should error if struct has no fields", func(t *testing.T) {
+		_, _, err := s.ValuesForUpdateModel(&upSampleNoFields{})
+		assert.EqualError(t, err, "struct has no field")
+	})
+	t.Run("should error if struct doesn't implement ForTableName()", func(t *testing.T) {
+		id := 1
+		_, _, err := s.ValuesForUpdateModel(&upSample{Id: &id})
+		assert.EqualError(t, err, "obj doesn't implement ForTableName() method")
+	})
+	t.Run("should error if struct has wrong implementation of ForTableName()", func(t *testing.T) {
+		id := 1
+		_, _, err := s.ValuesForUpdateModel(&upSampleWrongImpl{Id: &id})
+		assert.EqualError(t, err, "wrong implementation of ForTableName()")
+	})
+	t.Run("should error if no column in tag", func(t *testing.T) {
+		id := 1
+		_, _, err := s.ValuesForUpdateModel(&upSampleNoColumn{Id: &id})
+		assert.EqualError(t, err, "tag must include column")
 	})
 }

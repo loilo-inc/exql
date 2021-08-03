@@ -13,6 +13,16 @@ func (u *UserLoginHistories) TableName() string {
 	return "user_login_histories"
 }
 
+type UpdateUserLoginHistories struct {
+	Id        *int64     `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	UserId    *int64     `exql:"column:user_id;type:int(11);not null" json:"user_id"`
+	CreatedAt *time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
+}
+
+func (u *UpdateUserLoginHistories) ForTableName() string {
+	return "user_login_histories"
+}
+
 type userLoginHistoriesTable struct {
 }
 

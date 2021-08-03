@@ -13,6 +13,16 @@ func (u *Users) TableName() string {
 	return "users"
 }
 
+type UpdateUsers struct {
+	Id        *int64       `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	FirstName *null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
+	LastName  *null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
+}
+
+func (u *UpdateUsers) ForTableName() string {
+	return "users"
+}
+
 type usersTable struct {
 }
 
