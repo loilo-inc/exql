@@ -241,28 +241,18 @@ func (s *saver) QueryForUpdateModel(
 	updateStructPtr interface{},
 	where Clause,
 ) (*SaveQuery, error) {
-	table, values, err := s.ValuesForUpdateModel(updateStructPtr)
-	if err != nil {
-		return nil, err
-	}
-	return s.QueryForUpdate(table, values, where)
-}
-
-func (s *saver) ValuesForUpdateModel(
-	updateStructPtr interface{},
-) (string, map[string]interface{}, error) {
 	if updateStructPtr == nil {
-		return "", nil, fmt.Errorf("pointer is nil")
+		return nil, fmt.Errorf("pointer is nil")
 	}
 	objValue := reflect.ValueOf(updateStructPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
-		return "", nil, fmt.Errorf("must be pointer of struct")
+		return nil, fmt.Errorf("must be pointer of struct")
 	}
 	objType = objType.Elem()
 	values := make(map[string]interface{})
 	if objType.NumField() == 0 {
-		return "", nil, fmt.Errorf("struct has no field")
+		return nil, fmt.Errorf("struct has no field")
 	}
 
 	for i := 0; i < objType.NumField(); i++ {
@@ -273,14 +263,14 @@ func (s *saver) ValuesForUpdateModel(
 		}
 		var colName string
 		if tags, err := ParseTags(tag); err != nil {
-			return "", nil, err
+			return nil, err
 		} else if col, ok := tags["column"]; !ok {
-			return "", nil, fmt.Errorf("tag must include column")
+			return nil, fmt.Errorf("tag must include column")
 		} else {
 			colName = col
 		}
 		if f.Type.Kind() != reflect.Ptr {
-			return "", nil, fmt.Errorf("field must be pointer")
+			return nil, fmt.Errorf("field must be pointer")
 		}
 		fieldValue := objValue.Elem().Field(i)
 		if !fieldValue.IsNil() {
@@ -288,16 +278,16 @@ func (s *saver) ValuesForUpdateModel(
 		}
 	}
 	if len(values) == 0 {
-		return "", nil, fmt.Errorf("no value for update")
+		return nil, fmt.Errorf("no value for update")
 	}
 
 	getTableName := objValue.MethodByName("ForTableName")
 	if !getTableName.IsValid() {
-		return "", nil, fmt.Errorf("obj doesn't implement ForTableName() method")
+		return nil, fmt.Errorf("obj doesn't implement ForTableName() method")
 	}
 	tableName := getTableName.Call(nil)[0]
 	if tableName.Type().Kind() != reflect.String {
-		return "", nil, fmt.Errorf("wrong implementation of ForTableName()")
+		return nil, fmt.Errorf("wrong implementation of ForTableName()")
 	}
-	return tableName.String(), values, nil
+	return s.QueryForUpdate(tableName.String(), values, where)
 }
