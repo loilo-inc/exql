@@ -13,19 +13,14 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.16"
-      - name: Check fmt
-        run: |
-          make fmt
-          git diff --exit-code
-      - name: Check mod
+      - run: make updb
+      - name: Check generated codes
         run: |
           go install
+          go run tool/modelgen/main.go
+          go run tool/rdmegen/main.go
+          make fmt
           git diff --exit-code
-      - name: Check README
-        run: |
-          go run tool/main.go
-          git diff --exit-code
-      - run: make updb
       - run: make test
       - uses: codecov/codecov-action@v1
         with:

@@ -53,22 +53,13 @@ func (t *Table) HasTimeField() bool {
 	return false
 }
 
-func (t *Table) HasPrimaryKey() bool {
+func (t *Table) HasJsonField() bool {
 	for _, c := range t.Columns {
-		if c.IsPrimary() {
+		if c.GoFieldType == "json.RawMessage" {
 			return true
 		}
 	}
 	return false
-}
-
-func (t *Table) PrimaryKeyFieldIndex() int {
-	for _, c := range t.Columns {
-		if c.IsPrimary() {
-			return c.FieldIndex
-		}
-	}
-	return -1
 }
 
 type Column struct {
@@ -101,6 +92,14 @@ func (c *Column) ParseExtra() []string {
 }
 
 func (c *Column) Field() string {
+	return c.field(c.GoFieldType)
+}
+
+func (c *Column) UpdateField() string {
+	return c.field("*" + c.GoFieldType)
+}
+
+func (c *Column) field(goFiledType string) string {
 	var tag []string
 	tag = append(tag, fmt.Sprintf("column:%s", c.FieldName))
 	tag = append(tag, fmt.Sprintf("type:%s", c.FieldType))
@@ -113,7 +112,7 @@ func (c *Column) Field() string {
 	tag = append(tag, c.ParseExtra()...)
 	return fmt.Sprintf("%s %s `exql:\"%s\" json:\"%s\"`",
 		strcase.ToCamel(c.FieldName),
-		c.GoFieldType,
+		goFiledType,
 		strings.Join(tag, ";"),
 		strcase.ToSnake(c.FieldName),
 	)

@@ -21,8 +21,11 @@ type Saver interface {
 	InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error)
 	QueryForInsert(structPtr interface{}) (*SaveQuery, error)
 	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
+	UpdateModel(updaterStructPtr interface{}, where Clause) (sql.Result, error)
 	UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error)
+	UpdateModelContext(ctx context.Context, updaterStructPtr interface{}, where Clause) (sql.Result, error)
 	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
+	QueryForUpdateModel(updateStructPtr interface{}, where Clause) (*SaveQuery, error)
 }
 
 type Executor interface {
@@ -169,6 +172,25 @@ type assignment struct {
 	value      interface{}
 }
 
+func (s *saver) UpdateModel(
+	ptr interface{},
+	where Clause,
+) (sql.Result, error) {
+	return s.UpdateModelContext(context.Background(), ptr, where)
+}
+
+func (s *saver) UpdateModelContext(
+	ctx context.Context,
+	ptr interface{},
+	where Clause,
+) (sql.Result, error) {
+	q, err := s.QueryForUpdateModel(ptr, where)
+	if err != nil {
+		return nil, err
+	}
+	return s.ex.ExecContext(ctx, q.Query, q.Values...)
+}
+
 func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	if table == "" {
 		return nil, fmt.Errorf("empty table name")
@@ -213,4 +235,59 @@ func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where C
 		Fields: fields,
 		Values: values,
 	}, nil
+}
+
+func (s *saver) QueryForUpdateModel(
+	updateStructPtr interface{},
+	where Clause,
+) (*SaveQuery, error) {
+	if updateStructPtr == nil {
+		return nil, fmt.Errorf("pointer is nil")
+	}
+	objValue := reflect.ValueOf(updateStructPtr)
+	objType := objValue.Type()
+	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
+		return nil, fmt.Errorf("must be pointer of struct")
+	}
+	objType = objType.Elem()
+	values := make(map[string]interface{})
+	if objType.NumField() == 0 {
+		return nil, fmt.Errorf("struct has no field")
+	}
+
+	for i := 0; i < objType.NumField(); i++ {
+		f := objType.Field(i)
+		tag, ok := f.Tag.Lookup("exql")
+		if !ok {
+			continue
+		}
+		var colName string
+		if tags, err := ParseTags(tag); err != nil {
+			return nil, err
+		} else if col, ok := tags["column"]; !ok {
+			return nil, fmt.Errorf("tag must include column")
+		} else {
+			colName = col
+		}
+		if f.Type.Kind() != reflect.Ptr {
+			return nil, fmt.Errorf("field must be pointer")
+		}
+		fieldValue := objValue.Elem().Field(i)
+		if !fieldValue.IsNil() {
+			values[colName] = fieldValue.Elem().Interface()
+		}
+	}
+	if len(values) == 0 {
+		return nil, fmt.Errorf("no value for update")
+	}
+
+	getTableName := objValue.MethodByName("ForTableName")
+	if !getTableName.IsValid() {
+		return nil, fmt.Errorf("obj doesn't implement ForTableName() method")
+	}
+	tableName := getTableName.Call(nil)[0]
+	if tableName.Type().Kind() != reflect.String {
+		return nil, fmt.Errorf("wrong implementation of ForTableName()")
+	}
+	return s.QueryForUpdate(tableName.String(), values, where)
 }
