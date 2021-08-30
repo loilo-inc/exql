@@ -468,6 +468,31 @@ ORDER BY users.id
 		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 
+	t.Run("fields", func(t *testing.T) {
+		field, reset := setupFields(t, db)
+		defer reset()
+
+		t.Run("struct", func(t *testing.T) {
+			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
+			assert.Nil(t, err)
+			var dest model.Fields
+			assert.True(t, rows.Next())
+			err = m.Map(rows, &dest)
+			assert.Nil(t, err)
+			assertFields(t, &dest, field)
+		})
+
+		t.Run("*struct", func(t *testing.T) {
+			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
+			assert.Nil(t, err)
+			var dest *model.Fields
+			assert.True(t, rows.Next())
+			err = m.Map(rows, &dest)
+			assert.Nil(t, err)
+			assertFields(t, dest, field)
+		})
+	})
+
 	t.Run("should return error if head column is not found", func(t *testing.T) {
 		t.Run("inner join case", func(t *testing.T) {
 			query := `

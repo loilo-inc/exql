@@ -298,7 +298,11 @@ func mapRowSerial(
 			col := cols[colIndex]
 			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Elem().Field(fIndex)
-				f.Set(reflect.ValueOf(destVals[colIndex]).Elem().Elem())
+				if t := reflect.ValueOf(destVals[colIndex]).Elem(); t.IsNil() {
+					f.Set(reflect.Zero(t.Type().Elem())) // To set (*null.Type)(nil) as null.Type{}
+				} else {
+					f.Set(reflect.ValueOf(destVals[colIndex]).Elem().Elem())
+				}
 			}
 		}
 		dest.Set(model) // dest = *Model
