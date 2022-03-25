@@ -61,6 +61,7 @@ type Conditions interface {
 	IsSafe() bool
 	String(prefix *string) (string, error)
 	Args() []interface{}
+	Where(prefix *string) (Clause, error)
 }
 
 type conditions struct {

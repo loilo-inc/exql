@@ -87,3 +87,20 @@ func TestConditions_Args(t *testing.T) {
 		assert.Equal(t, []interface{}{1, 2}, args)
 	})
 }
+
+func TestConditions_Where(t *testing.T) {
+	t.Run("should return error when no conditions", func(t *testing.T) {
+		c := NewConditions([]*Condition{})
+		_, err := c.Where(nil)
+		assert.EqualError(t, err, "no conditions")
+	})
+	t.Run("should return where clause", func(t *testing.T) {
+		c := NewConditions([]*Condition{
+			{Text: "id = ?", Arg: 1},
+			{Text: "flag = true"},
+		})
+		result, err := c.Where(nil)
+		assert.Nil(t, err)
+		assert.Equal(t, Where("id = ? and flag = true", 1), result)
+	})
+}
