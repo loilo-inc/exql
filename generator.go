@@ -73,6 +73,9 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 		tables = append(tables, table)
 	EOL:
 	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
 	for _, table := range tables {
 		if err := d.generateModelFile(table, opts); err != nil {
 			return err
