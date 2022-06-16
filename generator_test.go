@@ -1,6 +1,8 @@
 package exql
 
 import (
+	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"os"
 	"testing"
 
@@ -45,5 +47,23 @@ func TestGenerator_Generate(t *testing.T) {
 		}
 		assert.Nil(t, err)
 		checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go"})
+	})
+
+	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`show tables`).WillReturnRows(
+			sqlmock.NewRows([]string{"tables"}).
+				AddRow("users").
+				RowError(0, fmt.Errorf("err")))
+
+		dir, err := os.MkdirTemp(os.TempDir(), "dist")
+		assert.NoError(t, err)
+		assert.EqualError(t, NewGenerator(mockDb).Generate(&GenerateOptions{
+			OutDir:  dir,
+			Package: "dist",
+		}), "err")
 	})
 }

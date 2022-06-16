@@ -79,6 +79,9 @@ func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
 	if row.Next() {
 		return mapRow(row, &destValue)
 	}
+	if err := row.Err(); err != nil {
+		return err
+	}
 	err := row.Close()
 	if err != nil {
 		return err
@@ -125,6 +128,9 @@ func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error 
 		// *dest = append(*dest, i)
 		destValue.Elem().Set(reflect.Append(destValue.Elem(), modelValue.Addr()))
 		cnt++
+	}
+	if err := rows.Err(); err != nil {
+		return err
 	}
 	err := rows.Close()
 	if err != nil {

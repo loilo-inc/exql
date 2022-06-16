@@ -2,6 +2,8 @@ package exql
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
 	"time"
 
@@ -228,6 +230,23 @@ func TestMapper_MapMany(t *testing.T) {
 		err = m.MapMany(rows, &dest)
 		assert.Equal(t, ErrRecordNotFound, err)
 	})
+
+	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "first_name", "last_name"}).
+				AddRow(1, "user1", "name").
+				RowError(0, fmt.Errorf("err")))
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+
+		var dest []*model.Users
+		assert.EqualError(t, m.MapMany(rows, &dest), "err")
+	})
 }
 
 func TestMapper_Map(t *testing.T) {
@@ -302,6 +321,23 @@ func TestMapper_Map(t *testing.T) {
 		var dest model.Users
 		err = m.Map(rows, &dest)
 		assert.Equal(t, ErrRecordNotFound, err)
+	})
+
+	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "first_name", "last_name"}).
+				AddRow(1, "user1", "name").
+				RowError(0, fmt.Errorf("err")))
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+
+		var dest model.Users
+		assert.EqualError(t, m.Map(rows, &dest), "err")
 	})
 }
 

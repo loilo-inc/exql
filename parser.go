@@ -152,6 +152,9 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 		})
 		i++
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return &Table{
 		TableName: table,
 		Columns:   cols,

@@ -2,10 +2,30 @@ package exql
 
 import (
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestParser_ParseTable(t *testing.T) {
+	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		p := &parser{}
+
+		mock.ExpectQuery(`show columns from users`).WillReturnRows(
+			sqlmock.NewRows([]string{"field", "type"}).
+				AddRow("id", "int(11)").
+				RowError(0, fmt.Errorf("err")))
+
+		table, err := p.ParseTable(mockDb, "users")
+		assert.Nil(t, table)
+		assert.EqualError(t, err, "err")
+	})
+}
 
 func TestParser_ParseType(t *testing.T) {
 	p := &parser{}
