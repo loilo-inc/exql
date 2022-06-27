@@ -83,15 +83,23 @@ func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	if p != nil {
 		txErr = fmt.Errorf("recovered: %s", p)
 	}
-	if txErr != nil {
-		if err := sqlTx.Rollback(); err != nil {
-			if !errors.Is(err, sql.ErrTxDone) {
-				return err
+
+	select {
+	case <-ctx.Done():
+		// If the context is canceled, the sql package will roll back the transaction.
+		return ctx.Err()
+	default:
+		if txErr != nil {
+			if err := sqlTx.Rollback(); err != nil {
+				if !errors.Is(err, sql.ErrTxDone) {
+					return err
+				}
 			}
+			return txErr
+		} else if err := sqlTx.Commit(); err != nil {
+			return err
 		}
-		return txErr
-	} else if err := sqlTx.Commit(); err != nil {
-		return err
+		return nil
 	}
-	return nil
+
 }
