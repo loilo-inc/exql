@@ -2,6 +2,7 @@ package exql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
@@ -67,6 +68,28 @@ func TestTx_Transaction(t *testing.T) {
 		assert.EqualError(t, err, "recovered: panic")
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.Nil(t, err)
+		var dest model.Users
+		assert.Equal(t, db.Map(rows, &dest), ErrRecordNotFound)
+	})
+	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var user *model.Users
+		err := transaction(db.DB(), ctx, nil, func(tx Tx) error {
+			user = &model.Users{
+				FirstName: null.String{},
+				LastName:  null.String{},
+			}
+			_, err := tx.Insert(user)
+			assert.NoError(t, err)
+
+			cancel()
+			return ctx.Err()
+		})
+		assert.True(t, errors.Is(err, context.Canceled))
+
+		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
+		assert.NoError(t, err)
 		var dest model.Users
 		assert.Equal(t, db.Map(rows, &dest), ErrRecordNotFound)
 	})

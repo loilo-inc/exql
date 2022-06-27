@@ -3,6 +3,7 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -84,7 +85,9 @@ func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	}
 	if txErr != nil {
 		if err := sqlTx.Rollback(); err != nil {
-			return err
+			if !errors.Is(err, sql.ErrTxDone) {
+				return err
+			}
 		}
 		return txErr
 	} else if err := sqlTx.Commit(); err != nil {
