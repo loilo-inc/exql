@@ -10,3 +10,13 @@ services:
       MYSQL_DATABASE: exql
     volumes:
       - ./schema:/docker-entrypoint-initdb.d
+  mysql8:
+    container_name: exql_mysql8
+    image: mysql:8
+    ports:
+      - 3327:3306
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      MYSQL_DATABASE: exql
+    volumes:
+      - ./schema:/docker-entrypoint-initdb.d
