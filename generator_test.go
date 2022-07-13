@@ -11,7 +11,10 @@ import (
 )
 
 func TestGenerator_Generate(t *testing.T) {
-	for version, db := range testDbs() {
+	for version, db := range map[string]DB{
+		"mysql5.7": testDb(),
+		"mysql8":   testDbMySQL8(),
+	} {
 		t.Run(version, func(t *testing.T) {
 			g := NewGenerator(db.DB())
 			checkFiles := func(dir string, elements []string) {

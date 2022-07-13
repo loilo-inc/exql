@@ -13,13 +13,6 @@ func testDb() DB {
 	return db
 }
 
-func testDbs() map[string]DB {
-	return map[string]DB{
-		"mysql5.7": testDb(),
-		"mysql8":   testDbMySQL8(),
-	}
-}
-
 func testDbMySQL8() DB {
 	db, err := Open(&OpenOptions{
 		Url: "root:@tcp(127.0.0.1:3327)/exql?charset=utf8mb4&parseTime=True&loc=Local",
