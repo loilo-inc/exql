@@ -162,7 +162,7 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 }
 
 func (p *parser) ParseType(t string, nullable bool) (string, error) {
-	intPat := regexp.MustCompile("^(tiny|small|medium|big)?int\\(\\d+?\\)( unsigned)?( zerofill)?$")
+	intPat := regexp.MustCompile("^(tiny|small|medium|big)?int(\\(\\d+?\\))?( unsigned)?( zerofill)?$")
 	floatPat := regexp.MustCompile("^float$")
 	doublePat := regexp.MustCompile("^double$")
 	charPat := regexp.MustCompile("^(var)?char\\(\\d+?\\)$")
