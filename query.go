@@ -91,3 +91,31 @@ func WhereEx(cond map[string]any) Clause {
 	}
 	return &clauseEx{stmts: stmts}
 }
+
+type whereAnd struct {
+	clauses []Clause
+}
+
+func (w *whereAnd) Args() []interface{} {
+	var args []any
+	for _, v := range w.clauses {
+		args = append(args, v.Args()...)
+	}
+	return args
+}
+
+func (w *whereAnd) Query() (string, error) {
+	var list []string
+	for _, v := range w.clauses {
+		q, err := v.Query()
+		if err != nil {
+			return "", err
+		}
+		list = append(list, fmt.Sprintf("(%s)", q))
+	}
+	return strings.Join(list, " AND "), nil
+}
+
+func WhereAnd(list ...Clause) Clause {
+	return &whereAnd{clauses: list}
+}

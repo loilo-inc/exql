@@ -78,3 +78,17 @@ func TestWhereEx(t *testing.T) {
 		assert.Equal(t, err, ErrDangerousExpr)
 	})
 }
+
+func TestWhereAnd(t *testing.T) {
+	v := WhereAnd(
+		Where("`id` = ?", 1),
+		Where("`name` = ?", 2),
+		WhereEx(map[string]any{
+			"age": Between(0, 20),
+		}),
+	)
+	q, err := v.Query()
+	assert.NoError(t, err)
+	assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND ((`age` BETWEEN ? AND ?))", q)
+	assert.ElementsMatch(t, []any{1, 2, 0, 20}, v.Args())
+}
