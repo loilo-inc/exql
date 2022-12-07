@@ -176,8 +176,8 @@ type SchoolUsers struct {
 }
 
 /*
-	school has many users
-	users has many schools
+school has many users
+users has many schools
 */
 func MapSerial() {
 	query := `
