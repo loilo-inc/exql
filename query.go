@@ -1,10 +1,11 @@
 package exql
 
 import (
-	"regexp"
+	"fmt"
+	"sort"
 	"strings"
 
-	"golang.org/x/xerrors"
+	. "github.com/loilo-inc/exql/query"
 )
 
 type ClauseType string
@@ -23,19 +24,8 @@ type clause struct {
 	args  []interface{}
 }
 
-var ErrDangerWhereClause = xerrors.Errorf("DANGER: empty where clause")
-
-var emptyPat = regexp.MustCompile(`\A[\s|\t]*\z`)
-
-func IsSafeWhereClause(s string) bool {
-	return !emptyPat.MatchString(s)
-}
-
 func (w *clause) Query() (string, error) {
-	if !IsSafeWhereClause(w.query) {
-		return "", ErrDangerWhereClause
-	}
-	return w.query, nil
+	return GuardDangerousQuery(w.query)
 }
 
 func (w *clause) Args() []interface{} {
@@ -50,45 +40,54 @@ func Where(q string, args ...interface{}) Clause {
 }
 
 type clauseEx struct {
-	cond map[string]any // comaparble | Comparator
+	stmts []*stmt
 }
 
 func (c *clauseEx) Args() []interface{} {
 	var args []any
-	for _, v := range c.cond {
-		switch e := v.(type) {
-		case Comparator:
-			args = append(args, e.Args()...)
-		default:
-			args = append(args, e)
-		}
+	for _, e := range c.stmts {
+		args = append(args, e.expr.Args()...)
 	}
 	return args
 }
 
 func (c *clauseEx) Query() (string, error) {
 	var arr []string
-	for k, v := range c.cond {
-		var expr Comparator
-		switch e := v.(type) {
-		case Comparator:
-			expr = e
-		default:
-			expr = Eq(v)
-		}
-		if expr, err := expr.Expr(k); err != nil {
+	for _, v := range c.stmts {
+		if expr, err := v.expr.Expr(v.column); err != nil {
 			return "", err
 		} else {
-			arr = append(arr, expr)
+			arr = append(arr, fmt.Sprintf("(%s)", expr))
 		}
 	}
 	query := strings.Join(arr, " AND ")
-	if !IsSafeWhereClause(query) {
-		return "", ErrDangerWhereClause
-	}
-	return query, nil
+	return GuardDangerousQuery(query)
+}
+
+type stmt struct {
+	column string
+	expr   Expr
 }
 
 func WhereEx(cond map[string]any) Clause {
-	return &clauseEx{cond: cond}
+	keys := make([]string, 0, len(cond))
+	for k := range cond {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.Compare(keys[i], keys[j]) < 0
+	})
+	stmts := make([]*stmt, len(keys))
+	for i, key := range keys {
+		v := cond[key]
+		var expr Expr
+		switch e := v.(type) {
+		case Expr:
+			expr = e
+		default:
+			expr = Eq(e)
+		}
+		stmts[i] = &stmt{column: key, expr: expr}
+	}
+	return &clauseEx{stmts: stmts}
 }

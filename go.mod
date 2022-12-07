@@ -13,7 +13,10 @@ require (
 	github.com/volatiletech/null v8.0.0+incompatible
 )
 
-require golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
+require (
+	github.com/golang/mock v1.6.0
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
