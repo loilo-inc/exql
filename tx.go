@@ -46,6 +46,14 @@ func (t *tx) UpdateModelContext(ctx context.Context, ptr interface{}, where Clau
 	return t.s.UpdateModelContext(ctx, ptr, where)
 }
 
+func (t *tx) Delete(table string, where Clause) (sql.Result, error) {
+	return t.s.Delete(table, where)
+}
+
+func (t *tx) DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error) {
+	return t.s.DeleteContext(ctx, table, where)
+}
+
 func (t *tx) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	return t.s.QueryForUpdate(table, set, where)
 }

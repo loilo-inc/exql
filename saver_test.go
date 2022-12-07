@@ -443,15 +443,6 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
-	t.Run("should error if clause type is not where", func(t *testing.T) {
-		q, err := s.Update("users", map[string]interface{}{
-			"first_name": "go",
-		}, &clause{
-			t: "join",
-		})
-		assert.Nil(t, q)
-		assert.EqualError(t, err, "where is not build by Where()")
-	})
 }
 
 type upSampleInvalidTag struct {

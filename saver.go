@@ -26,11 +26,8 @@ type Saver interface {
 	UpdateModelContext(ctx context.Context, updaterStructPtr interface{}, where Clause) (sql.Result, error)
 	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
 	QueryForUpdateModel(updateStructPtr interface{}, where Clause) (*SaveQuery, error)
-}
-
-type Executor interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	Delete(table string, where Clause) (sql.Result, error)
+	DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error)
 }
 
 type saver struct {
@@ -90,6 +87,19 @@ func (s *saver) UpdateContext(
 		return nil, err
 	}
 	return s.ex.ExecContext(ctx, q.Query, q.Values...)
+}
+
+func (s *saver) Delete(from string, where Clause) (sql.Result, error) {
+	return s.DeleteContext(context.Background(), from, where)
+}
+
+func (s *saver) DeleteContext(ctx context.Context, from string, where Clause) (sql.Result, error) {
+	if cond, err := where.Query(); err != nil {
+		return nil, err
+	} else {
+		query := fmt.Sprintf("DELETE FROM `%s` WHERE %s", from, cond)
+		return s.ex.ExecContext(ctx, query, where.Args()...)
+	}
 }
 
 func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
@@ -197,9 +207,6 @@ func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where C
 	}
 	if len(set) == 0 {
 		return nil, fmt.Errorf("empty field set")
-	}
-	if where.Type() != ClauseTypeWhere {
-		return nil, fmt.Errorf("where is not build by Where()")
 	}
 	whereQ, err := where.Query()
 	if err != nil {

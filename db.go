@@ -27,6 +27,16 @@ type DB interface {
 	Close() error
 }
 
+// An abstraction of sql.DB/sql.Tx
+type Executor interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 type db struct {
 	db    *sql.DB
 	s     *saver
@@ -115,6 +125,14 @@ func (d *db) UpdateContext(ctx context.Context, table string, set map[string]int
 
 func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where Clause) (sql.Result, error) {
 	return d.s.UpdateModelContext(ctx, ptr, where)
+}
+
+func (d *db) Delete(table string, where Clause) (sql.Result, error) {
+	return d.Delete(table, where)
+}
+
+func (d *db) DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error) {
+	return d.DeleteContext(ctx, table, where)
 }
 
 func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {

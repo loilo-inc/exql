@@ -1,8 +1,10 @@
 package exql
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsSafeWhereClause(t *testing.T) {
@@ -38,4 +40,15 @@ func TestWhereQuery_Args(t *testing.T) {
 	w := Where("id = ?", 1, 2)
 	args := w.Args()
 	assert.ElementsMatch(t, []interface{}{1, 2}, args)
+}
+
+func TestWhereEx(t *testing.T) {
+	WhereEx(map[string]any{
+		"id":         1,
+		"created_at": Lt(time.Now()),
+		"deleted_at": Between("2022-12-03", "2023-01-02"),
+		"age":        Range(Gte(0), Lt(20)),
+		"name":       In("a", "b"),
+		"location":   Raw("= ?", "japan"),
+	})
 }
