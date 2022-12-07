@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/iancoleman/strcase"
+	"golang.org/x/xerrors"
 )
 
 type parser struct {
@@ -231,5 +232,5 @@ func (p *parser) ParseType(t string, nullable bool) (string, error) {
 		}
 		return "json.RawMessage", nil
 	}
-	return "", fmt.Errorf("unknown type: %s", t)
+	return "", xerrors.Errorf("unknown type: %s", t)
 }

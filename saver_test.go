@@ -8,6 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/model"
+	"github.com/loilo-inc/exql/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
@@ -355,6 +356,24 @@ func TestSaver_UpdateContext(t *testing.T) {
 	})
 }
 
+func TestSaver_Delete(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		mock.ExpectExec("DELETE FROM `table` WHERE id = ?").
+			WithArgs(1).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		s := NewSaver(db)
+		_, err := s.Delete("table", Where("id = ?", 1))
+		assert.NoError(t, err)
+	})
+	t.Run("should error if clause returened an error", func(t *testing.T) {
+		s := &saver{}
+		res, err := s.Delete("table", Where(""))
+		assert.Equal(t, query.ErrDangerousExpr, err)
+		assert.Nil(t, res)
+	})
+}
+
 func TestSaver_QueryForInsert(t *testing.T) {
 	s := &saver{}
 	t.Run("basic", func(t *testing.T) {
@@ -364,7 +383,7 @@ func TestSaver_QueryForInsert(t *testing.T) {
 		}
 		s, err := s.QueryForInsert(&user)
 		assert.Nil(t, err)
-		exp := "INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)"
+		exp := "INSERT INTO `users` (`first_name`, `last_name`) VALUES (?,?)"
 		assert.Equal(t, exp, s.Query)
 		assert.ElementsMatch(t, s.Values, []interface{}{
 			user.FirstName, user.LastName,

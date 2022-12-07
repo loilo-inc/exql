@@ -7,6 +7,9 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/loilo-inc/exql/query"
+	"golang.org/x/xerrors"
 )
 
 type SaveQuery struct {
@@ -104,16 +107,15 @@ func (s *saver) DeleteContext(ctx context.Context, from string, where Clause) (s
 
 func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	if modelPtr == nil {
-		return nil, fmt.Errorf("pointer is nil")
+		return nil, xerrors.Errorf("pointer is nil")
 	}
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
-		return nil, fmt.Errorf("object must be pointer of struct")
+		return nil, xerrors.Errorf("object must be pointer of struct")
 	}
 	var columns []string
 	var values []interface{}
-	var placeholders []string
 	// *User -> User
 	objType = objType.Elem()
 	exqlTagCount := 0
@@ -128,7 +130,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 			}
 			colName, ok := tags["column"]
 			if !ok || colName == "" {
-				return nil, fmt.Errorf("column tag is not set")
+				return nil, xerrors.Errorf("column tag is not set")
 			}
 			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
@@ -142,31 +144,30 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 				continue
 			}
 			columns = append(columns, fmt.Sprintf("`%s`", colName))
-			placeholders = append(placeholders, "?")
 			values = append(values, objValue.Elem().Field(i).Interface())
 		}
 	}
 	if exqlTagCount == 0 {
-		return nil, fmt.Errorf("obj doesn't have exql tags in any fields")
+		return nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
 	}
 
 	if len(primaryKeyFields) == 0 {
-		return nil, fmt.Errorf("table has no primary key")
+		return nil, xerrors.Errorf("table has no primary key")
 	}
 
 	getTableName := objValue.MethodByName("TableName")
 	if !getTableName.IsValid() {
-		return nil, fmt.Errorf("obj doesn't implement TableName() method")
+		return nil, xerrors.Errorf("obj doesn't implement TableName() method")
 	}
 	tableName := getTableName.Call(nil)[0]
 	if tableName.Type().Kind() != reflect.String {
-		return nil, fmt.Errorf("wrong implementation of TableName()")
+		return nil, xerrors.Errorf("wrong implementation of TableName()")
 	}
 	query := fmt.Sprintf(
 		"INSERT INTO `%s` (%s) VALUES (%s)",
 		tableName,
 		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
+		query.SqlPlaceHolders(len(columns)),
 	)
 	return &SaveQuery{
 		Query:              query,
@@ -203,10 +204,10 @@ func (s *saver) UpdateModelContext(
 
 func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
 	if table == "" {
-		return nil, fmt.Errorf("empty table name")
+		return nil, xerrors.Errorf("empty table name")
 	}
 	if len(set) == 0 {
-		return nil, fmt.Errorf("empty field set")
+		return nil, xerrors.Errorf("empty field set")
 	}
 	whereQ, err := where.Query()
 	if err != nil {
@@ -249,17 +250,17 @@ func (s *saver) QueryForUpdateModel(
 	where Clause,
 ) (*SaveQuery, error) {
 	if updateStructPtr == nil {
-		return nil, fmt.Errorf("pointer is nil")
+		return nil, xerrors.Errorf("pointer is nil")
 	}
 	objValue := reflect.ValueOf(updateStructPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
-		return nil, fmt.Errorf("must be pointer of struct")
+		return nil, xerrors.Errorf("must be pointer of struct")
 	}
 	objType = objType.Elem()
 	values := make(map[string]interface{})
 	if objType.NumField() == 0 {
-		return nil, fmt.Errorf("struct has no field")
+		return nil, xerrors.Errorf("struct has no field")
 	}
 
 	for i := 0; i < objType.NumField(); i++ {
@@ -272,12 +273,12 @@ func (s *saver) QueryForUpdateModel(
 		if tags, err := ParseTags(tag); err != nil {
 			return nil, err
 		} else if col, ok := tags["column"]; !ok {
-			return nil, fmt.Errorf("tag must include column")
+			return nil, xerrors.Errorf("tag must include column")
 		} else {
 			colName = col
 		}
 		if f.Type.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("field must be pointer")
+			return nil, xerrors.Errorf("field must be pointer")
 		}
 		fieldValue := objValue.Elem().Field(i)
 		if !fieldValue.IsNil() {
@@ -285,16 +286,16 @@ func (s *saver) QueryForUpdateModel(
 		}
 	}
 	if len(values) == 0 {
-		return nil, fmt.Errorf("no value for update")
+		return nil, xerrors.Errorf("no value for update")
 	}
 
 	getTableName := objValue.MethodByName("ForTableName")
 	if !getTableName.IsValid() {
-		return nil, fmt.Errorf("obj doesn't implement ForTableName() method")
+		return nil, xerrors.Errorf("obj doesn't implement ForTableName() method")
 	}
 	tableName := getTableName.Call(nil)[0]
 	if tableName.Type().Kind() != reflect.String {
-		return nil, fmt.Errorf("wrong implementation of ForTableName()")
+		return nil, xerrors.Errorf("wrong implementation of ForTableName()")
 	}
 	return s.QueryForUpdate(tableName.String(), values, where)
 }
