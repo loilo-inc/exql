@@ -9,14 +9,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func SqlPlaceHolders(repeat int) string {
-	res := make([]string, repeat)
-	for i := 0; i < repeat; i++ {
-		res[i] = "?"
-	}
-	return strings.Join(res, ",")
-}
-
 type Expr interface {
 	Expr(column string) (string, error)
 	Args() []any

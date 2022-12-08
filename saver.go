@@ -9,21 +9,15 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type SaveQuery struct {
-	Query              Clause
-	AutoIncrementField *reflect.Value
-}
-
 type Saver interface {
 	Insert(structPtr any) (sql.Result, error)
 	InsertContext(ctx context.Context, structPtr any) (sql.Result, error)
-	QueryForInsert(structPtr any) (*SaveQuery, error)
+	QueryForInsert(structPtr any) (q.Query, *reflect.Value, error)
 	Update(table string, set map[string]any, where Clause) (sql.Result, error)
 	UpdateModel(updaterStructPtr any, where Clause) (sql.Result, error)
 	UpdateContext(ctx context.Context, table string, set map[string]any, where Clause) (sql.Result, error)
 	UpdateModelContext(ctx context.Context, updaterStructPtr any, where Clause) (sql.Result, error)
-	QueryForUpdate(table string, set map[string]any, where Clause) (*SaveQuery, error)
-	QueryForUpdateModel(updateStructPtr any, where Clause) (*SaveQuery, error)
+	QueryForUpdateModel(updateStructPtr any, where Clause) (q.Query, error)
 	Delete(table string, where Clause) (sql.Result, error)
 	DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error)
 }
@@ -43,28 +37,28 @@ func (s *saver) Insert(modelPtr any) (sql.Result, error) {
 }
 
 func (s *saver) InsertContext(ctx context.Context, modelPtr any) (sql.Result, error) {
-	q, err := s.QueryForInsert(modelPtr)
+	q, autoIncrField, err := s.QueryForInsert(modelPtr)
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := q.Query.Query()
+	stmt, args, err := q.Query()
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
+	result, err := s.ex.ExecContext(ctx, stmt, args...)
 	if err != nil {
 		return nil, err
 	}
-	if q.AutoIncrementField != nil {
+	if autoIncrField != nil {
 		lid, err := result.LastInsertId()
 		if err != nil {
 			return nil, err
 		}
-		kind := q.AutoIncrementField.Kind()
+		kind := autoIncrField.Kind()
 		if kind == reflect.Int64 {
-			q.AutoIncrementField.Set(reflect.ValueOf(lid))
+			autoIncrField.Set(reflect.ValueOf(lid))
 		} else if kind == reflect.Uint64 {
-			q.AutoIncrementField.Set(reflect.ValueOf(uint64(lid)))
+			autoIncrField.Set(reflect.ValueOf(uint64(lid)))
 		}
 	}
 	return result, nil
@@ -84,12 +78,11 @@ func (s *saver) UpdateContext(
 	set map[string]any,
 	where Clause,
 ) (sql.Result, error) {
-	if q, err := s.QueryForUpdate(table, set, where); err != nil {
-		return nil, err
-	} else if stmt, err := q.Query.Query(); err != nil {
+	query := &q.Update{Table: table, Set: set, Where: where}
+	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
-		return s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
+		return s.ex.ExecContext(ctx, stmt, args...)
 	}
 }
 
@@ -98,22 +91,22 @@ func (s *saver) Delete(from string, where Clause) (sql.Result, error) {
 }
 
 func (s *saver) DeleteContext(ctx context.Context, from string, where Clause) (sql.Result, error) {
-	query := q.Delete(from, where)
-	if stmt, err := query.Query(); err != nil {
+	q := &q.Delete{From: from, Where: where}
+	if stmt, args, err := q.Query(); err != nil {
 		return nil, err
 	} else {
-		return s.ex.ExecContext(ctx, stmt, query.Args()...)
+		return s.ex.ExecContext(ctx, stmt, args...)
 	}
 }
 
-func (s *saver) QueryForInsert(modelPtr any) (*SaveQuery, error) {
+func (s *saver) QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 	if modelPtr == nil {
-		return nil, xerrors.Errorf("pointer is nil")
+		return nil, nil, xerrors.Errorf("pointer is nil")
 	}
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
-		return nil, xerrors.Errorf("object must be pointer of struct")
+		return nil, nil, xerrors.Errorf("object must be pointer of struct")
 	}
 	data := map[string]any{}
 	// *User -> User
@@ -126,11 +119,11 @@ func (s *saver) QueryForInsert(modelPtr any) (*SaveQuery, error) {
 		if t, ok := f.Tag.Lookup("exql"); ok {
 			tags, err := ParseTags(t)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			colName, ok := tags["column"]
 			if !ok || colName == "" {
-				return nil, xerrors.Errorf("column tag is not set")
+				return nil, nil, xerrors.Errorf("column tag is not set")
 			}
 			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
@@ -147,31 +140,27 @@ func (s *saver) QueryForInsert(modelPtr any) (*SaveQuery, error) {
 		}
 	}
 	if exqlTagCount == 0 {
-		return nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
+		return nil, nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
 	}
 
 	if len(primaryKeyFields) == 0 {
-		return nil, xerrors.Errorf("table has no primary key")
+		return nil, nil, xerrors.Errorf("table has no primary key")
 	}
 
 	getTableName := objValue.MethodByName("TableName")
 	if !getTableName.IsValid() {
-		return nil, xerrors.Errorf("obj doesn't implement TableName() method")
+		return nil, nil, xerrors.Errorf("obj doesn't implement TableName() method")
 	}
 	tableName := getTableName.Call(nil)[0]
 	if tableName.Type().Kind() != reflect.String {
-		return nil, xerrors.Errorf("wrong implementation of TableName()")
+		return nil, nil, xerrors.Errorf("wrong implementation of TableName()")
 	}
-	return &SaveQuery{
-		Query:              q.Insert(tableName.String(), data),
-		AutoIncrementField: autoIncrementField,
-	}, nil
-}
-
-type assignment struct {
-	expression string
-	field      string
-	value      any
+	return &q.Insert{
+			Into:   tableName.String(),
+			Values: data,
+		},
+		autoIncrementField,
+		nil
 }
 
 func (s *saver) UpdateModel(
@@ -190,29 +179,17 @@ func (s *saver) UpdateModelContext(
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := q.Query.Query()
+	stmt, args, err := q.Query()
 	if err != nil {
 		return nil, err
 	}
-	return s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
-}
-
-func (s *saver) QueryForUpdate(table string, set map[string]any, where Clause) (*SaveQuery, error) {
-	if table == "" {
-		return nil, xerrors.Errorf("empty table name")
-	}
-	if len(set) == 0 {
-		return nil, xerrors.Errorf("empty field set")
-	}
-	return &SaveQuery{
-		Query: q.Update(table, WhereEx(set), where),
-	}, nil
+	return s.ex.ExecContext(ctx, stmt, args...)
 }
 
 func (s *saver) QueryForUpdateModel(
 	updateStructPtr any,
 	where Clause,
-) (*SaveQuery, error) {
+) (q.Query, error) {
 	if updateStructPtr == nil {
 		return nil, xerrors.Errorf("pointer is nil")
 	}
@@ -261,5 +238,9 @@ func (s *saver) QueryForUpdateModel(
 	if tableName.Type().Kind() != reflect.String {
 		return nil, xerrors.Errorf("wrong implementation of ForTableName()")
 	}
-	return s.QueryForUpdate(tableName.String(), values, where)
+	return &q.Update{
+		Table: tableName.String(),
+		Where: where,
+		Set:   values,
+	}, nil
 }

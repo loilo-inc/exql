@@ -49,3 +49,11 @@ func (k *keyIterator) Keys() []string {
 func (k *keyIterator) Values() []any {
 	return k.values
 }
+
+func SqlPlaceHolders(repeat int) string {
+	res := make([]string, repeat)
+	for i := 0; i < repeat; i++ {
+		res[i] = "?"
+	}
+	return strings.Join(res, ",")
+}
