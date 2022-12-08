@@ -3,32 +3,27 @@ package exql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"reflect"
-	"sort"
-	"strings"
 
-	"github.com/loilo-inc/exql/query"
+	q "github.com/loilo-inc/exql/query"
 	"golang.org/x/xerrors"
 )
 
 type SaveQuery struct {
-	Query              string
-	Fields             []string
-	Values             []interface{}
+	Query              Clause
 	AutoIncrementField *reflect.Value
 }
 
 type Saver interface {
-	Insert(structPtr interface{}) (sql.Result, error)
-	InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error)
-	QueryForInsert(structPtr interface{}) (*SaveQuery, error)
-	Update(table string, set map[string]interface{}, where Clause) (sql.Result, error)
-	UpdateModel(updaterStructPtr interface{}, where Clause) (sql.Result, error)
-	UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error)
-	UpdateModelContext(ctx context.Context, updaterStructPtr interface{}, where Clause) (sql.Result, error)
-	QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error)
-	QueryForUpdateModel(updateStructPtr interface{}, where Clause) (*SaveQuery, error)
+	Insert(structPtr any) (sql.Result, error)
+	InsertContext(ctx context.Context, structPtr any) (sql.Result, error)
+	QueryForInsert(structPtr any) (*SaveQuery, error)
+	Update(table string, set map[string]any, where Clause) (sql.Result, error)
+	UpdateModel(updaterStructPtr any, where Clause) (sql.Result, error)
+	UpdateContext(ctx context.Context, table string, set map[string]any, where Clause) (sql.Result, error)
+	UpdateModelContext(ctx context.Context, updaterStructPtr any, where Clause) (sql.Result, error)
+	QueryForUpdate(table string, set map[string]any, where Clause) (*SaveQuery, error)
+	QueryForUpdateModel(updateStructPtr any, where Clause) (*SaveQuery, error)
 	Delete(table string, where Clause) (sql.Result, error)
 	DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error)
 }
@@ -37,22 +32,26 @@ type saver struct {
 	ex Executor
 }
 
-type SET map[string]interface{}
+type SET map[string]any
 
 func NewSaver(ex Executor) *saver {
 	return &saver{ex: ex}
 }
 
-func (s *saver) Insert(modelPtr interface{}) (sql.Result, error) {
+func (s *saver) Insert(modelPtr any) (sql.Result, error) {
 	return s.InsertContext(context.Background(), modelPtr)
 }
 
-func (s *saver) InsertContext(ctx context.Context, modelPtr interface{}) (sql.Result, error) {
+func (s *saver) InsertContext(ctx context.Context, modelPtr any) (sql.Result, error) {
 	q, err := s.QueryForInsert(modelPtr)
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.ex.ExecContext(ctx, q.Query, q.Values...)
+	stmt, err := q.Query.Query()
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr interface{}) (sql.Re
 
 func (s *saver) Update(
 	table string,
-	set map[string]interface{},
+	set map[string]any,
 	where Clause,
 ) (sql.Result, error) {
 	return s.UpdateContext(context.Background(), table, set, where)
@@ -82,14 +81,16 @@ func (s *saver) Update(
 func (s *saver) UpdateContext(
 	ctx context.Context,
 	table string,
-	set map[string]interface{},
+	set map[string]any,
 	where Clause,
 ) (sql.Result, error) {
-	q, err := s.QueryForUpdate(table, set, where)
-	if err != nil {
+	if q, err := s.QueryForUpdate(table, set, where); err != nil {
 		return nil, err
+	} else if stmt, err := q.Query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
 	}
-	return s.ex.ExecContext(ctx, q.Query, q.Values...)
 }
 
 func (s *saver) Delete(from string, where Clause) (sql.Result, error) {
@@ -97,15 +98,15 @@ func (s *saver) Delete(from string, where Clause) (sql.Result, error) {
 }
 
 func (s *saver) DeleteContext(ctx context.Context, from string, where Clause) (sql.Result, error) {
-	if cond, err := where.Query(); err != nil {
+	query := q.Delete(from, where)
+	if stmt, err := query.Query(); err != nil {
 		return nil, err
 	} else {
-		query := fmt.Sprintf("DELETE FROM `%s` WHERE %s", from, cond)
-		return s.ex.ExecContext(ctx, query, where.Args()...)
+		return s.ex.ExecContext(ctx, stmt, query.Args()...)
 	}
 }
 
-func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
+func (s *saver) QueryForInsert(modelPtr any) (*SaveQuery, error) {
 	if modelPtr == nil {
 		return nil, xerrors.Errorf("pointer is nil")
 	}
@@ -114,8 +115,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
 		return nil, xerrors.Errorf("object must be pointer of struct")
 	}
-	var columns []string
-	var values []interface{}
+	data := map[string]any{}
 	// *User -> User
 	objType = objType.Elem()
 	exqlTagCount := 0
@@ -143,8 +143,7 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 				// Not include auto_increment field in insert query
 				continue
 			}
-			columns = append(columns, fmt.Sprintf("`%s`", colName))
-			values = append(values, objValue.Elem().Field(i).Interface())
+			data[colName] = objValue.Elem().Field(i).Interface()
 		}
 	}
 	if exqlTagCount == 0 {
@@ -163,16 +162,8 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 	if tableName.Type().Kind() != reflect.String {
 		return nil, xerrors.Errorf("wrong implementation of TableName()")
 	}
-	query := fmt.Sprintf(
-		"INSERT INTO `%s` (%s) VALUES (%s)",
-		tableName,
-		strings.Join(columns, ", "),
-		query.SqlPlaceHolders(len(columns)),
-	)
 	return &SaveQuery{
-		Query:              query,
-		Fields:             columns,
-		Values:             values,
+		Query:              q.Insert(tableName.String(), data),
 		AutoIncrementField: autoIncrementField,
 	}, nil
 }
@@ -180,11 +171,11 @@ func (s *saver) QueryForInsert(modelPtr interface{}) (*SaveQuery, error) {
 type assignment struct {
 	expression string
 	field      string
-	value      interface{}
+	value      any
 }
 
 func (s *saver) UpdateModel(
-	ptr interface{},
+	ptr any,
 	where Clause,
 ) (sql.Result, error) {
 	return s.UpdateModelContext(context.Background(), ptr, where)
@@ -192,61 +183,34 @@ func (s *saver) UpdateModel(
 
 func (s *saver) UpdateModelContext(
 	ctx context.Context,
-	ptr interface{},
+	ptr any,
 	where Clause,
 ) (sql.Result, error) {
 	q, err := s.QueryForUpdateModel(ptr, where)
 	if err != nil {
 		return nil, err
 	}
-	return s.ex.ExecContext(ctx, q.Query, q.Values...)
+	stmt, err := q.Query.Query()
+	if err != nil {
+		return nil, err
+	}
+	return s.ex.ExecContext(ctx, stmt, q.Query.Args()...)
 }
 
-func (s *saver) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
+func (s *saver) QueryForUpdate(table string, set map[string]any, where Clause) (*SaveQuery, error) {
 	if table == "" {
 		return nil, xerrors.Errorf("empty table name")
 	}
 	if len(set) == 0 {
 		return nil, xerrors.Errorf("empty field set")
 	}
-	whereQ, err := where.Query()
-	if err != nil {
-		return nil, err
-	}
-	var assignments []*assignment
-	for k, v := range set {
-		f := fmt.Sprintf("`%s` = ?", k)
-		assignments = append(assignments, &assignment{
-			expression: f,
-			field:      k,
-			value:      v,
-		})
-	}
-	sort.Slice(assignments, func(i, j int) bool {
-		return strings.Compare(assignments[i].field, assignments[j].field) < 0
-	})
-	var fields []string
-	var values []interface{}
-	var expressions []string
-	for _, v := range assignments {
-		fields = append(fields, v.field)
-		values = append(values, v.value)
-		expressions = append(expressions, v.expression)
-	}
-	values = append(values, where.Args()...)
-	query := fmt.Sprintf(
-		"UPDATE `%s` SET %s WHERE %s",
-		table, strings.Join(expressions, ", "), whereQ,
-	)
 	return &SaveQuery{
-		Query:  query,
-		Fields: fields,
-		Values: values,
+		Query: q.Update(table, WhereEx(set), where),
 	}, nil
 }
 
 func (s *saver) QueryForUpdateModel(
-	updateStructPtr interface{},
+	updateStructPtr any,
 	where Clause,
 ) (*SaveQuery, error) {
 	if updateStructPtr == nil {
@@ -258,7 +222,7 @@ func (s *saver) QueryForUpdateModel(
 		return nil, xerrors.Errorf("must be pointer of struct")
 	}
 	objType = objType.Elem()
-	values := make(map[string]interface{})
+	values := make(map[string]any)
 	if objType.NumField() == 0 {
 		return nil, xerrors.Errorf("struct has no field")
 	}

@@ -1,4 +1,4 @@
-package exql
+package query_test
 
 import (
 	"fmt"
@@ -15,20 +15,20 @@ import (
 
 func TestWhereQuery_Query(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		q := Where("id = ?", 1)
+		q := New("id = ?", 1)
 		act, err := q.Query()
 		assert.Nil(t, err)
 		assert.Equal(t, "id = ?", act)
 	})
 	t.Run("should return error if query has no expression", func(t *testing.T) {
-		q := Where("", 1)
+		q := New("", 1)
 		_, err := q.Query()
 		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
 }
 
 func TestWhereQuery_Args(t *testing.T) {
-	w := Where("id = ?", 1, 2)
+	w := New("id = ?", 1, 2)
 	args := w.Args()
 	assert.ElementsMatch(t, []interface{}{1, 2}, args)
 }
@@ -36,7 +36,7 @@ func TestWhereQuery_Args(t *testing.T) {
 func TestWhereEx(t *testing.T) {
 	t.Run("should sort columns", func(t *testing.T) {
 		now := time.Now()
-		clause := WhereEx(map[string]any{
+		clause := QueryEx(map[string]any{
 			"id":         1,
 			"created_at": Lt(now),
 			"deleted_at": Between("2022-12-03", "2023-01-02"),
@@ -61,7 +61,7 @@ func TestWhereEx(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		expr := mock_query.NewMockExpr(ctrl)
 		expr.EXPECT().Expr(gomock.Any()).Return("", fmt.Errorf("err"))
-		clause := WhereEx(map[string]any{
+		clause := QueryEx(map[string]any{
 			"1": expr,
 			"2": Eq(1),
 		})
@@ -70,7 +70,7 @@ func TestWhereEx(t *testing.T) {
 		assert.ErrorContains(t, err, "err")
 	})
 	t.Run("should error if one is dangerous query", func(t *testing.T) {
-		clause := WhereEx(map[string]any{
+		clause := QueryEx(map[string]any{
 			"id": Raw(""),
 		})
 		q, err := clause.Query()
@@ -80,10 +80,10 @@ func TestWhereEx(t *testing.T) {
 }
 
 func TestWhereAnd(t *testing.T) {
-	v := WhereAnd(
-		Where("`id` = ?", 1),
-		Where("`name` = ?", 2),
-		WhereEx(map[string]any{
+	v := QueryAnd(
+		New("`id` = ?", 1),
+		New("`name` = ?", 2),
+		QueryEx(map[string]any{
 			"age": Between(0, 20),
 			"cnt": In(3, 4),
 		}),
