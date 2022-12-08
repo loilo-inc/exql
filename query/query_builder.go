@@ -72,10 +72,14 @@ func Gte(value any) Expr {
 	return is(kGte, value)
 }
 
-func In(args ...any) Expr {
+func In[T any](args ...T) Expr {
+	var arr = make([]any, len(args))
+	for i, v := range args {
+		arr[i] = v
+	}
 	return &raw{
 		q:    fmt.Sprintf("IN (%s)", SqlPlaceHolders(len(args))),
-		args: args,
+		args: arr,
 	}
 }
 

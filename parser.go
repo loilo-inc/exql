@@ -163,15 +163,15 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 }
 
 func (p *parser) ParseType(t string, nullable bool) (string, error) {
-	intPat := regexp.MustCompile("^(tiny|small|medium|big)?int(\\(\\d+?\\))?( unsigned)?( zerofill)?$")
-	floatPat := regexp.MustCompile("^float$")
-	doublePat := regexp.MustCompile("^double$")
-	charPat := regexp.MustCompile("^(var)?char\\(\\d+?\\)$")
-	textPat := regexp.MustCompile("^(tiny|medium|long)?text$")
-	blobPat := regexp.MustCompile("^(tiny|medium|long)?blob$")
-	datePat := regexp.MustCompile("^(date|datetime|datetime\\(\\d\\)|timestamp|timestamp\\(\\d\\))$")
-	timePat := regexp.MustCompile("^(time|time\\(\\d\\))$")
-	jsonPat := regexp.MustCompile("^json$")
+	intPat := regexp.MustCompile(`^(tiny|small|medium|big)?int(\(\d+?\))?( unsigned)?( zerofill)?$`)
+	floatPat := regexp.MustCompile(`^float$`)
+	doublePat := regexp.MustCompile(`^double$`)
+	charPat := regexp.MustCompile(`^(var)?char\(\d+?\)$`)
+	textPat := regexp.MustCompile(`^(tiny|medium|long)?text$`)
+	blobPat := regexp.MustCompile(`^(tiny|medium|long)?blob$`)
+	datePat := regexp.MustCompile(`^(date|datetime|datetime\(\d\)|timestamp|timestamp\(\d\))$`)
+	timePat := regexp.MustCompile(`^(time|time\(\d\))$`)
+	jsonPat := regexp.MustCompile(`^json$`)
 	if intPat.MatchString(t) {
 		m := intPat.FindStringSubmatch(t)
 		unsigned := strings.Contains(t, "unsigned")

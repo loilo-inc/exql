@@ -46,11 +46,11 @@ func TestWhereEx(t *testing.T) {
 		q, err := clause.Query()
 		assert.NoError(t, err)
 		stmt := []string{
-			"(`created_at` < ?)",
-			"(`deleted_at` BETWEEN ? AND ?)",
-			"(`id` = ?)",
-			"(`location` LIKE ?)",
-			"(`name` IN (?,?))",
+			"`created_at` < ?",
+			"`deleted_at` BETWEEN ? AND ?",
+			"`id` = ?",
+			"`location` LIKE ?",
+			"`name` IN (?,?)",
 		}
 		assert.Equal(t, strings.Join(stmt, " AND "), q)
 		assert.ElementsMatch(t, []any{
@@ -85,10 +85,11 @@ func TestWhereAnd(t *testing.T) {
 		Where("`name` = ?", 2),
 		WhereEx(map[string]any{
 			"age": Between(0, 20),
+			"cnt": In(3, 4),
 		}),
 	)
 	q, err := v.Query()
 	assert.NoError(t, err)
-	assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND ((`age` BETWEEN ? AND ?))", q)
-	assert.ElementsMatch(t, []any{1, 2, 0, 20}, v.Args())
+	assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?))", q)
+	assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, v.Args())
 }

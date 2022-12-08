@@ -128,11 +128,11 @@ func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where Clau
 }
 
 func (d *db) Delete(table string, where Clause) (sql.Result, error) {
-	return d.Delete(table, where)
+	return d.s.Delete(table, where)
 }
 
 func (d *db) DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error) {
-	return d.DeleteContext(ctx, table, where)
+	return d.s.DeleteContext(ctx, table, where)
 }
 
 func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {

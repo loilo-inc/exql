@@ -2,9 +2,10 @@ package exql
 
 import (
 	"database/sql"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDb_DB(t *testing.T) {

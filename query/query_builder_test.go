@@ -31,6 +31,7 @@ func TestQuery(t *testing.T) {
 	tt(Gt(0), "> ?", 0)
 	tt(Gte(0), ">= ?", 0)
 	tt(In(0, 1), "IN (?,?)", 0, 1)
+	tt(In([]int{0, 1}...), "IN (?,?)", 0, 1)
 }
 
 func TestQuery_And(t *testing.T) {

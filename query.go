@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	. "github.com/loilo-inc/exql/query"
+	q "github.com/loilo-inc/exql/query"
 )
 
 type ClauseType string
@@ -25,7 +25,7 @@ type clause struct {
 }
 
 func (w *clause) Query() (string, error) {
-	return GuardDangerousQuery(w.query)
+	return q.GuardDangerousQuery(w.query)
 }
 
 func (w *clause) Args() []interface{} {
@@ -57,16 +57,16 @@ func (c *clauseEx) Query() (string, error) {
 		if expr, err := v.expr.Expr(v.column); err != nil {
 			return "", err
 		} else {
-			arr = append(arr, fmt.Sprintf("(%s)", expr))
+			arr = append(arr, fmt.Sprintf("%s", expr))
 		}
 	}
 	query := strings.Join(arr, " AND ")
-	return GuardDangerousQuery(query)
+	return q.GuardDangerousQuery(query)
 }
 
 type stmt struct {
 	column string
-	expr   Expr
+	expr   q.Expr
 }
 
 func WhereEx(cond map[string]any) Clause {
@@ -80,12 +80,12 @@ func WhereEx(cond map[string]any) Clause {
 	stmts := make([]*stmt, len(keys))
 	for i, key := range keys {
 		v := cond[key]
-		var expr Expr
+		var expr q.Expr
 		switch e := v.(type) {
-		case Expr:
+		case q.Expr:
 			expr = e
 		default:
-			expr = Eq(e)
+			expr = q.Eq(e)
 		}
 		stmts[i] = &stmt{column: key, expr: expr}
 	}
