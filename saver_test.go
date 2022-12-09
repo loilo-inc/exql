@@ -1,4 +1,4 @@
-package exql
+package exql_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/loilo-inc/exql"
 	"github.com/loilo-inc/exql/model"
 	"github.com/loilo-inc/exql/query"
 	"github.com/stretchr/testify/assert"
@@ -57,8 +58,8 @@ func (s *samplePrimaryUint64) TableName() string {
 
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
-	m := NewMapper()
-	s := NewSaver(d.DB())
+	m := exql.NewMapper()
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			FirstName: null.StringFrom("first"),
@@ -93,7 +94,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if db.Exec() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(null.String{}, null.String{}).WillReturnError(fmt.Errorf("err"))
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		user := &model.Users{
 			FirstName: null.String{},
 			LastName:  null.String{},
@@ -104,7 +105,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if result.LastInsertId() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(null.String{}, null.String{}).WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("err")))
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		user := &model.Users{
 			FirstName: null.String{},
 			LastName:  null.String{},
@@ -115,7 +116,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should assign lid to uint primary key", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		user := &samplePrimaryUint64{}
 		_, err := s.Insert(user)
 		assert.Nil(t, err)
@@ -124,7 +125,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		user := &sampleNoAutoIncrementKey{
 			Id: 1,
 		}
@@ -136,8 +137,8 @@ func TestSaver_Insert(t *testing.T) {
 
 func TestSaver_InsertContext(t *testing.T) {
 	d := testDb()
-	m := NewMapper()
-	s := NewSaver(d.DB())
+	m := exql.NewMapper()
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			FirstName: null.StringFrom("first"),
@@ -246,8 +247,8 @@ func TestSaver_InsertContext(t *testing.T) {
 
 func TestSaver_Update(t *testing.T) {
 	d := testDb()
-	m := NewMapper()
-	s := NewSaver(d.DB())
+	m := exql.NewMapper()
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)",
@@ -261,7 +262,7 @@ func TestSaver_Update(t *testing.T) {
 		result, err = s.Update("users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "lang",
-		}, Where(`id = ?`, lid))
+		}, exql.Where(`id = ?`, lid))
 		assert.Nil(t, err)
 		ra, err := result.RowsAffected()
 		assert.Nil(t, err)
@@ -279,14 +280,14 @@ func TestSaver_Update(t *testing.T) {
 func TestSaver_UpdateModel(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		firstName := null.StringFrom("name")
 		mock.ExpectExec(
 			"UPDATE `users` SET `first_name` = \\? WHERE id = \\?",
 		).WithArgs(firstName, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModel(&model.UpdateUsers{
 			FirstName: &firstName,
-		}, Where(`id = ?`, 1))
+		}, exql.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -300,14 +301,14 @@ func TestSaver_UpdateModel(t *testing.T) {
 func TestSaver_UpdateModelContext(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := NewSaver(db)
+		s := exql.NewSaver(db)
 		firstName := null.StringFrom("name")
 		mock.ExpectExec(
 			"UPDATE `users` SET `first_name` = \\? WHERE id = \\?",
 		).WithArgs(firstName, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModelContext(context.Background(), &model.UpdateUsers{
 			FirstName: &firstName,
-		}, Where(`id = ?`, 1))
+		}, exql.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -318,16 +319,16 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 	})
 	t.Run("should error if model invalid", func(t *testing.T) {
 		db, _, _ := sqlmock.New()
-		s := NewSaver(db)
-		_, err := s.UpdateModelContext(context.Background(), nil, Where("id = ?", 1))
+		s := exql.NewSaver(db)
+		_, err := s.UpdateModelContext(context.Background(), nil, exql.Where("id = ?", 1))
 		assert.EqualError(t, err, "pointer is nil")
 	})
 }
 
 func TestSaver_UpdateContext(t *testing.T) {
 	d := testDb()
-	m := NewMapper()
-	s := NewSaver(d.DB())
+	m := exql.NewMapper()
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)",
@@ -341,7 +342,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		result, err = s.UpdateContext(context.Background(), "users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "lang",
-		}, Where(`id = ?`, lid))
+		}, exql.Where(`id = ?`, lid))
 		assert.Nil(t, err)
 		ra, err := result.RowsAffected()
 		assert.Nil(t, err)
@@ -362,78 +363,20 @@ func TestSaver_Delete(t *testing.T) {
 		mock.ExpectExec("DELETE FROM `table` WHERE id = ?").
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		s := NewSaver(db)
-		_, err := s.Delete("table", Where("id = ?", 1))
+		s := exql.NewSaver(db)
+		_, err := s.Delete("table", exql.Where("id = ?", 1))
 		assert.NoError(t, err)
 	})
 	t.Run("should error if clause returened an error", func(t *testing.T) {
-		s := &saver{}
-		res, err := s.Delete("table", Where(""))
+		s := exql.NewSaver(nil)
+		res, err := s.Delete("table", exql.Where(""))
 		assert.Equal(t, query.ErrDangerousExpr, err)
 		assert.Nil(t, res)
 	})
 }
 
-func TestSaver_QueryForInsert(t *testing.T) {
-	s := &saver{}
-	t.Run("basic", func(t *testing.T) {
-		user := model.Users{
-			FirstName: null.StringFrom("first"),
-			LastName:  null.StringFrom("name"),
-		}
-		s, f, err := s.QueryForInsert(&user)
-		assert.Nil(t, err)
-		assert.NotNil(t, f)
-		exp := "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?)"
-		stmt, args, err := s.Query()
-		assert.NoError(t, err)
-		assert.Equal(t, exp, stmt)
-		assert.ElementsMatch(t, args, []any{user.FirstName, user.LastName})
-	})
-	assertInvalid := func(t *testing.T, m interface{}, e string) {
-		s, f, err := s.QueryForInsert(m)
-		assert.Nil(t, s)
-		assert.Nil(t, f)
-		assert.EqualError(t, err, e)
-	}
-	t.Run("should error if dest is nil", func(t *testing.T) {
-		assertInvalid(t, nil, "pointer is nil")
-	})
-	t.Run("should error if dest is not pointer", func(t *testing.T) {
-		user := model.Users{}
-		assertInvalid(t, user, "object must be pointer of struct")
-	})
-	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
-		var users []*model.Users
-		assertInvalid(t, users, "object must be pointer of struct")
-	})
-	t.Run("should error if dest has no exql tags in any field", func(t *testing.T) {
-		var tim time.Time
-		assertInvalid(t, &tim, "obj doesn't have exql tags in any fields")
-	})
-	t.Run("should error if dest doesn't implement TableName()", func(t *testing.T) {
-		var sam sampleNoTableName
-		assertInvalid(t, &sam, "obj doesn't implement TableName() method")
-	})
-	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
-		var sam sampleBadTableName
-		assertInvalid(t, &sam, "wrong implementation of TableName()")
-	})
-	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
-		var sam sampleNoColumnTag
-		assertInvalid(t, &sam, "column tag is not set")
-	})
-	t.Run("should error if field tag is invalid", func(t *testing.T) {
-		var sam sampleBadTag
-		assertInvalid(t, &sam, "duplicated tag: a")
-	})
-	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
-		var sam sampleNoPrimaryKey
-		assertInvalid(t, &sam, "table has no primary key")
-	})
-}
 func TestSaver_QueryForUpdate(t *testing.T) {
-	s := &saver{}
+	s := exql.NewSaver(nil)
 	t.Run("should error if tableName is empty", func(t *testing.T) {
 		q, err := s.Update("", nil, nil)
 		assert.Nil(t, q)
@@ -447,7 +390,7 @@ func TestSaver_QueryForUpdate(t *testing.T) {
 	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
-		}, Where(""))
+		}, exql.Where(""))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
@@ -478,74 +421,4 @@ type upSampleNoColumn struct {
 
 func (upSampleNoColumn) ForTableName() string {
 	return "table"
-}
-
-func TestSaver_QueryForUpdateModel(t *testing.T) {
-	s := &saver{}
-	t.Run("basic", func(t *testing.T) {
-		user := &model.Users{}
-		user.FirstName.SetValid("new")
-		user.LastName.SetValid("name")
-		q, err := s.QueryForUpdateModel(&model.UpdateUsers{
-			FirstName: &user.FirstName,
-			LastName:  &user.LastName,
-		}, Where(`id = ?`, 1))
-		if err != nil {
-			t.Fatal(err)
-		}
-		stmt, args, err := q.Query()
-		assert.NoError(t, err)
-		assert.Equal(t, stmt,
-			"UPDATE `users` SET `first_name` = ?,`last_name` = ? WHERE id = ?",
-		)
-		assert.ElementsMatch(t, []any{user.FirstName, user.LastName, 1}, args)
-	})
-	t.Run("should error if pointer is nil", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(nil, nil)
-		assert.EqualError(t, err, "pointer is nil")
-	})
-	t.Run("should error if not pointer", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(model.UpdateUsers{}, nil)
-		assert.EqualError(t, err, "must be pointer of struct")
-	})
-	t.Run("should error if not pointer of struct", func(t *testing.T) {
-		d := 1
-		_, err := s.QueryForUpdateModel(&d, nil)
-		assert.EqualError(t, err, "must be pointer of struct")
-	})
-	t.Run("should error if has invalid tag", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(&upSampleInvalidTag{}, nil)
-		assert.EqualError(t, err, "invalid tag format")
-	})
-	t.Run("should error if field is not pointer", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(&upSampleNotPtr{}, nil)
-		assert.EqualError(t, err, "field must be pointer")
-	})
-	t.Run("should error if struct has no fields for update", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(&time.Time{}, nil)
-		assert.EqualError(t, err, "no value for update")
-	})
-	t.Run("should ignore if field is nil", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(&upSample{}, nil)
-		assert.EqualError(t, err, "no value for update")
-	})
-	t.Run("should error if struct has no fields", func(t *testing.T) {
-		_, err := s.QueryForUpdateModel(&upSampleNoFields{}, nil)
-		assert.EqualError(t, err, "struct has no field")
-	})
-	t.Run("should error if struct doesn't implement ForTableName()", func(t *testing.T) {
-		id := 1
-		_, err := s.QueryForUpdateModel(&upSample{Id: &id}, nil)
-		assert.EqualError(t, err, "obj doesn't implement ForTableName() method")
-	})
-	t.Run("should error if struct has wrong implementation of ForTableName()", func(t *testing.T) {
-		id := 1
-		_, err := s.QueryForUpdateModel(&upSampleWrongImpl{Id: &id}, nil)
-		assert.EqualError(t, err, "wrong implementation of ForTableName()")
-	})
-	t.Run("should error if no column in tag", func(t *testing.T) {
-		id := 1
-		_, err := s.QueryForUpdateModel(&upSampleNoColumn{Id: &id}, nil)
-		assert.EqualError(t, err, "tag must include column")
-	})
 }

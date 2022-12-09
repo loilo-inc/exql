@@ -5,16 +5,12 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"text/template"
 
 	"github.com/iancoleman/strcase"
 	"golang.org/x/xerrors"
 )
 
-type parser struct {
-	tmpl   *template.Template
-	outDir string
-}
+type parser struct{}
 
 type Parser interface {
 	ParseTable(db *sql.DB, table string) (*Table, error)
@@ -80,7 +76,7 @@ func (c *Column) IsPrimary() bool {
 
 func (c *Column) ParseExtra() []string {
 	comps := strings.Split(c.Extra.String, " ")
-	empty := regexp.MustCompile("^\\s*$")
+	empty := regexp.MustCompile(`^\s*$`)
 	var ret []string
 	for i := 0; i < len(comps); i++ {
 		v := strings.Trim(comps[i], " ")
@@ -137,7 +133,7 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 		if err := rows.Scan(&field, &_type, &_null, &key, &_default, &extra); err != nil {
 			return nil, err
 		}
-		parsedType, err := p.ParseType(_type, _null.String == "YES")
+		parsedType, err := ParseType(_type, _null.String == "YES")
 		if err != nil {
 			return nil, err
 		}
@@ -162,7 +158,7 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 	}, nil
 }
 
-func (p *parser) ParseType(t string, nullable bool) (string, error) {
+func ParseType(t string, nullable bool) (string, error) {
 	intPat := regexp.MustCompile(`^(tiny|small|medium|big)?int(\(\d+?\))?( unsigned)?( zerofill)?$`)
 	floatPat := regexp.MustCompile(`^float$`)
 	doublePat := regexp.MustCompile(`^double$`)

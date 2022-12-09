@@ -76,11 +76,15 @@ func (w *multiStmt) Stmt() (string, []any, error) {
 			return "", nil, err
 		}
 		list = append(list, fmt.Sprintf("(%s)", q))
-		values = append(values, args)
+		values = append(values, args...)
 	}
-	return strings.Join(list, " AND "), values, nil
+	stmt := strings.Join(list, " AND ")
+	if err := GuardDangerousQuery(stmt); err != nil {
+		return "", nil, err
+	}
+	return stmt, values, nil
 }
 
-func StmtAnd(list ...Stmt) Stmt {
+func ConcatStmt(list ...Stmt) Stmt {
 	return &multiStmt{clauses: list}
 }

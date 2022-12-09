@@ -1,9 +1,9 @@
+//go:generate mockgen -source $GOFILE -destination ./mocks/mock_$GOPACKAGE/$GOFILE -package mock_$GOPACKAGE
 package exql
 
 import (
 	"context"
 	"database/sql"
-	"reflect"
 	"sync"
 	"time"
 
@@ -40,10 +40,10 @@ type Executor interface {
 }
 
 type db struct {
-	db    *sql.DB
-	s     *saver
-	m     *mapper
-	mutex sync.Mutex
+	Db     *sql.DB
+	Saver  *saver
+	Mapper *mapper
+	mutex  sync.Mutex
 }
 
 type OpenOptions struct {
@@ -95,75 +95,67 @@ success:
 
 func NewDB(d *sql.DB) DB {
 	return &db{
-		db: d,
-		s:  &saver{ex: d},
-		m:  &mapper{},
+		Db:     d,
+		Saver:  &saver{ex: d},
+		Mapper: &mapper{},
 	}
 }
 
 func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
-	return d.s.Insert(structPtr)
+	return d.Saver.Insert(structPtr)
 }
 
 func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return d.s.InsertContext(ctx, structPtr)
+	return d.Saver.InsertContext(ctx, structPtr)
 }
 
-func (d *db) QueryForInsert(structPtr interface{}) (q.Query, *reflect.Value, error) {
-	return d.s.QueryForInsert(structPtr)
+func (d *db) Update(table string, set map[string]interface{}, where q.Stmt) (sql.Result, error) {
+	return d.Saver.Update(table, set, where)
 }
 
-func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql.Result, error) {
-	return d.s.Update(table, set, where)
+func (d *db) UpdateModel(ptr interface{}, where q.Stmt) (sql.Result, error) {
+	return d.Saver.UpdateModel(ptr, where)
 }
 
-func (d *db) UpdateModel(ptr interface{}, where Clause) (sql.Result, error) {
-	return d.s.UpdateModel(ptr, where)
+func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Stmt) (sql.Result, error) {
+	return d.Saver.UpdateContext(ctx, table, set, where)
 }
 
-func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
-	return d.s.UpdateContext(ctx, table, set, where)
+func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Stmt) (sql.Result, error) {
+	return d.Saver.UpdateModelContext(ctx, ptr, where)
 }
 
-func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where Clause) (sql.Result, error) {
-	return d.s.UpdateModelContext(ctx, ptr, where)
+func (d *db) Delete(table string, where q.Stmt) (sql.Result, error) {
+	return d.Saver.Delete(table, where)
 }
 
-func (d *db) Delete(table string, where Clause) (sql.Result, error) {
-	return d.s.Delete(table, where)
-}
-
-func (d *db) DeleteContext(ctx context.Context, table string, where Clause) (sql.Result, error) {
-	return d.s.DeleteContext(ctx, table, where)
-}
-
-func (d *db) QueryForUpdateModel(ptr interface{}, where Clause) (q.Query, error) {
-	return d.s.QueryForUpdateModel(ptr, where)
+func (d *db) DeleteContext(ctx context.Context, table string, where q.Stmt) (sql.Result, error) {
+	return d.Saver.DeleteContext(ctx, table, where)
 }
 
 func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
-	return d.m.Map(rows, pointerOfStruct)
+	return d.Mapper.Map(rows, pointerOfStruct)
 }
 
 func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
-	return d.m.MapMany(rows, pointerOfSliceOfStruct)
+	return d.Mapper.MapMany(rows, pointerOfSliceOfStruct)
 }
 
 func (d *db) Close() error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	return d.db.Close()
+	return d.Db.Close()
 }
 
 func (d *db) DB() *sql.DB {
-	return d.db
+	return d.Db
 }
 
 func (d *db) SetDB(db *sql.DB) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.db = db
-	d.s.ex = db
+	d.Db = db
+	d.Saver.ex = db
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
@@ -171,5 +163,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(d.db, ctx, opts, callback)
+	return Transaction(d.Db, ctx, opts, callback)
 }

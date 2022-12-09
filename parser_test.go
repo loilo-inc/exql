@@ -1,9 +1,11 @@
-package exql
+package exql_test
 
 import (
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/loilo-inc/exql"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +16,7 @@ func TestParser_ParseTable(t *testing.T) {
 		assert.NoError(t, err)
 		defer mockDb.Close()
 
-		p := &parser{}
+		p := exql.NewParser()
 
 		mock.ExpectQuery(`show columns from users`).WillReturnRows(
 			sqlmock.NewRows([]string{"field", "type"}).
@@ -28,9 +30,8 @@ func TestParser_ParseTable(t *testing.T) {
 }
 
 func TestParser_ParseType(t *testing.T) {
-	p := &parser{}
 	assertType := func(s string, nullable bool, tp interface{}) {
-		ret, err := p.ParseType(s, nullable)
+		ret, err := exql.ParseType(s, nullable)
 		assert.Nil(t, err)
 		assert.Equal(t, ret, tp)
 	}

@@ -57,7 +57,7 @@ func TestNewStmtEx(t *testing.T) {
 	t.Run("should error if one returned an error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		expr := mock_query.NewMockExpr(ctrl)
-		expr.EXPECT().Expr(gomock.Any()).Return("", fmt.Errorf("err"))
+		expr.EXPECT().Expr(gomock.Any()).Return("", nil, fmt.Errorf("err"))
 		clause := NewStmtEx(map[string]any{
 			"1": expr,
 			"2": Eq(1),
@@ -79,16 +79,24 @@ func TestNewStmtEx(t *testing.T) {
 }
 
 func TestStmtAnd(t *testing.T) {
-	v := StmtAnd(
-		NewStmt("`id` = ?", 1),
-		NewStmt("`name` = ?", 2),
-		NewStmtEx(map[string]any{
-			"age": Between(0, 20),
-			"cnt": In(3, 4),
-		}),
-	)
-	q, args, err := v.Stmt()
-	assert.NoError(t, err)
-	assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?))", q)
-	assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, args)
+	t.Run("basic", func(t *testing.T) {
+		v := ConcatStmt(
+			NewStmt("`id` = ?", 1),
+			NewStmt("`name` = ?", 2),
+			NewStmtEx(map[string]any{
+				"age": Between(0, 20),
+				"cnt": In(3, 4),
+			}),
+		)
+		q, args, err := v.Stmt()
+		assert.NoError(t, err)
+		assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?))", q)
+		assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, args)
+	})
+	t.Run("should error if one returned an error", func(t *testing.T) {
+		stmt, args, err := ConcatStmt(NewStmt("id = ?", 1), NewStmt("")).Stmt()
+		assert.Nil(t, args)
+		assert.Equal(t, "", stmt)
+		assert.ErrorContains(t, err, "DANGER")
+	})
 }

@@ -1,13 +1,15 @@
-package exql
+package exql_test
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
+
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/loilo-inc/exql"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
@@ -18,7 +20,7 @@ type partialUser struct {
 	LastName null.String `exql:"column:last_name"`
 }
 
-func setupUsers(t *testing.T, db DB) ([]*model.Users, func()) {
+func setupUsers(t *testing.T, db exql.DB) ([]*model.Users, func()) {
 	user1 := &model.Users{
 		FirstName: null.StringFrom("user1"),
 		LastName:  null.StringFrom("name"),
@@ -36,7 +38,7 @@ func setupUsers(t *testing.T, db DB) ([]*model.Users, func()) {
 		db.DB().Exec(`DELETE FROM users WHERE id = ?`, user2.Id)
 	}
 }
-func setupFields(t *testing.T, db DB) (*model.Fields, func()) {
+func setupFields(t *testing.T, db exql.DB) (*model.Fields, func()) {
 	now := time.Unix(time.Now().Unix(), 0)
 	tinyBlob := []byte("tinyblob")
 	mediumBlob := []byte("mediumblob")
@@ -165,7 +167,7 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 func TestMapper_MapMany(t *testing.T) {
 	db := testDb()
 	defer db.Close()
-	m := &mapper{}
+	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users, reset := setupUsers(t, db)
 		defer reset()
@@ -228,7 +230,7 @@ func TestMapper_MapMany(t *testing.T) {
 		assert.Nil(t, err)
 		var dest []*model.Users
 		err = m.MapMany(rows, &dest)
-		assert.Equal(t, ErrRecordNotFound, err)
+		assert.Equal(t, exql.ErrRecordNotFound, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -251,7 +253,7 @@ func TestMapper_MapMany(t *testing.T) {
 
 func TestMapper_Map(t *testing.T) {
 	db := testDb()
-	m := &mapper{}
+	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users, reset := setupUsers(t, db)
 		defer reset()
@@ -320,7 +322,7 @@ func TestMapper_Map(t *testing.T) {
 		assert.Nil(t, err)
 		var dest model.Users
 		err = m.Map(rows, &dest)
-		assert.Equal(t, ErrRecordNotFound, err)
+		assert.Equal(t, exql.ErrRecordNotFound, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -385,12 +387,12 @@ func TestDb_MapRowsSerial(t *testing.T) {
 		db.DB().Exec(`DELETE FROM user_groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
-	m := NewSerialMapper(func(i int) string {
+	m := exql.NewSerialMapper(func(i int) string {
 		return "id"
 	})
 	t.Run("basic", func(t *testing.T) {
 		query := `
-SELECT * FROM users 
+SELECT * FROM users
 JOIN group_users on group_users.user_id = users.id
 JOIN user_groups on group_users.group_id = user_groups.id
 WHERE user_groups.id = ?
@@ -417,7 +419,7 @@ WHERE user_groups.id = ?
 	})
 	t.Run("subset", func(t *testing.T) {
 		query := `
-SELECT users.*, user_groups.* FROM users 
+SELECT users.*, user_groups.* FROM users
 JOIN group_users on group_users.user_id = users.id
 JOIN user_groups on group_users.group_id = user_groups.id
 WHERE user_groups.id = ?
@@ -529,16 +531,16 @@ ORDER BY users.id
 	t.Run("should return error if head column is not found", func(t *testing.T) {
 		t.Run("inner join case", func(t *testing.T) {
 			query := `
-SELECT users.*, user_groups.* FROM users 
+SELECT users.*, user_groups.* FROM users
 JOIN group_users on group_users.user_id = users.id
 JOIN user_groups on group_users.group_id = user_groups.id
 WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.Nil(t, err)
-			m := &serialMapper{splitter: func(i int) string {
+			m := exql.NewSerialMapper(func(i int) string {
 				return "var"
-			}}
+			})
 			for rows.Next() {
 				var user model.Users
 				var ug model.UserGroups
@@ -549,16 +551,16 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 		})
 		t.Run("outer join case", func(t *testing.T) {
 			query := `
-SELECT users.*, user_groups.* FROM users 
+SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
 LEFT JOIN user_groups on group_users.group_id = user_groups.id
 WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.Nil(t, err)
-			m := &serialMapper{splitter: func(i int) string {
+			m := exql.NewSerialMapper(func(i int) string {
 				return "var"
-			}}
+			})
 			for rows.Next() {
 				var user model.Users
 				var ug *model.UserGroups
@@ -592,7 +594,7 @@ WHERE users.id = ?
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
 		doTest := func(i ...interface{}) {
-			assert.Equal(t, ErrMapRowSerialDestination, m.Map(nil, i...))
+			assert.Equal(t, exql.ErrMapRowSerialDestination, m.Map(nil, i...))
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0, 1, 2)

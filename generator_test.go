@@ -1,22 +1,24 @@
-package exql
+package exql_test
 
 import (
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
 	"os"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/loilo-inc/exql"
 
 	"github.com/apex/log"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerator_Generate(t *testing.T) {
-	for version, db := range map[string]DB{
+	for version, db := range map[string]exql.DB{
 		"mysql5.7": testDb(),
 		"mysql8":   testDbMySQL8(),
 	} {
 		t.Run(version, func(t *testing.T) {
-			g := NewGenerator(db.DB())
+			g := exql.NewGenerator(db.DB())
 			checkFiles := func(dir string, elements []string) {
 				entries, err := os.ReadDir(dir)
 				assert.Nil(t, err)
@@ -29,7 +31,7 @@ func TestGenerator_Generate(t *testing.T) {
 			t.Run("basic", func(t *testing.T) {
 				dir, err := os.MkdirTemp(os.TempDir(), "dist")
 				assert.Nil(t, err)
-				err = g.Generate(&GenerateOptions{
+				err = g.Generate(&exql.GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 				})
@@ -41,7 +43,7 @@ func TestGenerator_Generate(t *testing.T) {
 			})
 			t.Run("exclude", func(t *testing.T) {
 				dir, _ := os.MkdirTemp(os.TempDir(), "dist")
-				err := g.Generate(&GenerateOptions{
+				err := g.Generate(&exql.GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 					Exclude: []string{"fields"},
@@ -65,10 +67,11 @@ func TestGenerator_Generate(t *testing.T) {
 
 				dir, err := os.MkdirTemp(os.TempDir(), "dist")
 				assert.NoError(t, err)
-				assert.EqualError(t, NewGenerator(mockDb).Generate(&GenerateOptions{
-					OutDir:  dir,
-					Package: "dist",
-				}), "err")
+				assert.EqualError(t, exql.NewGenerator(mockDb).
+					Generate(&exql.GenerateOptions{
+						OutDir:  dir,
+						Package: "dist",
+					}), "err")
 			})
 		})
 	}

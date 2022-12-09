@@ -40,7 +40,7 @@ func TestQuery_And(t *testing.T) {
 	})
 	t.Run("should error if one returned error", func(t *testing.T) {
 		expr := mock_query.NewMockExpr(ctrl)
-		expr.EXPECT().Expr("a").Return("", fmt.Errorf("err"))
+		expr.EXPECT().Expr("a").Return("", nil, fmt.Errorf("err"))
 		v, a, err := And(expr, Eq(1)).Expr("a")
 		assert.Equal(t, "", v)
 		assert.Nil(t, a)
