@@ -2,85 +2,234 @@ package query
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
-type Stmt interface {
-	Stmt() (string, []any, error)
+var errEmptyTable = xerrors.Errorf("empty table")
+var errEmyptValues = xerrors.Errorf("empty values")
+var errEmptyWhereClause = xerrors.Errorf("empty where clause")
+
+type Query interface {
+	Query() (string, []any, error)
 }
 
-type stmt struct {
-	query string
-	args  []interface{}
+type Insert struct {
+	Into   string
+	Values map[string]any
 }
 
-func (w *stmt) Stmt() (string, []any, error) {
-	if err := GuardDangerousQuery(w.query); err != nil {
+func backQuoteAndJoin(str ...string) string {
+	var result []string
+	for _, v := range str {
+		result = append(result, fmt.Sprintf("`%s`", v))
+	}
+	return strings.Join(result, ",")
+}
+
+func (i Insert) Validate() error {
+	if i.Into == "" {
+		return errEmptyTable
+	}
+	if len(i.Values) == 0 {
+		return errEmyptValues
+	}
+	return nil
+}
+
+func (i Insert) Query() (string, []any, error) {
+	if err := i.Validate(); err != nil {
 		return "", nil, err
 	}
-	return w.query, w.args, nil
+	it := NewKeyIterator(i.Values)
+	columns := backQuoteAndJoin(it.Keys()...)
+	return fmt.Sprintf(
+		"INSERT INTO `%s` (%s) VALUES (%s)",
+		i.Into, columns, SqlPlaceHolders(it.Size()),
+	), it.Values(), nil
 }
 
-type stmtEx struct {
-	stmts KeyIterator
+type InsertMany struct {
+	Into    string
+	Columns []string
+	Values  [][]any
 }
 
-func (c *stmtEx) Stmt() (string, []any, error) {
-	var arr []string
-	var values []any
-	for i := 0; i < c.stmts.Size(); i++ {
-		column, v := c.stmts.Get(i)
-		var expr Expr
-		switch e := v.(type) {
-		case Expr:
-			expr = e
-		default:
-			expr = Eq(e)
-		}
-		if expr, args, err := expr.Expr(column); err != nil {
-			return "", nil, err
-		} else {
-			arr = append(arr, expr)
-			values = append(values, args...)
-		}
+func (i InsertMany) Validate() error {
+	if i.Into == "" {
+		return errEmptyTable
 	}
-	query := strings.Join(arr, " AND ")
-	if err := GuardDangerousQuery(query); err != nil {
+	if len(i.Columns) == 0 || len(i.Values) == 0 {
+		return errEmyptValues
+	}
+	return nil
+}
+
+func (i InsertMany) Query() (string, []any, error) {
+	if err := i.Validate(); err != nil {
 		return "", nil, err
 	}
-	return query, values, nil
-}
-
-func New(q string, args ...interface{}) Stmt {
-	return &stmt{
-		query: q,
-		args:  args,
-	}
-}
-
-func QueryEx(cond map[string]any) Stmt {
-	e := NewKeyIterator(cond)
-	return &stmtEx{stmts: e}
-}
-
-type multiStmt struct {
-	clauses []Stmt
-}
-
-func (w *multiStmt) Stmt() (string, []any, error) {
-	var list []string
-	var values []any
-	for _, v := range w.clauses {
-		q, args, err := v.Stmt()
-		if err != nil {
-			return "", nil, err
+	var values []string
+	var args []any
+	for _, v := range i.Values {
+		if len(i.Columns) != len(v) {
+			return "", nil, xerrors.Errorf("number of columns/values mismatch")
 		}
-		list = append(list, fmt.Sprintf("(%s)", q))
-		values = append(values, args)
+		values = append(values, fmt.Sprintf("(%s)", SqlPlaceHolders(len(v))))
+		args = append(args, v...)
 	}
-	return strings.Join(list, " AND "), values, nil
+	return fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s",
+		i.Into,
+		backQuoteAndJoin(i.Columns...),
+		strings.Join(values, ","),
+	), args, nil
 }
 
-func QueryAnd(list ...Stmt) Stmt {
-	return &multiStmt{clauses: list}
+type Select struct {
+	Columns []string
+	From    string
+	Where   Stmt
+	Limit   int
+	Offset  int
+	OrderBy string
+}
+
+func (s Select) Validate() error {
+	if s.From == "" {
+		return errEmptyTable
+	}
+	if s.Where == nil {
+		return errEmptyWhereClause
+	}
+	return nil
+}
+
+func (s Select) Query() (string, []any, error) {
+	if err := s.Validate(); err != nil {
+		return "", nil, err
+	}
+	stmt, args, err := s.Where.Stmt()
+	if err != nil {
+		return "", nil, err
+	}
+	var colmuns string
+	if len(s.Columns) == 0 {
+		colmuns = "*"
+	} else {
+		colmuns = backQuoteAndJoin(s.Columns...)
+	}
+	base := []string{fmt.Sprintf(
+		"SELECT %s FROM `%s` WHERE %s",
+		colmuns, s.From, stmt,
+	)}
+	appendOrderByLimitOffest(s, &base, &args)
+	return strings.Join(base, " "), args, nil
+}
+
+type Update struct {
+	Table   string
+	Set     map[string]any
+	Where   Stmt
+	Limit   int
+	Offset  int
+	OrderBy string
+}
+
+func (q Update) Validate() error {
+	if q.Table == "" {
+		return errEmptyTable
+	}
+	if len(q.Set) == 0 {
+		return errEmyptValues
+	}
+	if q.Where == nil {
+		return errEmptyWhereClause
+	}
+	return nil
+}
+
+func (q Update) Query() (string, []any, error) {
+	if err := q.Validate(); err != nil {
+		return "", nil, err
+	}
+	it := NewKeyIterator(q.Set)
+	setExprs := make([]string, it.Size())
+	for i, v := range it.Keys() {
+		setExprs[i] = fmt.Sprintf("`%s` = ?", v)
+	}
+	setStmt := strings.Join(setExprs, ",")
+	whereStmt, whereArgs, err := q.Where.Stmt()
+	if err != nil {
+		return "", nil, err
+	}
+	var args []any
+	args = append(args, it.Values()...)
+	args = append(args, whereArgs...)
+	base := []string{fmt.Sprintf(
+		"UPDATE `%s` SET %s WHERE %s",
+		q.Table, setStmt, whereStmt,
+	)}
+	appendOrderByLimitOffest(q, &base, &args)
+	return strings.Join(base, " "), args, nil
+}
+
+type Delete struct {
+	From    string
+	Where   Stmt
+	Limit   int
+	Offset  int
+	OrderBy string
+}
+
+func (d Delete) Validate() error {
+	if d.From == "" {
+		return errEmptyTable
+	}
+	if d.Where == nil {
+		return errEmptyWhereClause
+	}
+	return nil
+}
+
+func (d Delete) Query() (string, []any, error) {
+	if err := d.Validate(); err != nil {
+		return "", nil, err
+	}
+	stmt, args, err := d.Where.Stmt()
+	if err != nil {
+		return "", nil, err
+	}
+	base := []string{fmt.Sprintf("DELETE FROM `%s` WHERE %s", d.From, stmt)}
+	appendOrderByLimitOffest(d, &base, &args)
+	return strings.Join(base, " "), args, nil
+}
+
+func appendOrderByLimitOffest(p any, dest *[]string, args *[]any) {
+	t := reflect.TypeOf(p)
+	v := reflect.ValueOf(p)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Name == "OrderBy" {
+			orderBy := v.Field(i).String()
+			if orderBy != "" {
+				*dest = append(*dest, fmt.Sprintf("ORDER BY %s", orderBy))
+			}
+		}
+		if f.Name == "Limit" {
+			limit := v.Field(i).Interface().(int)
+			if limit > 0 {
+				*dest = append(*dest, "LIMIT ?")
+				*args = append(*args, limit)
+			}
+		}
+		if f.Name == "Offset" {
+			offset := v.Field(i).Interface().(int)
+			if offset > 0 {
+				*dest = append(*dest, "OFFSET ?")
+				*args = append(*args, offset)
+			}
+		}
+	}
 }
