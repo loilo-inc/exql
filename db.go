@@ -3,10 +3,12 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"sync"
 	"time"
 
 	"github.com/apex/log"
+	q "github.com/loilo-inc/exql/query"
 )
 
 type DB interface {
@@ -107,7 +109,7 @@ func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Resu
 	return d.s.InsertContext(ctx, structPtr)
 }
 
-func (d *db) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
+func (d *db) QueryForInsert(structPtr interface{}) (q.Query, *reflect.Value, error) {
 	return d.s.QueryForInsert(structPtr)
 }
 
@@ -135,11 +137,7 @@ func (d *db) DeleteContext(ctx context.Context, table string, where Clause) (sql
 	return d.s.DeleteContext(ctx, table, where)
 }
 
-func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
-	return d.s.QueryForUpdate(table, set, where)
-}
-
-func (d *db) QueryForUpdateModel(ptr interface{}, where Clause) (*SaveQuery, error) {
+func (d *db) QueryForUpdateModel(ptr interface{}, where Clause) (q.Query, error) {
 	return d.s.QueryForUpdateModel(ptr, where)
 }
 

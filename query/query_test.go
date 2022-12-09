@@ -16,21 +16,18 @@ import (
 func TestWhereQuery_Query(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		q := New("id = ?", 1)
-		act, err := q.Query()
+		stmt, args, err := q.Stmt()
 		assert.Nil(t, err)
-		assert.Equal(t, "id = ?", act)
+		assert.Equal(t, "id = ?", stmt)
+		assert.ElementsMatch(t, []any{1}, args)
 	})
 	t.Run("should return error if query has no expression", func(t *testing.T) {
 		q := New("", 1)
-		_, err := q.Query()
+		stmt, args, err := q.Stmt()
 		assert.EqualError(t, err, "DANGER: empty where clause")
+		assert.Equal(t, "", stmt)
+		assert.Nil(t, args)
 	})
-}
-
-func TestWhereQuery_Args(t *testing.T) {
-	w := New("id = ?", 1, 2)
-	args := w.Args()
-	assert.ElementsMatch(t, []interface{}{1, 2}, args)
 }
 
 func TestWhereEx(t *testing.T) {
@@ -43,7 +40,7 @@ func TestWhereEx(t *testing.T) {
 			"name":       In("a", "b"),
 			"location":   Raw("LIKE ?", "japan"),
 		})
-		q, err := clause.Query()
+		q, args, err := clause.Stmt()
 		assert.NoError(t, err)
 		stmt := []string{
 			"`created_at` < ?",
@@ -55,7 +52,7 @@ func TestWhereEx(t *testing.T) {
 		assert.Equal(t, strings.Join(stmt, " AND "), q)
 		assert.ElementsMatch(t, []any{
 			1, now, "2022-12-03", "2023-01-02", "a", "b", "japan",
-		}, clause.Args())
+		}, args)
 	})
 	t.Run("should error if one returned an error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -65,17 +62,19 @@ func TestWhereEx(t *testing.T) {
 			"1": expr,
 			"2": Eq(1),
 		})
-		q, err := clause.Query()
+		q, args, err := clause.Stmt()
 		assert.Equal(t, "", q)
+		assert.Nil(t, args)
 		assert.ErrorContains(t, err, "err")
 	})
 	t.Run("should error if one is dangerous query", func(t *testing.T) {
 		clause := QueryEx(map[string]any{
 			"id": Raw(""),
 		})
-		q, err := clause.Query()
+		q, args, err := clause.Stmt()
 		assert.Equal(t, "", q)
 		assert.Equal(t, err, ErrDangerousExpr)
+		assert.Nil(t, args)
 	})
 }
 
@@ -88,8 +87,8 @@ func TestWhereAnd(t *testing.T) {
 			"cnt": In(3, 4),
 		}),
 	)
-	q, err := v.Query()
+	q, args, err := v.Stmt()
 	assert.NoError(t, err)
 	assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?))", q)
-	assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, v.Args())
+	assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, args)
 }

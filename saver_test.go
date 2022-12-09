@@ -381,17 +381,19 @@ func TestSaver_QueryForInsert(t *testing.T) {
 			FirstName: null.StringFrom("first"),
 			LastName:  null.StringFrom("name"),
 		}
-		s, err := s.QueryForInsert(&user)
+		s, f, err := s.QueryForInsert(&user)
 		assert.Nil(t, err)
-		exp := "INSERT INTO `users` (`first_name`, `last_name`) VALUES (?,?)"
-		assert.Equal(t, exp, s.Query)
-		assert.ElementsMatch(t, s.Values, []interface{}{
-			user.FirstName, user.LastName,
-		})
+		assert.NotNil(t, f)
+		exp := "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?)"
+		stmt, args, err := s.Query()
+		assert.NoError(t, err)
+		assert.Equal(t, exp, stmt)
+		assert.ElementsMatch(t, args, []any{user.FirstName, user.LastName})
 	})
 	assertInvalid := func(t *testing.T, m interface{}, e string) {
-		s, err := s.QueryForInsert(m)
+		s, f, err := s.QueryForInsert(m)
 		assert.Nil(t, s)
+		assert.Nil(t, f)
 		assert.EqualError(t, err, e)
 	}
 	t.Run("should error if dest is nil", func(t *testing.T) {
@@ -432,28 +434,15 @@ func TestSaver_QueryForInsert(t *testing.T) {
 }
 func TestSaver_QueryForUpdate(t *testing.T) {
 	s := &saver{}
-	t.Run("basic", func(t *testing.T) {
-		q, err := s.QueryForUpdate("users", map[string]interface{}{
-			"beta":  "b",
-			"zeta":  "z",
-			"alpha": "a",
-			"gamma": "g",
-		}, Where(`id = ?`, 1))
-		assert.Nil(t, err)
-		exp := "UPDATE `users` SET `alpha` = ?, `beta` = ?, `gamma` = ?, `zeta` = ? WHERE id = ?"
-		assert.Equal(t, exp, q.Query)
-		assert.ElementsMatch(t, []string{"alpha", "beta", "gamma", "zeta"}, q.Fields)
-		assert.ElementsMatch(t, []interface{}{"a", "b", "g", "z", 1}, q.Values)
-	})
 	t.Run("should error if tableName is empty", func(t *testing.T) {
 		q, err := s.Update("", nil, nil)
 		assert.Nil(t, q)
-		assert.EqualError(t, err, "empty table name")
+		assert.EqualError(t, err, "empty table")
 	})
 	t.Run("should error if where clause is nil", func(t *testing.T) {
 		q, err := s.Update("users", make(map[string]interface{}), nil)
 		assert.Nil(t, q)
-		assert.EqualError(t, err, "empty field set")
+		assert.EqualError(t, err, "empty values")
 	})
 	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
@@ -504,10 +493,12 @@ func TestSaver_QueryForUpdateModel(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, q.Query,
-			"UPDATE `users` SET `first_name` = ?, `last_name` = ? WHERE id = ?",
+		stmt, args, err := q.Query()
+		assert.NoError(t, err)
+		assert.Equal(t, stmt,
+			"UPDATE `users` SET `first_name` = ?,`last_name` = ? WHERE id = ?",
 		)
-		assert.ElementsMatch(t, q.Values, []interface{}{user.FirstName, user.LastName, 1})
+		assert.ElementsMatch(t, []any{user.FirstName, user.LastName, 1}, args)
 	})
 	t.Run("should error if pointer is nil", func(t *testing.T) {
 		_, err := s.QueryForUpdateModel(nil, nil)
@@ -527,7 +518,6 @@ func TestSaver_QueryForUpdateModel(t *testing.T) {
 		assert.EqualError(t, err, "invalid tag format")
 	})
 	t.Run("should error if field is not pointer", func(t *testing.T) {
-
 		_, err := s.QueryForUpdateModel(&upSampleNotPtr{}, nil)
 		assert.EqualError(t, err, "field must be pointer")
 	})

@@ -1,4 +1,4 @@
-//go:generate go run github.com/golang/mock/mockgen -source $GOFILE -destination ../mocks/mock_$GOPACKAGE/$GOFILE -package mock_$GOPACKAGE
+//go:generate mockgen -source $GOFILE -destination ../mocks/mock_$GOPACKAGE/$GOFILE -package mock_$GOPACKAGE
 package query
 
 import (
@@ -10,8 +10,7 @@ import (
 )
 
 type Expr interface {
-	Expr(column string) (string, error)
-	Args() []any
+	Expr(column string) (string, []any, error)
 }
 
 type op = string
@@ -79,24 +78,18 @@ type and struct {
 	exprs []Expr
 }
 
-func (a *and) Args() []any {
+func (a *and) Expr(column string) (string, []any, error) {
+	var exprs []string
 	var args []any
 	for _, v := range a.exprs {
-		args = append(args, v.Args()...)
-	}
-	return args
-}
-
-func (a *and) Expr(column string) (string, error) {
-	var exprs []string
-	for _, v := range a.exprs {
-		if e, err := v.Expr(column); err != nil {
-			return "", err
+		if e, a, err := v.Expr(column); err != nil {
+			return "", nil, err
 		} else {
 			exprs = append(exprs, e)
+			args = append(args, a...)
 		}
 	}
-	return strings.Join(exprs, " AND "), nil
+	return strings.Join(exprs, " AND "), args, nil
 }
 
 func And(exprs ...Expr) Expr {
@@ -115,25 +108,21 @@ type raw struct {
 	args []any
 }
 
-func (r *raw) Args() []any {
-	return r.args
-}
-
-func (r *raw) Expr(column string) (string, error) {
+func (r *raw) Expr(column string) (string, []any, error) {
 	if emptyPat.MatchString(column) || emptyPat.MatchString(r.q) {
-		return "", ErrDangerousExpr
+		return "", nil, ErrDangerousExpr
 	}
-	return fmt.Sprintf("`%s` %s", column, r.q), nil
+	return fmt.Sprintf("`%s` %s", column, r.q), r.args, nil
 }
 
 var ErrDangerousExpr = xerrors.Errorf("DANGER: empty where clause")
 var emptyPat = regexp.MustCompile(`\A[\s\t\n]*\z`)
 
-func GuardDangerousQuery(s string) (string, error) {
+func GuardDangerousQuery(s string) error {
 	if emptyPat.MatchString(s) {
-		return "", ErrDangerousExpr
+		return ErrDangerousExpr
 	}
-	return s, nil
+	return nil
 }
 
 func Raw(q string, args ...any) Expr {

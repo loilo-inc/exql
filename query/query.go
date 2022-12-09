@@ -6,8 +6,7 @@ import (
 )
 
 type Stmt interface {
-	Query() (string, error)
-	Args() []interface{}
+	Stmt() (string, []any, error)
 }
 
 type stmt struct {
@@ -15,24 +14,20 @@ type stmt struct {
 	args  []interface{}
 }
 
-func (w *stmt) Query() (string, error) {
-	return GuardDangerousQuery(w.query)
+func (w *stmt) Stmt() (string, []any, error) {
+	if err := GuardDangerousQuery(w.query); err != nil {
+		return "", nil, err
+	}
+	return w.query, w.args, nil
 }
 
-func (w *stmt) Args() []interface{} {
-	return w.args
-}
-
-type clauseEx struct {
+type stmtEx struct {
 	stmts KeyIterator
 }
 
-func (c *clauseEx) Args() []interface{} {
-	return c.stmts.Values()
-}
-
-func (c *clauseEx) Query() (string, error) {
+func (c *stmtEx) Stmt() (string, []any, error) {
 	var arr []string
+	var values []any
 	for i := 0; i < c.stmts.Size(); i++ {
 		column, v := c.stmts.Get(i)
 		var expr Expr
@@ -42,14 +37,18 @@ func (c *clauseEx) Query() (string, error) {
 		default:
 			expr = Eq(e)
 		}
-		if expr, err := expr.Expr(column); err != nil {
-			return "", err
+		if expr, args, err := expr.Expr(column); err != nil {
+			return "", nil, err
 		} else {
 			arr = append(arr, expr)
+			values = append(values, args...)
 		}
 	}
 	query := strings.Join(arr, " AND ")
-	return GuardDangerousQuery(query)
+	if err := GuardDangerousQuery(query); err != nil {
+		return "", nil, err
+	}
+	return query, values, nil
 }
 
 func New(q string, args ...interface{}) Stmt {
@@ -61,33 +60,27 @@ func New(q string, args ...interface{}) Stmt {
 
 func QueryEx(cond map[string]any) Stmt {
 	e := NewKeyIterator(cond)
-	return &clauseEx{stmts: e}
+	return &stmtEx{stmts: e}
 }
 
-type whereAnd struct {
+type multiStmt struct {
 	clauses []Stmt
 }
 
-func (w *whereAnd) Args() []interface{} {
-	var args []any
-	for _, v := range w.clauses {
-		args = append(args, v.Args()...)
-	}
-	return args
-}
-
-func (w *whereAnd) Query() (string, error) {
+func (w *multiStmt) Stmt() (string, []any, error) {
 	var list []string
+	var values []any
 	for _, v := range w.clauses {
-		q, err := v.Query()
+		q, args, err := v.Stmt()
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		list = append(list, fmt.Sprintf("(%s)", q))
+		values = append(values, args)
 	}
-	return strings.Join(list, " AND "), nil
+	return strings.Join(list, " AND "), values, nil
 }
 
 func QueryAnd(list ...Stmt) Stmt {
-	return &whereAnd{clauses: list}
+	return &multiStmt{clauses: list}
 }

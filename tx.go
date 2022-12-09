@@ -3,7 +3,9 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"reflect"
 
+	q "github.com/loilo-inc/exql/query"
 	"golang.org/x/xerrors"
 )
 
@@ -27,7 +29,7 @@ func (t *tx) InsertContext(ctx context.Context, structPtr interface{}) (sql.Resu
 	return t.s.InsertContext(ctx, structPtr)
 }
 
-func (t *tx) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
+func (t *tx) QueryForInsert(structPtr interface{}) (q.Query, *reflect.Value, error) {
 	return t.s.QueryForInsert(structPtr)
 }
 
@@ -55,11 +57,7 @@ func (t *tx) DeleteContext(ctx context.Context, table string, where Clause) (sql
 	return t.s.DeleteContext(ctx, table, where)
 }
 
-func (t *tx) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
-	return t.s.QueryForUpdate(table, set, where)
-}
-
-func (t *tx) QueryForUpdateModel(ptr interface{}, where Clause) (*SaveQuery, error) {
+func (t *tx) QueryForUpdateModel(ptr interface{}, where Clause) (q.Query, error) {
 	return t.s.QueryForUpdateModel(ptr, where)
 }
 
