@@ -1,4 +1,3 @@
-//go:generate mockgen -source $GOFILE -destination ./mocks/mock_$GOPACKAGE/$GOFILE -package mock_$GOPACKAGE
 package exql
 
 import (
@@ -29,21 +28,11 @@ type DB interface {
 	Close() error
 }
 
-// An abstraction of sql.DB/sql.Tx
-type Executor interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}
-
 type db struct {
-	Db     *sql.DB
-	Saver  *saver
-	Mapper *mapper
-	mutex  sync.Mutex
+	db    *sql.DB
+	s     *saver
+	m     *mapper
+	mutex sync.Mutex
 }
 
 type OpenOptions struct {
@@ -95,67 +84,91 @@ success:
 
 func NewDB(d *sql.DB) DB {
 	return &db{
-		Db:     d,
-		Saver:  &saver{ex: d},
-		Mapper: &mapper{},
+		db: d,
+		s:  &saver{ex: d},
+		m:  &mapper{},
 	}
 }
 
 func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
-	return d.Saver.Insert(structPtr)
+	return d.s.Insert(structPtr)
 }
 
 func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return d.Saver.InsertContext(ctx, structPtr)
+	return d.s.InsertContext(ctx, structPtr)
 }
 
 func (d *db) Update(table string, set map[string]interface{}, where q.Stmt) (sql.Result, error) {
-	return d.Saver.Update(table, set, where)
+	return d.s.Update(table, set, where)
 }
 
 func (d *db) UpdateModel(ptr interface{}, where q.Stmt) (sql.Result, error) {
-	return d.Saver.UpdateModel(ptr, where)
+	return d.s.UpdateModel(ptr, where)
 }
 
 func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Stmt) (sql.Result, error) {
-	return d.Saver.UpdateContext(ctx, table, set, where)
+	return d.s.UpdateContext(ctx, table, set, where)
 }
 
 func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Stmt) (sql.Result, error) {
-	return d.Saver.UpdateModelContext(ctx, ptr, where)
+	return d.s.UpdateModelContext(ctx, ptr, where)
 }
 
 func (d *db) Delete(table string, where q.Stmt) (sql.Result, error) {
-	return d.Saver.Delete(table, where)
+	return d.s.Delete(table, where)
 }
 
 func (d *db) DeleteContext(ctx context.Context, table string, where q.Stmt) (sql.Result, error) {
-	return d.Saver.DeleteContext(ctx, table, where)
+	return d.s.DeleteContext(ctx, table, where)
+}
+
+func (d *db) Exec(query q.Query) (sql.Result, error) {
+	return d.s.Exec(query)
+}
+
+func (d *db) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
+	return d.s.ExecContext(ctx, query)
+}
+
+func (d *db) Query(query q.Query) (*sql.Rows, error) {
+	return d.s.Query(query)
+}
+
+func (d *db) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
+	return d.s.QueryContext(ctx, query)
+}
+
+func (d *db) QueryRow(query q.Query) (*sql.Row, error) {
+	return d.s.QueryRow(query)
+}
+
+func (d *db) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
+	return d.s.QueryRowContext(ctx, query)
 }
 
 func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
-	return d.Mapper.Map(rows, pointerOfStruct)
+	return d.m.Map(rows, pointerOfStruct)
 }
 
 func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
-	return d.Mapper.MapMany(rows, pointerOfSliceOfStruct)
+	return d.m.MapMany(rows, pointerOfSliceOfStruct)
 }
 
 func (d *db) Close() error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	return d.Db.Close()
+	return d.db.Close()
 }
 
 func (d *db) DB() *sql.DB {
-	return d.Db
+	return d.db
 }
 
 func (d *db) SetDB(db *sql.DB) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.Db = db
-	d.Saver.ex = db
+	d.db = db
+	d.s.ex = db
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
@@ -163,5 +176,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return Transaction(d.Db, ctx, opts, callback)
+	return Transaction(d.db, ctx, opts, callback)
 }

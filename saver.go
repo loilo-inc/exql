@@ -18,6 +18,12 @@ type Saver interface {
 	UpdateModelContext(ctx context.Context, updaterStructPtr any, where q.Stmt) (sql.Result, error)
 	Delete(table string, where q.Stmt) (sql.Result, error)
 	DeleteContext(ctx context.Context, table string, where q.Stmt) (sql.Result, error)
+	Exec(query q.Query) (sql.Result, error)
+	ExecContext(ctx context.Context, query q.Query) (sql.Result, error)
+	Query(query q.Query) (*sql.Rows, error)
+	QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error)
+	QueryRow(query q.Query) (*sql.Row, error)
+	QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error)
 }
 
 type saver struct {
@@ -26,7 +32,7 @@ type saver struct {
 
 type SET map[string]any
 
-func NewSaver(ex Executor) *saver {
+func NewSaver(ex Executor) Saver {
 	return &saver{ex: ex}
 }
 
@@ -39,11 +45,7 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr any) (sql.Result, er
 	if err != nil {
 		return nil, err
 	}
-	stmt, args, err := q.Query()
-	if err != nil {
-		return nil, err
-	}
-	result, err := s.ex.ExecContext(ctx, stmt, args...)
+	result, err := s.ExecContext(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +78,7 @@ func (s *saver) UpdateContext(
 	set map[string]any,
 	where q.Stmt,
 ) (sql.Result, error) {
-	query := &q.Update{Table: table, Set: set, Where: where}
-	if stmt, args, err := query.Query(); err != nil {
-		return nil, err
-	} else {
-		return s.ex.ExecContext(ctx, stmt, args...)
-	}
+	return s.ExecContext(ctx, &q.Update{Table: table, Set: set, Where: where})
 }
 
 func (s *saver) Delete(from string, where q.Stmt) (sql.Result, error) {
@@ -89,12 +86,7 @@ func (s *saver) Delete(from string, where q.Stmt) (sql.Result, error) {
 }
 
 func (s *saver) DeleteContext(ctx context.Context, from string, where q.Stmt) (sql.Result, error) {
-	q := &q.Delete{From: from, Where: where}
-	if stmt, args, err := q.Query(); err != nil {
-		return nil, err
-	} else {
-		return s.ex.ExecContext(ctx, stmt, args...)
-	}
+	return s.ExecContext(ctx, &q.Delete{From: from, Where: where})
 }
 
 func (s *saver) UpdateModel(
@@ -113,9 +105,53 @@ func (s *saver) UpdateModelContext(
 	if err != nil {
 		return nil, err
 	}
-	stmt, args, err := q.Query()
-	if err != nil {
+	return s.ExecContext(ctx, q)
+}
+
+func (s *saver) Exec(query q.Query) (sql.Result, error) {
+	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
+	} else {
+		return s.ex.Exec(stmt, args...)
 	}
-	return s.ex.ExecContext(ctx, stmt, args...)
+}
+
+func (s *saver) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
+	if stmt, args, err := query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.ExecContext(ctx, stmt, args...)
+	}
+}
+
+func (s *saver) Query(query q.Query) (*sql.Rows, error) {
+	if stmt, args, err := query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.Query(stmt, args...)
+	}
+}
+
+func (s *saver) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
+	if stmt, args, err := query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.QueryContext(ctx, stmt, args...)
+	}
+}
+
+func (s *saver) QueryRow(query q.Query) (*sql.Row, error) {
+	if stmt, args, err := query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.QueryRow(stmt, args...), nil
+	}
+}
+
+func (s *saver) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
+	if stmt, args, err := query.Query(); err != nil {
+		return nil, err
+	} else {
+		return s.ex.QueryRowContext(ctx, stmt, args...), nil
+	}
 }

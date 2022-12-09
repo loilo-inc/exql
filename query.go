@@ -11,14 +11,6 @@ func Where(stmt string, args ...any) q.Stmt {
 	return q.NewStmt(stmt, args...)
 }
 
-func WhereEx(cond map[string]any) q.Stmt {
-	return q.NewStmtEx(cond)
-}
-
-func WhereAnd(list ...q.Stmt) q.Stmt {
-	return q.ConcatStmt(list...)
-}
-
 func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 	if modelPtr == nil {
 		return nil, nil, xerrors.Errorf("pointer is nil")

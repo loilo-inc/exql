@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang/mock/gomock"
 	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/mocks/mock_exql"
+	"github.com/loilo-inc/exql/mocks/mock_query"
 	"github.com/loilo-inc/exql/model"
-	"github.com/loilo-inc/exql/query"
+	q "github.com/loilo-inc/exql/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
@@ -370,7 +373,7 @@ func TestSaver_Delete(t *testing.T) {
 	t.Run("should error if clause returened an error", func(t *testing.T) {
 		s := exql.NewSaver(nil)
 		res, err := s.Delete("table", exql.Where(""))
-		assert.Equal(t, query.ErrDangerousExpr, err)
+		assert.Equal(t, q.ErrDangerousExpr, err)
 		assert.Nil(t, res)
 	})
 }
@@ -421,4 +424,104 @@ type upSampleNoColumn struct {
 
 func (upSampleNoColumn) ForTableName() string {
 	return "table"
+}
+
+func TestSaver_QueryExtra(t *testing.T) {
+	query := q.Select{From: "table", Where: q.NewStmt("id = ?", 1)}
+	stmt := "SELECT * FROM `table` WHERE id = ?"
+	args := []any{1}
+	aErr := fmt.Errorf("err")
+	ctx := context.TODO()
+	setup := func(t *testing.T) (*mock_exql.MockExecutor, exql.Saver) {
+		ctrl := gomock.NewController(t)
+		ex := mock_exql.NewMockExecutor(ctrl)
+		s := exql.NewSaver(ex)
+		return ex, s
+	}
+	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, exql.Saver) {
+		ctrl := gomock.NewController(t)
+		query := mock_query.NewMockQuery(ctrl)
+		query.EXPECT().Query().Return("", nil, aErr)
+		s := exql.NewSaver(nil)
+		return query, s
+	}
+
+	t.Run("Exec", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().Exec(stmt, args...).Return(nil, nil)
+		res, err := s.Exec(query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("Exec/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.Exec(query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
+	t.Run("ExecContext", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().ExecContext(ctx, stmt, args...).Return(nil, nil)
+		res, err := s.ExecContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("ExecContext/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.ExecContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
+	t.Run("Query", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().Query(stmt, args...).Return(nil, nil)
+		res, err := s.Query(query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("Query/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.Query(query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
+	t.Run("QueryContext", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().QueryContext(ctx, stmt, args...).Return(nil, nil)
+		res, err := s.QueryContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("QueryContext/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.QueryContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
+	t.Run("QueryRow", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().QueryRow(stmt, args...).Return(nil)
+		res, err := s.QueryRow(query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("QueryRow/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.QueryRow(query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
+	t.Run("QueryRowContext", func(t *testing.T) {
+		ex, s := setup(t)
+		ex.EXPECT().QueryRowContext(ctx, stmt, args...).Return(nil)
+		res, err := s.QueryRowContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Nil(t, err)
+	})
+	t.Run("QueryRowContext/Error", func(t *testing.T) {
+		query, s := setupQueryErr(t)
+		res, err := s.QueryRowContext(ctx, query)
+		assert.Nil(t, res)
+		assert.Equal(t, aErr, err)
+	})
 }

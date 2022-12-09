@@ -52,6 +52,30 @@ func (t *tx) DeleteContext(ctx context.Context, table string, where q.Stmt) (sql
 	return t.s.DeleteContext(ctx, table, where)
 }
 
+func (d *tx) Exec(query q.Query) (sql.Result, error) {
+	return d.s.Exec(query)
+}
+
+func (d *tx) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
+	return d.s.ExecContext(ctx, query)
+}
+
+func (d *tx) Query(query q.Query) (*sql.Rows, error) {
+	return d.s.Query(query)
+}
+
+func (d *tx) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
+	return d.s.QueryContext(ctx, query)
+}
+
+func (d *tx) QueryRow(query q.Query) (*sql.Row, error) {
+	return d.s.QueryRow(query)
+}
+
+func (d *tx) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
+	return d.s.QueryRowContext(ctx, query)
+}
+
 func (t *tx) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
 	return t.m.Map(rows, pointerOfStruct)
 }
