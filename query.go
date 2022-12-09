@@ -7,6 +7,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
+type Clause = q.Stmt
+
 func Where(stmt string, args ...any) q.Stmt {
 	return q.NewStmt(stmt, args...)
 }
