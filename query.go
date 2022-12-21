@@ -7,10 +7,10 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type Clause = q.Stmt
+type Clause = q.Predicate
 
-func Where(stmt string, args ...any) q.Stmt {
-	return q.NewStmt(stmt, args...)
+func Where(stmt string, args ...any) q.Predicate {
+	return q.RawPredicate(stmt, args...)
 }
 
 func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
@@ -79,7 +79,7 @@ func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 
 func QueryForUpdateModel(
 	updateStructPtr any,
-	where q.Stmt,
+	where q.Predicate,
 ) (q.Query, error) {
 	if updateStructPtr == nil {
 		return nil, xerrors.Errorf("pointer is nil")

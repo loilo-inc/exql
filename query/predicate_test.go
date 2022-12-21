@@ -13,90 +13,95 @@ import (
 	. "github.com/loilo-inc/exql/query"
 )
 
-func TestNewStmt(t *testing.T) {
+func TestRawPredicate(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		q := NewStmt("id = ?", 1)
-		stmt, args, err := q.Stmt()
+		q := RawPredicate("id = ?", 1)
+		stmt, args, err := q.Predicate()
 		assert.Nil(t, err)
 		assert.Equal(t, "id = ?", stmt)
 		assert.ElementsMatch(t, []any{1}, args)
 	})
 	t.Run("should return error if query has no expression", func(t *testing.T) {
-		q := NewStmt("", 1)
-		stmt, args, err := q.Stmt()
-		assert.EqualError(t, err, "DANGER: empty where clause")
+		q := RawPredicate("", 1)
+		stmt, args, err := q.Predicate()
+		assert.EqualError(t, err, "DANGER: empty expression")
 		assert.Equal(t, "", stmt)
 		assert.Nil(t, args)
 	})
 }
 
-func TestNewStmtEx(t *testing.T) {
+func TestKeyValuePredicate(t *testing.T) {
 	t.Run("should sort columns", func(t *testing.T) {
 		now := time.Now()
-		clause := NewStmtEx(map[string]any{
+		clause := KeyValuePredicate(map[string]any{
 			"id":         1,
 			"created_at": Lt(now),
 			"deleted_at": Between("2022-12-03", "2023-01-02"),
 			"name":       In("a", "b"),
 			"location":   Raw("LIKE ?", "japan"),
 		})
-		q, args, err := clause.Stmt()
+		q, args, err := clause.Predicate()
 		assert.NoError(t, err)
-		stmt := []string{
+		preds := []string{
 			"`created_at` < ?",
 			"`deleted_at` BETWEEN ? AND ?",
 			"`id` = ?",
 			"`location` LIKE ?",
 			"`name` IN (?,?)",
 		}
-		assert.Equal(t, strings.Join(stmt, " AND "), q)
+
+		assert.Equal(t, fmt.Sprintf("(%s)", strings.Join(preds, " AND ")), q)
 		assert.ElementsMatch(t, []any{
 			1, now, "2022-12-03", "2023-01-02", "a", "b", "japan",
 		}, args)
 	})
 	t.Run("should error if one returned an error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		expr := mock_query.NewMockExpr(ctrl)
-		expr.EXPECT().Expr(gomock.Any()).Return("", nil, fmt.Errorf("err"))
-		clause := NewStmtEx(map[string]any{
+		expr := mock_query.NewMockExpression(ctrl)
+		expr.EXPECT().Expression(gomock.Any()).Return("", nil, fmt.Errorf("err"))
+		clause := KeyValuePredicate(map[string]any{
 			"1": expr,
 			"2": Eq(1),
 		})
-		q, args, err := clause.Stmt()
+		q, args, err := clause.Predicate()
 		assert.Equal(t, "", q)
 		assert.Nil(t, args)
 		assert.ErrorContains(t, err, "err")
 	})
 	t.Run("should error if one is dangerous query", func(t *testing.T) {
-		clause := NewStmtEx(map[string]any{
+		clause := KeyValuePredicate(map[string]any{
 			"id": Raw(""),
 		})
-		q, args, err := clause.Stmt()
+		q, args, err := clause.Predicate()
 		assert.Equal(t, "", q)
-		assert.Equal(t, err, ErrDangerousExpr)
+		assert.ErrorContains(t, err, "DANGER")
 		assert.Nil(t, args)
 	})
 }
 
-func TestStmtAnd(t *testing.T) {
+func TestPredicate_And(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		v := ConcatStmt(
-			NewStmt("`id` = ?", 1),
-			NewStmt("`name` = ?", 2),
-			NewStmtEx(map[string]any{
+		v := PredicateAnd(
+			RawPredicate("`id` = ?", 1),
+			RawPredicate("`name` = ?", 2),
+			KeyValuePredicate(map[string]any{
 				"age": Between(0, 20),
 				"cnt": In(3, 4),
 			}),
 		)
-		q, args, err := v.Stmt()
+		q, args, err := v.Predicate()
 		assert.NoError(t, err)
-		assert.Equal(t, "(`id` = ?) AND (`name` = ?) AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?))", q)
+		assert.Equal(t, "(`id` = ? AND `name` = ? AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?)))", q)
 		assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, args)
 	})
-	t.Run("should error if one returned an error", func(t *testing.T) {
-		stmt, args, err := ConcatStmt(NewStmt("id = ?", 1), NewStmt("")).Stmt()
+	t.Run("should return error if one returned an error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		pred := mock_query.NewMockPredicate(ctrl)
+		pred.EXPECT().Predicate().Return("", nil, fmt.Errorf("err"))
+		and := PredicateAnd(RawPredicate("id = 1"), pred)
+		str, args, err := and.Predicate()
+		assert.Equal(t, "", str)
 		assert.Nil(t, args)
-		assert.Equal(t, "", stmt)
-		assert.ErrorContains(t, err, "DANGER")
+		assert.EqualError(t, err, "err")
 	})
 }

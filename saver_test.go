@@ -278,6 +278,23 @@ func TestSaver_Update(t *testing.T) {
 		assert.Equal(t, "go", actual.FirstName.String)
 		assert.Equal(t, "lang", actual.LastName.String)
 	})
+	t.Run("should error if tableName is empty", func(t *testing.T) {
+		q, err := s.Update("", nil, nil)
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "empty table")
+	})
+	t.Run("should error if where clause is nil", func(t *testing.T) {
+		q, err := s.Update("users", make(map[string]interface{}), nil)
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "empty values")
+	})
+	t.Run("should error if where clause is empty", func(t *testing.T) {
+		q, err := s.Update("users", map[string]interface{}{
+			"first_name": "go",
+		}, exql.Where(""))
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "DANGER: empty expression")
+	})
 }
 
 func TestSaver_UpdateModel(t *testing.T) {
@@ -373,29 +390,8 @@ func TestSaver_Delete(t *testing.T) {
 	t.Run("should error if clause returened an error", func(t *testing.T) {
 		s := exql.NewSaver(nil)
 		res, err := s.Delete("table", exql.Where(""))
-		assert.Equal(t, q.ErrDangerousExpr, err)
+		assert.EqualError(t, err, "DANGER: empty expression")
 		assert.Nil(t, res)
-	})
-}
-
-func TestSaver_QueryForUpdate(t *testing.T) {
-	s := exql.NewSaver(nil)
-	t.Run("should error if tableName is empty", func(t *testing.T) {
-		q, err := s.Update("", nil, nil)
-		assert.Nil(t, q)
-		assert.EqualError(t, err, "empty table")
-	})
-	t.Run("should error if where clause is nil", func(t *testing.T) {
-		q, err := s.Update("users", make(map[string]interface{}), nil)
-		assert.Nil(t, q)
-		assert.EqualError(t, err, "empty values")
-	})
-	t.Run("should error if where clause is empty", func(t *testing.T) {
-		q, err := s.Update("users", map[string]interface{}{
-			"first_name": "go",
-		}, exql.Where(""))
-		assert.Nil(t, q)
-		assert.EqualError(t, err, "DANGER: empty where clause")
 	})
 }
 
@@ -427,7 +423,7 @@ func (upSampleNoColumn) ForTableName() string {
 }
 
 func TestSaver_QueryExtra(t *testing.T) {
-	query := q.Select{From: "table", Where: q.NewStmt("id = ?", 1)}
+	query := q.Select{From: "table", Where: q.RawPredicate("id = ?", 1)}
 	stmt := "SELECT * FROM `table` WHERE id = ?"
 	args := []any{1}
 	aErr := fmt.Errorf("err")

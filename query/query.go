@@ -48,7 +48,7 @@ func (i Insert) Query() (string, []any, error) {
 	columns := backQuoteAndJoin(it.Keys()...)
 	return fmt.Sprintf(
 		"INSERT INTO `%s` (%s) VALUES (%s)",
-		i.Into, columns, SqlPlaceHolders(it.Size()),
+		i.Into, columns, Placeholders(it.Size()),
 	), it.Values(), nil
 }
 
@@ -78,7 +78,7 @@ func (i InsertMany) Query() (string, []any, error) {
 		if len(i.Columns) != len(v) {
 			return "", nil, xerrors.Errorf("number of columns/values mismatch")
 		}
-		values = append(values, fmt.Sprintf("(%s)", SqlPlaceHolders(len(v))))
+		values = append(values, fmt.Sprintf("(%s)", Placeholders(len(v))))
 		args = append(args, v...)
 	}
 	return fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s",
@@ -91,7 +91,7 @@ func (i InsertMany) Query() (string, []any, error) {
 type Select struct {
 	Columns []string
 	From    string
-	Where   Stmt
+	Where   Predicate
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -111,7 +111,7 @@ func (s Select) Query() (string, []any, error) {
 	if err := s.Validate(); err != nil {
 		return "", nil, err
 	}
-	stmt, args, err := s.Where.Stmt()
+	stmt, args, err := s.Where.Predicate()
 	if err != nil {
 		return "", nil, err
 	}
@@ -132,7 +132,7 @@ func (s Select) Query() (string, []any, error) {
 type Update struct {
 	Table   string
 	Set     map[string]any
-	Where   Stmt
+	Where   Predicate
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -161,7 +161,7 @@ func (q Update) Query() (string, []any, error) {
 		setExprs[i] = fmt.Sprintf("`%s` = ?", v)
 	}
 	setStmt := strings.Join(setExprs, ",")
-	whereStmt, whereArgs, err := q.Where.Stmt()
+	whereStmt, whereArgs, err := q.Where.Predicate()
 	if err != nil {
 		return "", nil, err
 	}
@@ -178,7 +178,7 @@ func (q Update) Query() (string, []any, error) {
 
 type Delete struct {
 	From    string
-	Where   Stmt
+	Where   Predicate
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -198,7 +198,7 @@ func (d Delete) Query() (string, []any, error) {
 	if err := d.Validate(); err != nil {
 		return "", nil, err
 	}
-	stmt, args, err := d.Where.Stmt()
+	stmt, args, err := d.Where.Predicate()
 	if err != nil {
 		return "", nil, err
 	}

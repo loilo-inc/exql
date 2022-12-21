@@ -37,7 +37,7 @@ func (m *MockSaver) EXPECT() *MockSaverMockRecorder {
 }
 
 // Delete mocks base method.
-func (m *MockSaver) Delete(table string, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) Delete(table string, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", table, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -52,7 +52,7 @@ func (mr *MockSaverMockRecorder) Delete(table, where interface{}) *gomock.Call {
 }
 
 // DeleteContext mocks base method.
-func (m *MockSaver) DeleteContext(ctx context.Context, table string, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) DeleteContext(ctx context.Context, table string, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteContext", ctx, table, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -187,7 +187,7 @@ func (mr *MockSaverMockRecorder) QueryRowContext(ctx, query interface{}) *gomock
 }
 
 // Update mocks base method.
-func (m *MockSaver) Update(table string, set map[string]any, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) Update(table string, set map[string]any, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", table, set, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -202,7 +202,7 @@ func (mr *MockSaverMockRecorder) Update(table, set, where interface{}) *gomock.C
 }
 
 // UpdateContext mocks base method.
-func (m *MockSaver) UpdateContext(ctx context.Context, table string, set map[string]any, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) UpdateContext(ctx context.Context, table string, set map[string]any, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateContext", ctx, table, set, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -217,7 +217,7 @@ func (mr *MockSaverMockRecorder) UpdateContext(ctx, table, set, where interface{
 }
 
 // UpdateModel mocks base method.
-func (m *MockSaver) UpdateModel(updaterStructPtr any, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) UpdateModel(updaterStructPtr any, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModel", updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -232,7 +232,7 @@ func (mr *MockSaverMockRecorder) UpdateModel(updaterStructPtr, where interface{}
 }
 
 // UpdateModelContext mocks base method.
-func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr any, where query.Stmt) (sql.Result, error) {
+func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr any, where query.Predicate) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModelContext", ctx, updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)

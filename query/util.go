@@ -1,8 +1,11 @@
 package query
 
 import (
+	"fmt"
 	"sort"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 type keyIterator struct {
@@ -50,10 +53,38 @@ func (k *keyIterator) Values() []any {
 	return k.values
 }
 
-func SqlPlaceHolders(repeat int) string {
+func Placeholders(repeat int) string {
 	res := make([]string, repeat)
 	for i := 0; i < repeat; i++ {
 		res[i] = "?"
 	}
 	return strings.Join(res, ",")
+}
+
+var errInvalidContacOp = xerrors.New("invalid concat operator")
+
+const (
+	kAnd = "AND"
+	kOr  = "OR"
+)
+
+func assertContatOp(op string) error {
+	if op != kAnd && op != kOr {
+		return errInvalidContacOp
+	}
+	return nil
+}
+
+func assertEmptyQuery(q string) error {
+	if emptyPat.MatchString(q) {
+		return errEmptyExpr
+	}
+	return nil
+}
+
+func concatQueries(op string, qs []string) (string, error) {
+	if err := assertContatOp(op); err != nil {
+		return "", errInvalidContacOp
+	}
+	return fmt.Sprintf("(%s)", strings.Join(qs, fmt.Sprintf(" %s ", op))), nil
 }

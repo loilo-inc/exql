@@ -24,7 +24,7 @@ func TestKeyIteretor(t *testing.T) {
 }
 
 func TestSqlPraceholder(t *testing.T) {
-	assert.Equal(t, "", SqlPlaceHolders(0))
-	assert.Equal(t, "?", SqlPlaceHolders(1))
-	assert.Equal(t, "?,?,?", SqlPlaceHolders(3))
+	assert.Equal(t, "", Placeholders(0))
+	assert.Equal(t, "?", Placeholders(1))
+	assert.Equal(t, "?,?,?", Placeholders(3))
 }

@@ -5,7 +5,7 @@ import q "github.com/loilo-inc/exql/query"
 func UseQuery() {
 	selectQuery := q.Select{
 		From:  "users",
-		Where: q.NewStmt("id = ?", 1),
+		Where: q.RawPredicate("id = ?", 1),
 	}
 	selectStmt, selectArgs, _ := selectQuery.Query()
 	db.DB().Query(
@@ -32,7 +32,7 @@ func UseQuery() {
 			"age":  20,
 			"name": "go",
 		},
-		Where: q.NewStmt("id = ?", 1),
+		Where: q.RawPredicate("id = ?", 1),
 	}
 	updateStmt, updateArgs, _ := updateQuery.Query()
 	db.DB().Exec(
@@ -42,7 +42,7 @@ func UseQuery() {
 
 	deleteQuery := q.Delete{
 		From:  "users",
-		Where: q.NewStmt("id = ?", 1),
+		Where: q.RawPredicate("id = ?", 1),
 	}
 	deleteStmt, deleteArgs, _ := deleteQuery.Query()
 	db.DB().Exec(
