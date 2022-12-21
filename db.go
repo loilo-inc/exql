@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/apex/log"
 	q "github.com/loilo-inc/exql/query"
 )
