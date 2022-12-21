@@ -41,14 +41,14 @@ func (c *kvCond) Condition() (string, []any, error) {
 	return concatConds(kAnd, arr...).Condition()
 }
 
-func Where(q string, args ...interface{}) Condition {
+func NewCondition(q string, args ...interface{}) Condition {
 	return &cond{
 		query: q,
 		args:  args,
 	}
 }
 
-func WhereEx(cond map[string]any) Condition {
+func NewKeyValueCondition(cond map[string]any) Condition {
 	e := NewKeyIterator(cond)
 	return &kvCond{stmts: e}
 }
@@ -76,10 +76,10 @@ func (m *multiCond) Condition() (string, []any, error) {
 	}
 }
 
-func WhereAnd(list ...Condition) Condition {
+func ConditionAnd(list ...Condition) Condition {
 	return concatConds(kAnd, list...)
 }
-func WhereOr(list ...Condition) Condition {
+func ConditionOr(list ...Condition) Condition {
 	return concatConds(kOr, list...)
 }
 

@@ -76,7 +76,7 @@ func TestQueryForUpdateModel(t *testing.T) {
 		q, err := exql.QueryForUpdateModel(&model.UpdateUsers{
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
-		}, q.Where(`id = ?`, 1))
+		}, q.NewCondition(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}

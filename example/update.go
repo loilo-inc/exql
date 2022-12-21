@@ -10,7 +10,7 @@ func Update() {
 	// [1]
 	_, err := db.Update("users", map[string]any{
 		"name": "GoGo",
-	}, q.Where("id = ?", 1))
+	}, q.NewCondition("id = ?", 1))
 	if err != nil {
 		log.Errorf(err.Error())
 	}
@@ -19,7 +19,7 @@ func Update() {
 func Delete() {
 	// DELETE FROM `users` WHERE id = ?
 	// [1]
-	_, err := db.Delete("users", q.Where("id = ?", 1))
+	_, err := db.Delete("users", q.NewCondition("id = ?", 1))
 	if err != nil {
 		log.Errorf(err.Error())
 	}

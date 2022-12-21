@@ -46,21 +46,22 @@ func TestQueryBuilder(t *testing.T) {
 		{
 			query: Select{
 				From:  "table",
-				Where: Where("id = ?", 1),
+				Where: NewCondition("id = ?", 1),
 			},
 			stmt: "SELECT * FROM `table` WHERE id = ?",
 			args: []any{1},
 		},
 		{
 			query: Select{
-				From:    "table",
-				Columns: []string{"id", "age"},
-				Where:   Where("id = ?", 1),
-				Limit:   2,
-				Offset:  3,
-				OrderBy: "id DESC",
+				From:      "table",
+				Columns:   []string{"id", "age"},
+				Where:     NewCondition("id = ?", 1),
+				Limit:     2,
+				Offset:    3,
+				OrderBy:   "id DESC",
+				ForUpdate: true,
 			},
-			stmt: "SELECT `id`,`age` FROM `table` WHERE id = ? LIMIT ? OFFSET ? ORDER BY id DESC",
+			stmt: "SELECT `id`,`age` FROM `table` WHERE id = ? LIMIT ? OFFSET ? ORDER BY id DESC FOR UPDATE",
 			args: []any{1, 2, 3},
 		},
 		{
@@ -69,7 +70,7 @@ func TestQueryBuilder(t *testing.T) {
 				Set: map[string]any{
 					"id": 1,
 				},
-				Where: Where(`id = ?`, 2),
+				Where: NewCondition(`id = ?`, 2),
 			},
 			stmt: "UPDATE `table` SET `id` = ? WHERE id = ?",
 			args: []any{1, 2},
@@ -81,7 +82,7 @@ func TestQueryBuilder(t *testing.T) {
 					"id":   1,
 					"name": "go",
 				},
-				Where: Where(`id = ?`, 2),
+				Where: NewCondition(`id = ?`, 2),
 			},
 			stmt: "UPDATE `table` SET `id` = ?,`name` = ? WHERE id = ?",
 			args: []any{1, "go", 2},
@@ -89,7 +90,7 @@ func TestQueryBuilder(t *testing.T) {
 		{
 			query: Delete{
 				From:  "table",
-				Where: Where(`id = ?`, 1),
+				Where: NewCondition(`id = ?`, 1),
 			},
 			stmt: "DELETE FROM `table` WHERE id = ?",
 			args: []any{1},
@@ -140,7 +141,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Select{From: "table", Where: Where("")},
+			query: Select{From: "table", Where: NewCondition("")},
 			err:   "DANGER",
 		},
 		{
@@ -156,7 +157,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Update{Table: "table", Set: map[string]any{"id": 1}, Where: Where("")},
+			query: Update{Table: "table", Set: map[string]any{"id": 1}, Where: NewCondition("")},
 			err:   "DANGER",
 		},
 		{
@@ -168,7 +169,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Delete{From: "table", Where: Where("")},
+			query: Delete{From: "table", Where: NewCondition("")},
 			err:   "DANGER",
 		},
 	}

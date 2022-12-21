@@ -89,12 +89,13 @@ func (i InsertMany) Query() (string, []any, error) {
 }
 
 type Select struct {
-	Columns []string
-	From    string
-	Where   Condition
-	Limit   int
-	Offset  int
-	OrderBy string
+	Columns   []string
+	From      string
+	Where     Condition
+	Limit     int
+	Offset    int
+	OrderBy   string
+	ForUpdate bool
 }
 
 func (s Select) Validate() error {
@@ -126,6 +127,9 @@ func (s Select) Query() (string, []any, error) {
 		colmuns, s.From, stmt,
 	)}
 	appendOrderByLimitOffest(s, &base, &args)
+	if s.ForUpdate {
+		base = append(base, "FOR UPDATE")
+	}
 	return strings.Join(base, " "), args, nil
 }
 

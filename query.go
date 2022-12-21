@@ -7,6 +7,22 @@ import (
 	"golang.org/x/xerrors"
 )
 
+func Where(str string, args ...any) q.Condition {
+	return q.NewCondition(str, args...)
+}
+
+func WhereEx(m map[string]any) q.Condition {
+	return q.NewKeyValueCondition(m)
+}
+
+func WhereAnd(list ...q.Condition) q.Condition {
+	return q.ConditionAnd(list...)
+}
+
+func WhereOr(list ...q.Condition) q.Condition {
+	return q.ConditionOr(list...)
+}
+
 func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 	if modelPtr == nil {
 		return nil, nil, xerrors.Errorf("pointer is nil")
