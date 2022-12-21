@@ -293,7 +293,7 @@ func TestSaver_Update(t *testing.T) {
 			"first_name": "go",
 		}, exql.Where(""))
 		assert.Nil(t, q)
-		assert.EqualError(t, err, "DANGER: empty expression")
+		assert.EqualError(t, err, "DANGER: empty predicate")
 	})
 }
 
@@ -390,7 +390,7 @@ func TestSaver_Delete(t *testing.T) {
 	t.Run("should error if clause returened an error", func(t *testing.T) {
 		s := exql.NewSaver(nil)
 		res, err := s.Delete("table", exql.Where(""))
-		assert.EqualError(t, err, "DANGER: empty expression")
+		assert.EqualError(t, err, "DANGER: empty predicate")
 		assert.Nil(t, res)
 	})
 }
@@ -423,7 +423,7 @@ func (upSampleNoColumn) ForTableName() string {
 }
 
 func TestSaver_QueryExtra(t *testing.T) {
-	query := q.Select{From: "table", Where: q.RawPredicate("id = ?", 1)}
+	query := q.Select{From: "table", Where: q.Where("id = ?", 1)}
 	stmt := "SELECT * FROM `table` WHERE id = ?"
 	args := []any{1}
 	aErr := fmt.Errorf("err")

@@ -46,7 +46,7 @@ func TestQueryBuilder(t *testing.T) {
 		{
 			query: Select{
 				From:  "table",
-				Where: RawPredicate("id = ?", 1),
+				Where: Where("id = ?", 1),
 			},
 			stmt: "SELECT * FROM `table` WHERE id = ?",
 			args: []any{1},
@@ -55,7 +55,7 @@ func TestQueryBuilder(t *testing.T) {
 			query: Select{
 				From:    "table",
 				Columns: []string{"id", "age"},
-				Where:   RawPredicate("id = ?", 1),
+				Where:   Where("id = ?", 1),
 				Limit:   2,
 				Offset:  3,
 				OrderBy: "id DESC",
@@ -69,7 +69,7 @@ func TestQueryBuilder(t *testing.T) {
 				Set: map[string]any{
 					"id": 1,
 				},
-				Where: RawPredicate(`id = ?`, 2),
+				Where: Where(`id = ?`, 2),
 			},
 			stmt: "UPDATE `table` SET `id` = ? WHERE id = ?",
 			args: []any{1, 2},
@@ -81,7 +81,7 @@ func TestQueryBuilder(t *testing.T) {
 					"id":   1,
 					"name": "go",
 				},
-				Where: RawPredicate(`id = ?`, 2),
+				Where: Where(`id = ?`, 2),
 			},
 			stmt: "UPDATE `table` SET `id` = ?,`name` = ? WHERE id = ?",
 			args: []any{1, "go", 2},
@@ -89,7 +89,7 @@ func TestQueryBuilder(t *testing.T) {
 		{
 			query: Delete{
 				From:  "table",
-				Where: RawPredicate(`id = ?`, 1),
+				Where: Where(`id = ?`, 1),
 			},
 			stmt: "DELETE FROM `table` WHERE id = ?",
 			args: []any{1},
@@ -140,7 +140,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Select{From: "table", Where: RawPredicate("")},
+			query: Select{From: "table", Where: Where("")},
 			err:   "DANGER",
 		},
 		{
@@ -156,7 +156,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Update{Table: "table", Set: map[string]any{"id": 1}, Where: RawPredicate("")},
+			query: Update{Table: "table", Set: map[string]any{"id": 1}, Where: Where("")},
 			err:   "DANGER",
 		},
 		{
@@ -168,7 +168,7 @@ func TestBuilderError(t *testing.T) {
 			err:   "empty where clause",
 		},
 		{
-			query: Delete{From: "table", Where: RawPredicate("")},
+			query: Delete{From: "table", Where: Where("")},
 			err:   "DANGER",
 		},
 	}

@@ -34,9 +34,9 @@ func (m *MockPredicate) EXPECT() *MockPredicateMockRecorder {
 }
 
 // Predicate mocks base method.
-func (m *MockPredicate) Predicate() (string, []any, error) {
+func (m *MockPredicate) Predicate(column string) (string, []any, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Predicate")
+	ret := m.ctrl.Call(m, "Predicate", column)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].([]any)
 	ret2, _ := ret[2].(error)
@@ -44,7 +44,7 @@ func (m *MockPredicate) Predicate() (string, []any, error) {
 }
 
 // Predicate indicates an expected call of Predicate.
-func (mr *MockPredicateMockRecorder) Predicate() *gomock.Call {
+func (mr *MockPredicateMockRecorder) Predicate(column interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Predicate", reflect.TypeOf((*MockPredicate)(nil).Predicate))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Predicate", reflect.TypeOf((*MockPredicate)(nil).Predicate), column)
 }

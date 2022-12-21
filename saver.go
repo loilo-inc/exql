@@ -12,12 +12,12 @@ import (
 type Saver interface {
 	Insert(structPtr any) (sql.Result, error)
 	InsertContext(ctx context.Context, structPtr any) (sql.Result, error)
-	Update(table string, set map[string]any, where q.Predicate) (sql.Result, error)
-	UpdateModel(updaterStructPtr any, where q.Predicate) (sql.Result, error)
-	UpdateContext(ctx context.Context, table string, set map[string]any, where q.Predicate) (sql.Result, error)
-	UpdateModelContext(ctx context.Context, updaterStructPtr any, where q.Predicate) (sql.Result, error)
-	Delete(table string, where q.Predicate) (sql.Result, error)
-	DeleteContext(ctx context.Context, table string, where q.Predicate) (sql.Result, error)
+	Update(table string, set map[string]any, where q.Condition) (sql.Result, error)
+	UpdateModel(updaterStructPtr any, where q.Condition) (sql.Result, error)
+	UpdateContext(ctx context.Context, table string, set map[string]any, where q.Condition) (sql.Result, error)
+	UpdateModelContext(ctx context.Context, updaterStructPtr any, where q.Condition) (sql.Result, error)
+	Delete(table string, where q.Condition) (sql.Result, error)
+	DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error)
 	Exec(query q.Query) (sql.Result, error)
 	ExecContext(ctx context.Context, query q.Query) (sql.Result, error)
 	Query(query q.Query) (*sql.Rows, error)
@@ -67,7 +67,7 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr any) (sql.Result, er
 func (s *saver) Update(
 	table string,
 	set map[string]any,
-	where q.Predicate,
+	where q.Condition,
 ) (sql.Result, error) {
 	return s.UpdateContext(context.Background(), table, set, where)
 }
@@ -76,22 +76,22 @@ func (s *saver) UpdateContext(
 	ctx context.Context,
 	table string,
 	set map[string]any,
-	where q.Predicate,
+	where q.Condition,
 ) (sql.Result, error) {
 	return s.ExecContext(ctx, &q.Update{Table: table, Set: set, Where: where})
 }
 
-func (s *saver) Delete(from string, where q.Predicate) (sql.Result, error) {
+func (s *saver) Delete(from string, where q.Condition) (sql.Result, error) {
 	return s.DeleteContext(context.Background(), from, where)
 }
 
-func (s *saver) DeleteContext(ctx context.Context, from string, where q.Predicate) (sql.Result, error) {
+func (s *saver) DeleteContext(ctx context.Context, from string, where q.Condition) (sql.Result, error) {
 	return s.ExecContext(ctx, &q.Delete{From: from, Where: where})
 }
 
 func (s *saver) UpdateModel(
 	ptr any,
-	where q.Predicate,
+	where q.Condition,
 ) (sql.Result, error) {
 	return s.UpdateModelContext(context.Background(), ptr, where)
 }
@@ -99,7 +99,7 @@ func (s *saver) UpdateModel(
 func (s *saver) UpdateModelContext(
 	ctx context.Context,
 	ptr any,
-	where q.Predicate,
+	where q.Condition,
 ) (sql.Result, error) {
 	q, err := QueryForUpdateModel(ptr, where)
 	if err != nil {

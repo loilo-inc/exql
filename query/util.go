@@ -77,7 +77,7 @@ func assertContatOp(op string) error {
 
 func assertEmptyQuery(q string) error {
 	if emptyPat.MatchString(q) {
-		return errEmptyExpr
+		return errEmptyPred
 	}
 	return nil
 }

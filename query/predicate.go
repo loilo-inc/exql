@@ -1,88 +1,140 @@
 //go:generate mockgen -source $GOFILE -destination ../mocks/mock_$GOPACKAGE/$GOFILE -package mock_$GOPACKAGE
 package query
 
+import (
+	"fmt"
+	"regexp"
+
+	"golang.org/x/xerrors"
+)
+
 type Predicate interface {
-	Predicate() (string, []any, error)
+	Predicate(column string) (string, []any, error)
 }
 
-type predicate struct {
-	query string
-	args  []interface{}
-}
+type op = string
 
-func (w *predicate) Predicate() (string, []any, error) {
-	if err := assertEmptyQuery(w.query); err != nil {
-		return "", nil, err
+const (
+	kEq        op = "="
+	kNotEq     op = "<>"
+	kGt        op = ">"
+	kGte       op = ">="
+	kLt        op = "<"
+	kLte       op = "<="
+	kIsNull    op = "IS NULL"
+	kIsNotNull op = "IS NOT NULL"
+	kLike      op = "LIKE"
+)
+
+func is(op op, value any) Predicate {
+	return &pred{
+		q:    fmt.Sprintf("%s ?", op),
+		args: []any{value},
 	}
-	return w.query, w.args, nil
 }
 
-type kvPredicate struct {
-	stmts KeyIterator
+func Eq(value any) Predicate {
+	return is(kEq, value)
 }
 
-func (c *kvPredicate) Predicate() (string, []any, error) {
-	var arr []Predicate
-	for i := 0; i < c.stmts.Size(); i++ {
-		column, v := c.stmts.Get(i)
-		var expr Expression
-		switch e := v.(type) {
-		case Expression:
-			expr = e
-		default:
-			expr = Eq(e)
-		}
-		if expr, args, err := expr.Expression(column); err != nil {
+func NotEq(value any) Predicate {
+	return is(kNotEq, value)
+}
+
+func IsNull() Predicate {
+	return &pred{q: kIsNull}
+}
+
+func IsNotNull() Predicate {
+	return &pred{q: kIsNotNull}
+}
+
+func Like(expr string) Predicate {
+	return is(kLike, expr)
+}
+
+func Lt(value any) Predicate {
+	return is(kLt, value)
+}
+
+func Lte(value any) Predicate {
+	return is(kLte, value)
+}
+func Gt(value any) Predicate {
+	return is(kGt, value)
+}
+func Gte(value any) Predicate {
+	return is(kGte, value)
+}
+
+func In[T any](args ...T) Predicate {
+	var arr = make([]any, len(args))
+	for i, v := range args {
+		arr[i] = v
+	}
+	return &pred{
+		q:    fmt.Sprintf("IN (%s)", Placeholders(len(args))),
+		args: arr,
+	}
+}
+
+func Between[T comparable](from T, to T) Predicate {
+	return &pred{
+		q:    "BETWEEN ? AND ?",
+		args: []any{from, to},
+	}
+}
+
+type pred struct {
+	q    string
+	args []any
+}
+
+func (r *pred) Predicate(column string) (string, []any, error) {
+	if emptyPat.MatchString(column) || emptyPat.MatchString(r.q) {
+		return "", nil, errEmptyPred
+	}
+	return fmt.Sprintf("`%s` %s", column, r.q), r.args, nil
+}
+
+var errEmptyPred = xerrors.Errorf("DANGER: empty predicate")
+var emptyPat = regexp.MustCompile(`\A[\s\t\n]*\z`)
+
+type multiPred struct {
+	op    string
+	preds []Predicate
+}
+
+func (m *multiPred) Predicate(column string) (string, []any, error) {
+	var preds []string
+	var args []any
+	for _, v := range m.preds {
+		if e, a, err := v.Predicate(column); err != nil {
 			return "", nil, err
 		} else {
-			arr = append(arr, &predicate{query: expr, args: args})
+			preds = append(preds, e)
+			args = append(args, a...)
 		}
 	}
-	return concatPredicates(kAnd, arr...).Predicate()
-}
-
-func RawPredicate(q string, args ...interface{}) Predicate {
-	return &predicate{
-		query: q,
-		args:  args,
-	}
-}
-
-func KeyValuePredicate(cond map[string]any) Predicate {
-	e := NewKeyIterator(cond)
-	return &kvPredicate{stmts: e}
-}
-
-type multiPredicate struct {
-	op   string
-	list []Predicate
-}
-
-func (m *multiPredicate) Predicate() (string, []any, error) {
-	var list []string
-	var values []any
-	for _, v := range m.list {
-		q, args, err := v.Predicate()
-		if err != nil {
-			return "", nil, err
-		}
-		list = append(list, q)
-		values = append(values, args...)
-	}
-	if ret, err := concatQueries(m.op, list); err != nil {
+	if ret, err := concatQueries(m.op, preds); err != nil {
 		return "", nil, err
 	} else {
-		return ret, values, nil
+		return ret, args, nil
 	}
 }
 
 func PredicateAnd(list ...Predicate) Predicate {
-	return concatPredicates(kAnd, list...)
-}
-func PredicateOr(list ...Predicate) Predicate {
-	return concatPredicates(kOr, list...)
+	return concatPred(kAnd, list...)
 }
 
-func concatPredicates(op string, list ...Predicate) Predicate {
-	return &multiPredicate{op: op, list: list}
+func PredicateOr(list ...Predicate) Predicate {
+	return concatPred(kOr, list...)
+}
+
+func concatPred(op string, list ...Predicate) Predicate {
+	return &multiPred{op: op, preds: list}
+}
+
+func Raw(q string, args ...any) Predicate {
+	return &pred{q: q, args: args}
 }

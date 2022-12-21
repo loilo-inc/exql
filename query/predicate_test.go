@@ -2,106 +2,71 @@ package query_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/loilo-inc/exql/mocks/mock_query"
 	. "github.com/loilo-inc/exql/query"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestRawPredicate(t *testing.T) {
-	t.Run("basic", func(t *testing.T) {
-		q := RawPredicate("id = ?", 1)
-		stmt, args, err := q.Predicate()
-		assert.Nil(t, err)
-		assert.Equal(t, "id = ?", stmt)
-		assert.ElementsMatch(t, []any{1}, args)
-	})
-	t.Run("should return error if query has no expression", func(t *testing.T) {
-		q := RawPredicate("", 1)
-		stmt, args, err := q.Predicate()
-		assert.EqualError(t, err, "DANGER: empty expression")
-		assert.Equal(t, "", stmt)
-		assert.Nil(t, args)
-	})
+func TestPredicate(t *testing.T) {
+	tt := func(pred Predicate, query string, args ...any) {
+		v, a, err := pred.Predicate("a")
+		assert.NoError(t, err)
+		assert.Equal(t, fmt.Sprintf("`a` %s", query), v)
+		assert.ElementsMatch(t, args, a)
+	}
+	tt(Eq(1), "= ?", 1)
+	tt(NotEq(1), "<> ?", 1)
+	tt(IsNull(), "IS NULL")
+	tt(IsNotNull(), "IS NOT NULL")
+	tt(Like("go"), "LIKE ?", "go")
+	tt(Lt(0), "< ?", 0)
+	tt(Lte(0), "<= ?", 0)
+	tt(Gt(0), "> ?", 0)
+	tt(Gte(0), ">= ?", 0)
+	tt(In(0, 1), "IN (?,?)", 0, 1)
+	tt(Raw("SOME ?", 1), "SOME ?", 1)
+	tt(In([]int{0, 1}...), "IN (?,?)", 0, 1)
 }
 
-func TestKeyValuePredicate(t *testing.T) {
-	t.Run("should sort columns", func(t *testing.T) {
-		now := time.Now()
-		clause := KeyValuePredicate(map[string]any{
-			"id":         1,
-			"created_at": Lt(now),
-			"deleted_at": Between("2022-12-03", "2023-01-02"),
-			"name":       In("a", "b"),
-			"location":   Raw("LIKE ?", "japan"),
-		})
-		q, args, err := clause.Predicate()
+func TestPredicateAnd(t *testing.T) {
+	and := PredicateAnd(Eq(1), NotEq(2))
+	or := PredicateOr(Eq(3), NotEq(4))
+	t.Run("and", func(t *testing.T) {
+		v, a, err := and.Predicate("a")
 		assert.NoError(t, err)
-		preds := []string{
-			"`created_at` < ?",
-			"`deleted_at` BETWEEN ? AND ?",
-			"`id` = ?",
-			"`location` LIKE ?",
-			"`name` IN (?,?)",
-		}
-
-		assert.Equal(t, fmt.Sprintf("(%s)", strings.Join(preds, " AND ")), q)
-		assert.ElementsMatch(t, []any{
-			1, now, "2022-12-03", "2023-01-02", "a", "b", "japan",
-		}, args)
+		assert.Equal(t, "(`a` = ? AND `a` <> ?)", v)
+		assert.ElementsMatch(t, []any{1, 2}, a)
 	})
-	t.Run("should error if one returned an error", func(t *testing.T) {
+	t.Run("or", func(t *testing.T) {
+		v, a, err := or.Predicate("a")
+		assert.NoError(t, err)
+		assert.Equal(t, "(`a` = ? OR `a` <> ?)", v)
+		assert.ElementsMatch(t, []any{3, 4}, a)
+	})
+	t.Run("nest", func(t *testing.T) {
+		v, a, err := PredicateAnd(and, or).Predicate("a")
+		assert.NoError(t, err)
+		assert.Equal(t, "((`a` = ? AND `a` <> ?) AND (`a` = ? OR `a` <> ?))", v)
+		assert.ElementsMatch(t, []any{1, 2, 3, 4}, a)
+	})
+	t.Run("should error if one returned error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		expr := mock_query.NewMockExpression(ctrl)
-		expr.EXPECT().Expression(gomock.Any()).Return("", nil, fmt.Errorf("err"))
-		clause := KeyValuePredicate(map[string]any{
-			"1": expr,
-			"2": Eq(1),
-		})
-		q, args, err := clause.Predicate()
-		assert.Equal(t, "", q)
-		assert.Nil(t, args)
+		expr := mock_query.NewMockPredicate(ctrl)
+		expr.EXPECT().Predicate("a").Return("", nil, fmt.Errorf("err"))
+		v, a, err := PredicateAnd(expr, Eq(1)).Predicate("a")
+		assert.Equal(t, "", v)
+		assert.Nil(t, a)
 		assert.ErrorContains(t, err, "err")
 	})
-	t.Run("should error if one is dangerous query", func(t *testing.T) {
-		clause := KeyValuePredicate(map[string]any{
-			"id": Raw(""),
-		})
-		q, args, err := clause.Predicate()
-		assert.Equal(t, "", q)
-		assert.ErrorContains(t, err, "DANGER")
-		assert.Nil(t, args)
-	})
 }
 
-func TestPredicate_And(t *testing.T) {
-	t.Run("basic", func(t *testing.T) {
-		v := PredicateAnd(
-			RawPredicate("`id` = ?", 1),
-			RawPredicate("`name` = ?", 2),
-			KeyValuePredicate(map[string]any{
-				"age": Between(0, 20),
-				"cnt": In(3, 4),
-			}),
-		)
-		q, args, err := v.Predicate()
-		assert.NoError(t, err)
-		assert.Equal(t, "(`id` = ? AND `name` = ? AND (`age` BETWEEN ? AND ? AND `cnt` IN (?,?)))", q)
-		assert.ElementsMatch(t, []any{1, 2, 0, 20, 3, 4}, args)
-	})
-	t.Run("should return error if one returned an error", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		pred := mock_query.NewMockPredicate(ctrl)
-		pred.EXPECT().Predicate().Return("", nil, fmt.Errorf("err"))
-		and := PredicateAnd(RawPredicate("id = 1"), pred)
-		str, args, err := and.Predicate()
-		assert.Equal(t, "", str)
-		assert.Nil(t, args)
-		assert.EqualError(t, err, "err")
-	})
+func TestExpr_Between(t *testing.T) {
+	pred := Between(1, 2)
+	v, a, err := pred.Predicate("a")
+	assert.NoError(t, err)
+	assert.Equal(t, "`a` BETWEEN ? AND ?", v)
+	assert.ElementsMatch(t, []any{1, 2}, a)
 }

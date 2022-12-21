@@ -28,27 +28,27 @@ func (t *tx) InsertContext(ctx context.Context, structPtr interface{}) (sql.Resu
 	return t.s.InsertContext(ctx, structPtr)
 }
 
-func (t *tx) Update(table string, set map[string]interface{}, where q.Predicate) (sql.Result, error) {
+func (t *tx) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return t.s.Update(table, set, where)
 }
 
-func (t *tx) UpdateModel(ptr interface{}, where q.Predicate) (sql.Result, error) {
+func (t *tx) UpdateModel(ptr interface{}, where q.Condition) (sql.Result, error) {
 	return t.s.UpdateModel(ptr, where)
 }
 
-func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Predicate) (sql.Result, error) {
+func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return t.s.UpdateContext(ctx, table, set, where)
 }
 
-func (t *tx) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Predicate) (sql.Result, error) {
+func (t *tx) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Condition) (sql.Result, error) {
 	return t.s.UpdateModelContext(ctx, ptr, where)
 }
 
-func (t *tx) Delete(table string, where q.Predicate) (sql.Result, error) {
+func (t *tx) Delete(table string, where q.Condition) (sql.Result, error) {
 	return t.s.Delete(table, where)
 }
 
-func (t *tx) DeleteContext(ctx context.Context, table string, where q.Predicate) (sql.Result, error) {
+func (t *tx) DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error) {
 	return t.s.DeleteContext(ctx, table, where)
 }
 

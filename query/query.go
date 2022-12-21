@@ -91,7 +91,7 @@ func (i InsertMany) Query() (string, []any, error) {
 type Select struct {
 	Columns []string
 	From    string
-	Where   Predicate
+	Where   Condition
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -111,7 +111,7 @@ func (s Select) Query() (string, []any, error) {
 	if err := s.Validate(); err != nil {
 		return "", nil, err
 	}
-	stmt, args, err := s.Where.Predicate()
+	stmt, args, err := s.Where.Condition()
 	if err != nil {
 		return "", nil, err
 	}
@@ -132,7 +132,7 @@ func (s Select) Query() (string, []any, error) {
 type Update struct {
 	Table   string
 	Set     map[string]any
-	Where   Predicate
+	Where   Condition
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -161,7 +161,7 @@ func (q Update) Query() (string, []any, error) {
 		setExprs[i] = fmt.Sprintf("`%s` = ?", v)
 	}
 	setStmt := strings.Join(setExprs, ",")
-	whereStmt, whereArgs, err := q.Where.Predicate()
+	whereStmt, whereArgs, err := q.Where.Condition()
 	if err != nil {
 		return "", nil, err
 	}
@@ -178,7 +178,7 @@ func (q Update) Query() (string, []any, error) {
 
 type Delete struct {
 	From    string
-	Where   Predicate
+	Where   Condition
 	Limit   int
 	Offset  int
 	OrderBy string
@@ -198,7 +198,7 @@ func (d Delete) Query() (string, []any, error) {
 	if err := d.Validate(); err != nil {
 		return "", nil, err
 	}
-	stmt, args, err := d.Where.Predicate()
+	stmt, args, err := d.Where.Condition()
 	if err != nil {
 		return "", nil, err
 	}
