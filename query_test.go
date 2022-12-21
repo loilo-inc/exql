@@ -2,7 +2,6 @@ package exql_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/loilo-inc/exql"
 	"github.com/loilo-inc/exql/model"
@@ -26,7 +25,7 @@ func TestQueryForInsert(t *testing.T) {
 		assert.Equal(t, exp, stmt)
 		assert.ElementsMatch(t, args, []any{user.FirstName, user.LastName})
 	})
-	assertInvalid := func(t *testing.T, m interface{}, e string) {
+	assertInvalid := func(t *testing.T, m exql.Model, e string) {
 		s, f, err := exql.QueryForInsert(m)
 		assert.Nil(t, s)
 		assert.Nil(t, f)
@@ -39,21 +38,9 @@ func TestQueryForInsert(t *testing.T) {
 		user := model.Users{}
 		assertInvalid(t, user, "object must be pointer of struct")
 	})
-	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
-		var users []*model.Users
-		assertInvalid(t, users, "object must be pointer of struct")
-	})
-	t.Run("should error if dest has no exql tags in any field", func(t *testing.T) {
-		var tim time.Time
-		assertInvalid(t, &tim, "obj doesn't have exql tags in any fields")
-	})
-	t.Run("should error if dest doesn't implement TableName()", func(t *testing.T) {
-		var sam sampleNoTableName
-		assertInvalid(t, &sam, "obj doesn't implement TableName() method")
-	})
 	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
 		var sam sampleBadTableName
-		assertInvalid(t, &sam, "wrong implementation of TableName()")
+		assertInvalid(t, &sam, "empty table name")
 	})
 	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
 		var sam sampleNoColumnTag
@@ -95,11 +82,6 @@ func TestQueryForUpdateModel(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(model.UpdateUsers{}, nil)
 		assert.EqualError(t, err, "must be pointer of struct")
 	})
-	t.Run("should error if not pointer of struct", func(t *testing.T) {
-		d := 1
-		_, err := exql.QueryForUpdateModel(&d, nil)
-		assert.EqualError(t, err, "must be pointer of struct")
-	})
 	t.Run("should error if has invalid tag", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(&upSampleInvalidTag{}, nil)
 		assert.EqualError(t, err, "invalid tag format")
@@ -107,10 +89,6 @@ func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("should error if field is not pointer", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(&upSampleNotPtr{}, nil)
 		assert.EqualError(t, err, "field must be pointer")
-	})
-	t.Run("should error if struct has no fields for update", func(t *testing.T) {
-		_, err := exql.QueryForUpdateModel(&time.Time{}, nil)
-		assert.EqualError(t, err, "no value for update")
 	})
 	t.Run("should ignore if field is nil", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(&upSample{}, nil)
@@ -123,12 +101,7 @@ func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("should error if struct doesn't implement ForTableName()", func(t *testing.T) {
 		id := 1
 		_, err := exql.QueryForUpdateModel(&upSample{Id: &id}, nil)
-		assert.EqualError(t, err, "obj doesn't implement ForTableName() method")
-	})
-	t.Run("should error if struct has wrong implementation of ForTableName()", func(t *testing.T) {
-		id := 1
-		_, err := exql.QueryForUpdateModel(&upSampleWrongImpl{Id: &id}, nil)
-		assert.EqualError(t, err, "wrong implementation of ForTableName()")
+		assert.EqualError(t, err, "empty table name")
 	})
 	t.Run("should error if no column in tag", func(t *testing.T) {
 		id := 1

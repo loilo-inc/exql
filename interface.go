@@ -15,3 +15,11 @@ type Executor interface {
 	QueryRow(query string, args ...any) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
+
+type Model interface {
+	TableName() string
+}
+
+type ModelUpdate interface {
+	UpdateTableName() string
+}

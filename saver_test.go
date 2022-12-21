@@ -17,28 +17,36 @@ import (
 	"github.com/volatiletech/null"
 )
 
-type sampleNoTableName struct {
-	Id int `exql:"column:id;primary;auto_increment"`
-}
-
 type sampleBadTableName struct {
 	Id int `exql:"column:id;primary;auto_increment"`
 }
 
-func (s *sampleBadTableName) TableName() interface{} {
-	return 1
+func (sampleBadTableName) TableName() string {
+	return ""
 }
 
 type sampleNoPrimaryKey struct {
 	Id int `exql:"column:id;auto_increment"`
 }
 
+func (sampleNoPrimaryKey) TableName() string {
+	return ""
+}
+
 type sampleNoColumnTag struct {
 	Id int `exql:"primary;auto_increment"`
 }
 
+func (sampleNoColumnTag) TableName() string {
+	return ""
+}
+
 type sampleBadTag struct {
 	Id int `exql:"a;a:1"`
+}
+
+func (sampleBadTag) TableName() string {
+	return ""
 }
 
 type sampleNoAutoIncrementKey struct {
@@ -398,27 +406,39 @@ func TestSaver_Delete(t *testing.T) {
 type upSampleInvalidTag struct {
 	Id *int `exql:"column::"`
 }
+
+func (upSampleInvalidTag) UpdateTableName() string {
+	return ""
+}
+
 type upSampleNotPtr struct {
 	Id int `exql:"column:id"`
 }
+
+func (upSampleNotPtr) UpdateTableName() string {
+	return ""
+}
+
 type upSample struct {
 	Id *int `exql:"column:id"`
 }
-type upSampleNoFields struct {
-}
-type upSampleWrongImpl struct {
-	Id *int `exql:"column:id"`
+
+func (upSample) UpdateTableName() string {
+	return ""
 }
 
-func (upSampleWrongImpl) ForTableName() int {
-	return 1
+type upSampleNoFields struct {
+}
+
+func (upSampleNoFields) UpdateTableName() string {
+	return ""
 }
 
 type upSampleNoColumn struct {
 	Id *int `exql:"row:id"`
 }
 
-func (upSampleNoColumn) ForTableName() string {
+func (upSampleNoColumn) UpdateTableName() string {
 	return "table"
 }
 

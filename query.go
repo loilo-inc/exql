@@ -23,7 +23,7 @@ func WhereOr(list ...q.Condition) q.Condition {
 	return q.ConditionOr(list...)
 }
 
-func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
+func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	if modelPtr == nil {
 		return nil, nil, xerrors.Errorf("pointer is nil")
 	}
@@ -71,16 +71,12 @@ func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 		return nil, nil, xerrors.Errorf("table has no primary key")
 	}
 
-	getTableName := objValue.MethodByName("TableName")
-	if !getTableName.IsValid() {
-		return nil, nil, xerrors.Errorf("obj doesn't implement TableName() method")
-	}
-	tableName := getTableName.Call(nil)[0]
-	if tableName.Type().Kind() != reflect.String {
-		return nil, nil, xerrors.Errorf("wrong implementation of TableName()")
+	tableName := modelPtr.TableName()
+	if tableName == "" {
+		return nil, nil, xerrors.Errorf("empty table name")
 	}
 	return &q.Insert{
-			Into:   tableName.String(),
+			Into:   tableName,
 			Values: data,
 		},
 		autoIncrementField,
@@ -88,7 +84,7 @@ func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 }
 
 func QueryForUpdateModel(
-	updateStructPtr any,
+	updateStructPtr ModelUpdate,
 	where q.Condition,
 ) (q.Query, error) {
 	if updateStructPtr == nil {
@@ -131,16 +127,12 @@ func QueryForUpdateModel(
 		return nil, xerrors.Errorf("no value for update")
 	}
 
-	getTableName := objValue.MethodByName("ForTableName")
-	if !getTableName.IsValid() {
-		return nil, xerrors.Errorf("obj doesn't implement ForTableName() method")
-	}
-	tableName := getTableName.Call(nil)[0]
-	if tableName.Type().Kind() != reflect.String {
-		return nil, xerrors.Errorf("wrong implementation of ForTableName()")
+	tableName := updateStructPtr.UpdateTableName()
+	if tableName == "" {
+		return nil, xerrors.Errorf("empty table name")
 	}
 	return &q.Update{
-		Table: tableName.String(),
+		Table: tableName,
 		Where: where,
 		Set:   values,
 	}, nil

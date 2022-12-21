@@ -10,12 +10,12 @@ import (
 )
 
 type Saver interface {
-	Insert(structPtr any) (sql.Result, error)
-	InsertContext(ctx context.Context, structPtr any) (sql.Result, error)
+	Insert(structPtr Model) (sql.Result, error)
+	InsertContext(ctx context.Context, structPtr Model) (sql.Result, error)
 	Update(table string, set map[string]any, where q.Condition) (sql.Result, error)
-	UpdateModel(updaterStructPtr any, where q.Condition) (sql.Result, error)
+	UpdateModel(updaterStructPtr ModelUpdate, where q.Condition) (sql.Result, error)
 	UpdateContext(ctx context.Context, table string, set map[string]any, where q.Condition) (sql.Result, error)
-	UpdateModelContext(ctx context.Context, updaterStructPtr any, where q.Condition) (sql.Result, error)
+	UpdateModelContext(ctx context.Context, updaterStructPtr ModelUpdate, where q.Condition) (sql.Result, error)
 	Delete(table string, where q.Condition) (sql.Result, error)
 	DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error)
 	Exec(query q.Query) (sql.Result, error)
@@ -34,11 +34,11 @@ func NewSaver(ex Executor) Saver {
 	return &saver{ex: ex}
 }
 
-func (s *saver) Insert(modelPtr any) (sql.Result, error) {
+func (s *saver) Insert(modelPtr Model) (sql.Result, error) {
 	return s.InsertContext(context.Background(), modelPtr)
 }
 
-func (s *saver) InsertContext(ctx context.Context, modelPtr any) (sql.Result, error) {
+func (s *saver) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
 	q, autoIncrField, err := QueryForInsert(modelPtr)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (s *saver) DeleteContext(ctx context.Context, from string, where q.Conditio
 }
 
 func (s *saver) UpdateModel(
-	ptr any,
+	ptr ModelUpdate,
 	where q.Condition,
 ) (sql.Result, error) {
 	return s.UpdateModelContext(context.Background(), ptr, where)
@@ -96,7 +96,7 @@ func (s *saver) UpdateModel(
 
 func (s *saver) UpdateModelContext(
 	ctx context.Context,
-	ptr any,
+	ptr ModelUpdate,
 	where q.Condition,
 ) (sql.Result, error) {
 	q, err := QueryForUpdateModel(ptr, where)

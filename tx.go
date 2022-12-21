@@ -20,19 +20,19 @@ type tx struct {
 	tx *sql.Tx
 }
 
-func (t *tx) Insert(structPtr interface{}) (sql.Result, error) {
-	return t.s.Insert(structPtr)
+func (t *tx) Insert(modelPtr Model) (sql.Result, error) {
+	return t.s.Insert(modelPtr)
 }
 
-func (t *tx) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return t.s.InsertContext(ctx, structPtr)
+func (t *tx) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
+	return t.s.InsertContext(ctx, modelPtr)
 }
 
 func (t *tx) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return t.s.Update(table, set, where)
 }
 
-func (t *tx) UpdateModel(ptr interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return t.s.UpdateModel(ptr, where)
 }
 
@@ -40,7 +40,7 @@ func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]int
 	return t.s.UpdateContext(ctx, table, set, where)
 }
 
-func (t *tx) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return t.s.UpdateModelContext(ctx, ptr, where)
 }
 

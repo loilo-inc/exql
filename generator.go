@@ -149,25 +149,18 @@ type {{.Model}} struct {
 {{.Fields}}
 }
 
-func ({{.M}} *{{.Model}}) TableName() string {
-	return "{{.TableName}}"
+func ({{.M}} {{.Model}}) TableName() string {
+	return {{.Model}}TableName
 }
 
 type Update{{.Model}} struct {
 {{.UpdaterFields}}
 }
 
-func ({{.M}} *Update{{.Model}}) ForTableName() string {
-	return "{{.TableName}}"
+func ({{.M}} Update{{.Model}}) UpdateTableName() string {
+	return {{.Model}}TableName
 }
 
-type {{.ModelLower}}Table struct {
-}
-
-var {{.Model}}Table = &{{.ModelLower}}Table{}
-
-func ({{.M}} *{{.ModelLower}}Table) Name() string {
-	return "{{.TableName}}"
-}
+const {{.Model}}TableName = "{{.TableName}}"
 
 `

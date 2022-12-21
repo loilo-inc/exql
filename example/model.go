@@ -14,3 +14,7 @@ type User struct {
 	// Nullable field
 	Bio null.String `exql:"column:bio"`
 }
+
+func (User) TableName() string {
+	return "users"
+}

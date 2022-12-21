@@ -90,19 +90,19 @@ func NewDB(d *sql.DB) DB {
 	}
 }
 
-func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
-	return d.s.Insert(structPtr)
+func (d *db) Insert(modelPtr Model) (sql.Result, error) {
+	return d.s.Insert(modelPtr)
 }
 
-func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return d.s.InsertContext(ctx, structPtr)
+func (d *db) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
+	return d.s.InsertContext(ctx, modelPtr)
 }
 
 func (d *db) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return d.s.Update(table, set, where)
 }
 
-func (d *db) UpdateModel(ptr interface{}, where q.Condition) (sql.Result, error) {
+func (d *db) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return d.s.UpdateModel(ptr, where)
 }
 
@@ -110,7 +110,7 @@ func (d *db) UpdateContext(ctx context.Context, table string, set map[string]int
 	return d.s.UpdateContext(ctx, table, set, where)
 }
 
-func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where q.Condition) (sql.Result, error) {
+func (d *db) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return d.s.UpdateModelContext(ctx, ptr, where)
 }
 
