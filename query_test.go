@@ -10,6 +10,40 @@ import (
 	"github.com/volatiletech/null"
 )
 
+func TestQueryWhere(t *testing.T) {
+	t.Run("Where", func(t *testing.T) {
+		v, args, err := exql.Where("q = ?", 1).Condition()
+		assert.NoError(t, err)
+		assert.Equal(t, "q = ?", v)
+		assert.ElementsMatch(t, []any{1}, args)
+	})
+	t.Run("WhereEx", func(t *testing.T) {
+		v, args, err := exql.WhereEx(map[string]any{
+			"id": 1,
+		}).Condition()
+		assert.NoError(t, err)
+		assert.Equal(t, "(`id` = ?)", v)
+		assert.ElementsMatch(t, []any{1}, args)
+	})
+	t.Run("WhereAnd", func(t *testing.T) {
+		v, args, err := exql.WhereAnd(
+			exql.Where("q = ?", 1),
+			exql.Where("p = ?", 2),
+		).Condition()
+		assert.NoError(t, err)
+		assert.Equal(t, "(q = ? AND p = ?)", v)
+		assert.ElementsMatch(t, []any{1, 2}, args)
+	})
+	t.Run("WhereOr", func(t *testing.T) {
+		v, args, err := exql.WhereOr(
+			exql.Where("q = ?", 1),
+			exql.Where("p = ?", 2),
+		).Condition()
+		assert.NoError(t, err)
+		assert.Equal(t, "(q = ? OR p = ?)", v)
+		assert.ElementsMatch(t, []any{1, 2}, args)
+	})
+}
 func TestQueryForInsert(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		user := model.Users{
