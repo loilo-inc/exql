@@ -4,9 +4,9 @@ package model
 import "time"
 
 type UserLoginHistories struct {
-		Id int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-		UserId int64 `exql:"column:user_id;type:int(11);not null" json:"user_id"`
-		CreatedAt time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
+	Id        int64     `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	UserId    int64     `exql:"column:user_id;type:int(11);not null" json:"user_id"`
+	CreatedAt time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
 }
 
 func (u UserLoginHistories) TableName() string {
@@ -14,9 +14,9 @@ func (u UserLoginHistories) TableName() string {
 }
 
 type UpdateUserLoginHistories struct {
-		Id *int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-		UserId *int64 `exql:"column:user_id;type:int(11);not null" json:"user_id"`
-		CreatedAt *time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
+	Id        *int64     `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	UserId    *int64     `exql:"column:user_id;type:int(11);not null" json:"user_id"`
+	CreatedAt *time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
 }
 
 func (u UpdateUserLoginHistories) UpdateTableName() string {
@@ -24,4 +24,3 @@ func (u UpdateUserLoginHistories) UpdateTableName() string {
 }
 
 const UserLoginHistoriesTableName = "user_login_histories"
-

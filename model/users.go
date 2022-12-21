@@ -4,9 +4,9 @@ package model
 import "github.com/volatiletech/null"
 
 type Users struct {
-		Id int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-		FirstName null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
-		LastName null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
+	Id        int64       `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	FirstName null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
+	LastName  null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
 func (u Users) TableName() string {
@@ -14,9 +14,9 @@ func (u Users) TableName() string {
 }
 
 type UpdateUsers struct {
-		Id *int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-		FirstName *null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
-		LastName *null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
+	Id        *int64       `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	FirstName *null.String `exql:"column:first_name;type:varchar(255)" json:"first_name"`
+	LastName  *null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
 func (u UpdateUsers) UpdateTableName() string {
@@ -24,4 +24,3 @@ func (u UpdateUsers) UpdateTableName() string {
 }
 
 const UsersTableName = "users"
-
