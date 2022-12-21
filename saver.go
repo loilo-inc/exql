@@ -30,8 +30,6 @@ type saver struct {
 	ex Executor
 }
 
-type SET map[string]any
-
 func NewSaver(ex Executor) Saver {
 	return &saver{ex: ex}
 }

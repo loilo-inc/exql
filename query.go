@@ -7,12 +7,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type Clause = q.Condition
-
-func Where(stmt string, args ...any) q.Condition {
-	return q.Where(stmt, args...)
-}
-
 func QueryForInsert(modelPtr any) (q.Query, *reflect.Value, error) {
 	if modelPtr == nil {
 		return nil, nil, xerrors.Errorf("pointer is nil")
