@@ -17,13 +17,13 @@ Safe, Strict and Clear ORM for Go
 {{.GenerateModels}}
 ```
 
-### Insert 
+### Insert
 
 ```go
 {{.Insert}}
 ```
 
-### Update 
+### Update
 
 ```go
 {{.Update}}
@@ -52,4 +52,9 @@ Safe, Strict and Clear ORM for Go
 ```go
 {{.Tx}}
 ```
- 
+
+### Building Query
+
+```go
+{{.BuildingQuery}}
+```
