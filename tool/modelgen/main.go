@@ -2,7 +2,7 @@ package main
 
 import (
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 )
 
 func main() {

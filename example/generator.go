@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/loilo-inc/exql"
 	"log"
+
+	"github.com/loilo-inc/exql/v2"
 )
 
 func GenerateModels() {

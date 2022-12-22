@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	"github.com/loilo-inc/exql"
-	"github.com/loilo-inc/exql/model"
-	"github.com/volatiletech/null"
 	"time"
+
+	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
+	"github.com/volatiletech/null"
 )
 
 func Transaction() {

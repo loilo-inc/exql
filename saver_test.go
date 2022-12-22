@@ -8,11 +8,11 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
-	"github.com/loilo-inc/exql"
-	"github.com/loilo-inc/exql/mocks/mock_exql"
-	"github.com/loilo-inc/exql/mocks/mock_query"
-	"github.com/loilo-inc/exql/model"
-	q "github.com/loilo-inc/exql/query"
+	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/mocks/mock_exql"
+	"github.com/loilo-inc/exql/v2/mocks/mock_query"
+	"github.com/loilo-inc/exql/v2/model"
+	q "github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )

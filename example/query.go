@@ -1,6 +1,6 @@
 package main
 
-import q "github.com/loilo-inc/exql/query"
+import q "github.com/loilo-inc/exql/v2/query"
 
 func UseQuery() {
 	selectQuery := q.Select{

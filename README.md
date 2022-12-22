@@ -11,9 +11,10 @@ Safe, Strict and Clear ORM for Go
 package main
 
 import (
-	"github.com/apex/log"
-	"github.com/loilo-inc/exql"
 	"time"
+
+	"github.com/apex/log"
+	"github.com/loilo-inc/exql/v2"
 )
 
 func OpenDB() exql.DB {
@@ -39,8 +40,9 @@ func OpenDB() exql.DB {
 package main
 
 import (
-	"github.com/loilo-inc/exql"
 	"log"
+
+	"github.com/loilo-inc/exql/v2"
 )
 
 func GenerateModels() {
@@ -98,7 +100,7 @@ package main
 
 import (
 	"github.com/apex/log"
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 )
 
 func Update() {
@@ -172,7 +174,7 @@ package main
 
 import (
 	"github.com/apex/log"
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 )
 
 type School struct {
@@ -236,7 +238,7 @@ package main
 
 import (
 	"github.com/apex/log"
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 )
 
 func MapSerialOuterJoin() {
@@ -281,10 +283,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	"github.com/loilo-inc/exql"
-	"github.com/loilo-inc/exql/model"
-	"github.com/volatiletech/null"
 	"time"
+
+	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
+	"github.com/volatiletech/null"
 )
 
 func Transaction() {
@@ -314,7 +317,7 @@ func Transaction() {
 ```go
 package main
 
-import q "github.com/loilo-inc/exql/query"
+import q "github.com/loilo-inc/exql/v2/query"
 
 func UseQuery() {
 	selectQuery := q.Select{
