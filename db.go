@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	q "github.com/loilo-inc/exql/query"
 )
 
 type DB interface {
@@ -89,40 +90,60 @@ func NewDB(d *sql.DB) DB {
 	}
 }
 
-func (d *db) Insert(structPtr interface{}) (sql.Result, error) {
-	return d.s.Insert(structPtr)
+func (d *db) Insert(modelPtr Model) (sql.Result, error) {
+	return d.s.Insert(modelPtr)
 }
 
-func (d *db) InsertContext(ctx context.Context, structPtr interface{}) (sql.Result, error) {
-	return d.s.InsertContext(ctx, structPtr)
+func (d *db) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
+	return d.s.InsertContext(ctx, modelPtr)
 }
 
-func (d *db) QueryForInsert(structPtr interface{}) (*SaveQuery, error) {
-	return d.s.QueryForInsert(structPtr)
-}
-
-func (d *db) Update(table string, set map[string]interface{}, where Clause) (sql.Result, error) {
+func (d *db) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return d.s.Update(table, set, where)
 }
 
-func (d *db) UpdateModel(ptr interface{}, where Clause) (sql.Result, error) {
+func (d *db) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return d.s.UpdateModel(ptr, where)
 }
 
-func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where Clause) (sql.Result, error) {
+func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
 	return d.s.UpdateContext(ctx, table, set, where)
 }
 
-func (d *db) UpdateModelContext(ctx context.Context, ptr interface{}, where Clause) (sql.Result, error) {
+func (d *db) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
 	return d.s.UpdateModelContext(ctx, ptr, where)
 }
 
-func (d *db) QueryForUpdate(table string, set map[string]interface{}, where Clause) (*SaveQuery, error) {
-	return d.s.QueryForUpdate(table, set, where)
+func (d *db) Delete(table string, where q.Condition) (sql.Result, error) {
+	return d.s.Delete(table, where)
 }
 
-func (d *db) QueryForUpdateModel(ptr interface{}, where Clause) (*SaveQuery, error) {
-	return d.s.QueryForUpdateModel(ptr, where)
+func (d *db) DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error) {
+	return d.s.DeleteContext(ctx, table, where)
+}
+
+func (d *db) Exec(query q.Query) (sql.Result, error) {
+	return d.s.Exec(query)
+}
+
+func (d *db) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
+	return d.s.ExecContext(ctx, query)
+}
+
+func (d *db) Query(query q.Query) (*sql.Rows, error) {
+	return d.s.Query(query)
+}
+
+func (d *db) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
+	return d.s.QueryContext(ctx, query)
+}
+
+func (d *db) QueryRow(query q.Query) (*sql.Row, error) {
+	return d.s.QueryRow(query)
+}
+
+func (d *db) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
+	return d.s.QueryRowContext(ctx, query)
 }
 
 func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
@@ -155,5 +176,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(d.db, ctx, opts, callback)
+	return Transaction(d.db, ctx, opts, callback)
 }

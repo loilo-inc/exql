@@ -1,19 +1,21 @@
-package exql
+package exql_test
 
 import (
 	"context"
 	"fmt"
+	"testing"
+
+	"github.com/loilo-inc/exql"
 	"github.com/loilo-inc/exql/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
-	"testing"
 )
 
 func TestTx_Transaction(t *testing.T) {
 	db := testDb()
 	t.Run("basic", func(t *testing.T) {
 		var user *model.Users
-		err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
 			user = &model.Users{
 				FirstName: null.StringFrom("go"),
 				LastName:  null.StringFrom("land"),
@@ -34,7 +36,7 @@ func TestTx_Transaction(t *testing.T) {
 	})
 	t.Run("rollback", func(t *testing.T) {
 		var user *model.Users
-		err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
 			user = &model.Users{
 				FirstName: null.StringFrom("go"),
 				LastName:  null.StringFrom("land"),
@@ -51,11 +53,11 @@ func TestTx_Transaction(t *testing.T) {
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.Nil(t, err)
 		err = db.Map(rows, &dest)
-		assert.Error(t, err, ErrRecordNotFound.Error())
+		assert.Error(t, err, exql.ErrRecordNotFound.Error())
 	})
 	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
 		var user *model.Users
-		err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
 			user = &model.Users{
 				FirstName: null.String{},
 				LastName:  null.String{},
@@ -68,7 +70,7 @@ func TestTx_Transaction(t *testing.T) {
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.Nil(t, err)
 		var dest model.Users
-		assert.Equal(t, db.Map(rows, &dest), ErrRecordNotFound)
+		assert.Equal(t, db.Map(rows, &dest), exql.ErrRecordNotFound)
 	})
 }
 func TestTx_Map(t *testing.T) {
@@ -81,7 +83,7 @@ func TestTx_Map(t *testing.T) {
 		db.DB().Exec(`delete from users where id = ?`, user.Id)
 	}()
 	var dest model.Users
-	err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+	err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
 		if _, err := tx.Insert(user); err != nil {
 			return err
 		}
@@ -108,7 +110,7 @@ func TestTx_MapMany(t *testing.T) {
 	defer func() {
 		db.DB().Exec(`delete from users where id = ?`, user.Id)
 	}()
-	err := transaction(db.DB(), context.Background(), nil, func(tx Tx) error {
+	err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
 		if _, err := tx.Insert(user); err != nil {
 			return err
 		}

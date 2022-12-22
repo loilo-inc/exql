@@ -7,7 +7,7 @@ import (
 
 func main() {
 	db, _ := exql.Open(&exql.OpenOptions{
-		Url: "root:@tcp(127.0.0.1:3326)/exql?charset=utf8mb4&parseTime=True&loc=Local",
+		Url: "root:@tcp(127.0.0.1:13326)/exql?charset=utf8mb4&parseTime=True&loc=Local",
 	})
 	g := exql.NewGenerator(db.DB())
 	g.Generate(&exql.GenerateOptions{

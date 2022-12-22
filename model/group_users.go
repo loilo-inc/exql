@@ -7,8 +7,8 @@ type GroupUsers struct {
 	GroupId int64 `exql:"column:group_id;type:int(11);not null" json:"group_id"`
 }
 
-func (g *GroupUsers) TableName() string {
-	return "group_users"
+func (g GroupUsers) TableName() string {
+	return GroupUsersTableName
 }
 
 type UpdateGroupUsers struct {
@@ -17,15 +17,8 @@ type UpdateGroupUsers struct {
 	GroupId *int64 `exql:"column:group_id;type:int(11);not null" json:"group_id"`
 }
 
-func (g *UpdateGroupUsers) ForTableName() string {
-	return "group_users"
+func (g UpdateGroupUsers) UpdateTableName() string {
+	return GroupUsersTableName
 }
 
-type groupUsersTable struct {
-}
-
-var GroupUsersTable = &groupUsersTable{}
-
-func (g *groupUsersTable) Name() string {
-	return "group_users"
-}
+const GroupUsersTableName = "group_users"

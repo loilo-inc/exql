@@ -1,8 +1,10 @@
 package exql
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,10 +109,10 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 	scannedFields := strings.Builder{}
 	for i, col := range table.Columns {
 		scannedFields.WriteString(fmt.Sprintf(
-			"\t\t&%s.%s,", table.TableName[0:1], col.Field()),
+			"\t&%s.%s,", table.TableName[0:1], col.Field()),
 		)
-		fields.WriteString(fmt.Sprintf("\t\t%s", col.Field()))
-		updateFields.WriteString(fmt.Sprintf("\t\t%s", col.UpdateField()))
+		fields.WriteString(fmt.Sprintf("\t%s", col.Field()))
+		updateFields.WriteString(fmt.Sprintf("\t%s", col.UpdateField()))
 		if i < len(table.Columns)-1 {
 			scannedFields.WriteString("\n")
 			fields.WriteString("\n")
@@ -128,13 +130,17 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		TableName:     tableName,
 		ScannedFields: scannedFields.String(),
 	}
-	fileName := fmt.Sprintf("%s.go", strcase.ToSnake(table.TableName))
-	outFile, err := os.Create(filepath.Join(opt.OutDir, fileName))
-	if err != nil {
+	outFile := filepath.Join(
+		opt.OutDir,
+		fmt.Sprintf("%s.go", strcase.ToSnake(table.TableName)),
+	)
+	var buf = &bytes.Buffer{}
+	if err := tmpl.Execute(buf, data); err != nil {
 		return err
 	}
-	defer outFile.Close()
-	if err := tmpl.Execute(outFile, data); err != nil {
+	if fmted, err := format.Source(buf.Bytes()); err != nil {
+		return err
+	} else if err := os.WriteFile(outFile, fmted, os.ModePerm); err != nil {
 		return err
 	}
 	return nil
@@ -149,25 +155,17 @@ type {{.Model}} struct {
 {{.Fields}}
 }
 
-func ({{.M}} *{{.Model}}) TableName() string {
-	return "{{.TableName}}"
+func ({{.M}} {{.Model}}) TableName() string {
+	return {{.Model}}TableName
 }
 
 type Update{{.Model}} struct {
 {{.UpdaterFields}}
 }
 
-func ({{.M}} *Update{{.Model}}) ForTableName() string {
-	return "{{.TableName}}"
+func ({{.M}} Update{{.Model}}) UpdateTableName() string {
+	return {{.Model}}TableName
 }
 
-type {{.ModelLower}}Table struct {
-}
-
-var {{.Model}}Table = &{{.ModelLower}}Table{}
-
-func ({{.M}} *{{.ModelLower}}Table) Name() string {
-	return "{{.TableName}}"
-}
-
+const {{.Model}}TableName = "{{.TableName}}"
 `

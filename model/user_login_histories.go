@@ -9,8 +9,8 @@ type UserLoginHistories struct {
 	CreatedAt time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
 }
 
-func (u *UserLoginHistories) TableName() string {
-	return "user_login_histories"
+func (u UserLoginHistories) TableName() string {
+	return UserLoginHistoriesTableName
 }
 
 type UpdateUserLoginHistories struct {
@@ -19,15 +19,8 @@ type UpdateUserLoginHistories struct {
 	CreatedAt *time.Time `exql:"column:created_at;type:datetime;primary;not null" json:"created_at"`
 }
 
-func (u *UpdateUserLoginHistories) ForTableName() string {
-	return "user_login_histories"
+func (u UpdateUserLoginHistories) UpdateTableName() string {
+	return UserLoginHistoriesTableName
 }
 
-type userLoginHistoriesTable struct {
-}
-
-var UserLoginHistoriesTable = &userLoginHistoriesTable{}
-
-func (u *userLoginHistoriesTable) Name() string {
-	return "user_login_histories"
-}
+const UserLoginHistoriesTableName = "user_login_histories"

@@ -9,8 +9,8 @@ type Users struct {
 	LastName  null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
-func (u *Users) TableName() string {
-	return "users"
+func (u Users) TableName() string {
+	return UsersTableName
 }
 
 type UpdateUsers struct {
@@ -19,15 +19,8 @@ type UpdateUsers struct {
 	LastName  *null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
-func (u *UpdateUsers) ForTableName() string {
-	return "users"
+func (u UpdateUsers) UpdateTableName() string {
+	return UsersTableName
 }
 
-type usersTable struct {
-}
-
-var UsersTable = &usersTable{}
-
-func (u *usersTable) Name() string {
-	return "users"
-}
+const UsersTableName = "users"

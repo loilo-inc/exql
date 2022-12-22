@@ -62,7 +62,7 @@ func GenerateModels() {
 
 ```
 
-### Insert 
+### Insert
 
 ```go
 package main
@@ -91,7 +91,7 @@ func main() {
 
 ```
 
-### Update 
+### Update
 
 ```go
 package main
@@ -102,10 +102,20 @@ import (
 )
 
 func Update() {
-	// UPDATE `users` SET `name` = `GoGo` WHERE `id` = 1
-	_, err := db.Update("users", exql.SET{
+	// UPDATE `users` SET `name` = `GoGo` WHERE `id` = ?
+	// [1]
+	_, err := db.Update("users", map[string]any{
 		"name": "GoGo",
 	}, exql.Where("id = ?", 1))
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+}
+
+func Delete() {
+	// DELETE FROM `users` WHERE id = ?
+	// [1]
+	_, err := db.Delete("users", exql.Where("id = ?", 1))
 	if err != nil {
 		log.Errorf(err.Error())
 	}
@@ -176,8 +186,8 @@ type SchoolUsers struct {
 }
 
 /*
-	school has many users
-	users has many schools
+school has many users
+users has many schools
 */
 func MapSerial() {
 	query := `
@@ -298,4 +308,61 @@ func Transaction() {
 }
 
 ```
- 
+
+### Building Query
+
+```go
+package main
+
+import q "github.com/loilo-inc/exql/query"
+
+func UseQuery() {
+	selectQuery := q.Select{
+		From:  "users",
+		Where: q.NewCondition("id = ?", 1),
+	}
+	selectStmt, selectArgs, _ := selectQuery.Query()
+	db.DB().Query(
+		selectStmt,    // SELECT * FROM `users` WHERE id = ?
+		selectArgs..., // [1]
+
+	)
+	insertQuery := q.Insert{
+		Into: "users",
+		Values: map[string]any{
+			"age":  10,
+			"name": "go",
+		},
+	}
+	insertStmt, insertArgs, _ := insertQuery.Query()
+	db.DB().Exec(
+		insertStmt,    // INSERT INTO `users` (`age`,`name`) VALUES (?,?)
+		insertArgs..., // [10, "go"]
+	)
+
+	updateQuery := q.Update{
+		Table: "users",
+		Set: map[string]any{
+			"age":  20,
+			"name": "go",
+		},
+		Where: q.NewCondition("id = ?", 1),
+	}
+	updateStmt, updateArgs, _ := updateQuery.Query()
+	db.DB().Exec(
+		updateStmt,    // UPDATE `users` SET `age` = ?,`name` = ? WHERE id = ?
+		updateArgs..., // [20,"go",1]
+	)
+
+	deleteQuery := q.Delete{
+		From:  "users",
+		Where: q.NewCondition("id = ?", 1),
+	}
+	deleteStmt, deleteArgs, _ := deleteQuery.Query()
+	db.DB().Exec(
+		deleteStmt,    // DELETE FROM `users` WHERE id = ?
+		deleteArgs..., // [1]
+	)
+}
+
+```
