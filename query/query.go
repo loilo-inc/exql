@@ -92,9 +92,9 @@ type Select struct {
 	Columns   []string
 	From      string
 	Where     Condition
+	OrderBy   string
 	Limit     int
 	Offset    int
-	OrderBy   string
 	ForUpdate bool
 }
 
@@ -137,9 +137,9 @@ type Update struct {
 	Table   string
 	Set     map[string]any
 	Where   Condition
+	OrderBy string
 	Limit   int
 	Offset  int
-	OrderBy string
 }
 
 func (q Update) Validate() error {
@@ -183,9 +183,9 @@ func (q Update) Query() (string, []any, error) {
 type Delete struct {
 	From    string
 	Where   Condition
+	OrderBy string
 	Limit   int
 	Offset  int
-	OrderBy string
 }
 
 func (d Delete) Validate() error {
