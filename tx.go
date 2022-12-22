@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	q "github.com/loilo-inc/exql/query"
+	q "github.com/loilo-inc/exql/v2/query"
 	"golang.org/x/xerrors"
 )
 

@@ -10,7 +10,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	query "github.com/loilo-inc/exql/query"
+	exql "github.com/loilo-inc/exql/v2"
+	query "github.com/loilo-inc/exql/v2/query"
 )
 
 // MockSaver is a mock of Saver interface.
@@ -97,7 +98,7 @@ func (mr *MockSaverMockRecorder) ExecContext(ctx, query interface{}) *gomock.Cal
 }
 
 // Insert mocks base method.
-func (m *MockSaver) Insert(structPtr any) (sql.Result, error) {
+func (m *MockSaver) Insert(structPtr exql.Model) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Insert", structPtr)
 	ret0, _ := ret[0].(sql.Result)
@@ -112,7 +113,7 @@ func (mr *MockSaverMockRecorder) Insert(structPtr interface{}) *gomock.Call {
 }
 
 // InsertContext mocks base method.
-func (m *MockSaver) InsertContext(ctx context.Context, structPtr any) (sql.Result, error) {
+func (m *MockSaver) InsertContext(ctx context.Context, structPtr exql.Model) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InsertContext", ctx, structPtr)
 	ret0, _ := ret[0].(sql.Result)
@@ -217,7 +218,7 @@ func (mr *MockSaverMockRecorder) UpdateContext(ctx, table, set, where interface{
 }
 
 // UpdateModel mocks base method.
-func (m *MockSaver) UpdateModel(updaterStructPtr any, where query.Condition) (sql.Result, error) {
+func (m *MockSaver) UpdateModel(updaterStructPtr exql.ModelUpdate, where query.Condition) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModel", updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -232,7 +233,7 @@ func (mr *MockSaverMockRecorder) UpdateModel(updaterStructPtr, where interface{}
 }
 
 // UpdateModelContext mocks base method.
-func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr any, where query.Condition) (sql.Result, error) {
+func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr exql.ModelUpdate, where query.Condition) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModelContext", ctx, updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)

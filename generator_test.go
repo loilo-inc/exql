@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql"
+	"github.com/loilo-inc/exql/v2"
 
 	"github.com/apex/log"
 	"github.com/stretchr/testify/assert"

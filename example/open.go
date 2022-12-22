@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/apex/log"
-	"github.com/loilo-inc/exql"
 	"time"
+
+	"github.com/apex/log"
+	"github.com/loilo-inc/exql/v2"
 )
 
 func OpenDB() exql.DB {

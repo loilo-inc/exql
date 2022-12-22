@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"reflect"
 
-	q "github.com/loilo-inc/exql/query"
+	q "github.com/loilo-inc/exql/v2/query"
 )
 
 type Saver interface {

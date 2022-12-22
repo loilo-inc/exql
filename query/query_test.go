@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/loilo-inc/exql/query"
+	. "github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 )
 

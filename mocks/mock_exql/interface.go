@@ -152,3 +152,77 @@ func (mr *MockExecutorMockRecorder) QueryRowContext(ctx, query interface{}, args
 	varargs := append([]interface{}{ctx, query}, args...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRowContext", reflect.TypeOf((*MockExecutor)(nil).QueryRowContext), varargs...)
 }
+
+// MockModel is a mock of Model interface.
+type MockModel struct {
+	ctrl     *gomock.Controller
+	recorder *MockModelMockRecorder
+}
+
+// MockModelMockRecorder is the mock recorder for MockModel.
+type MockModelMockRecorder struct {
+	mock *MockModel
+}
+
+// NewMockModel creates a new mock instance.
+func NewMockModel(ctrl *gomock.Controller) *MockModel {
+	mock := &MockModel{ctrl: ctrl}
+	mock.recorder = &MockModelMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockModel) EXPECT() *MockModelMockRecorder {
+	return m.recorder
+}
+
+// TableName mocks base method.
+func (m *MockModel) TableName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TableName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// TableName indicates an expected call of TableName.
+func (mr *MockModelMockRecorder) TableName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TableName", reflect.TypeOf((*MockModel)(nil).TableName))
+}
+
+// MockModelUpdate is a mock of ModelUpdate interface.
+type MockModelUpdate struct {
+	ctrl     *gomock.Controller
+	recorder *MockModelUpdateMockRecorder
+}
+
+// MockModelUpdateMockRecorder is the mock recorder for MockModelUpdate.
+type MockModelUpdateMockRecorder struct {
+	mock *MockModelUpdate
+}
+
+// NewMockModelUpdate creates a new mock instance.
+func NewMockModelUpdate(ctrl *gomock.Controller) *MockModelUpdate {
+	mock := &MockModelUpdate{ctrl: ctrl}
+	mock.recorder = &MockModelUpdateMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockModelUpdate) EXPECT() *MockModelUpdateMockRecorder {
+	return m.recorder
+}
+
+// UpdateTableName mocks base method.
+func (m *MockModelUpdate) UpdateTableName() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTableName")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// UpdateTableName indicates an expected call of UpdateTableName.
+func (mr *MockModelUpdateMockRecorder) UpdateTableName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTableName", reflect.TypeOf((*MockModelUpdate)(nil).UpdateTableName))
+}
