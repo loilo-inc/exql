@@ -59,6 +59,42 @@ func TestQueryForInsert(t *testing.T) {
 		assert.Equal(t, exp, stmt)
 		assert.ElementsMatch(t, args, []any{user.FirstName, user.LastName})
 	})
+}
+
+func TestQueryForBulkInsert(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		q, err := exql.QueryForBulkInsert(
+			&model.Users{FirstName: null.StringFrom("user"), LastName: null.StringFrom("one")},
+			&model.Users{FirstName: null.StringFrom("user"), LastName: null.StringFrom("two")},
+		)
+		assert.NoError(t, err)
+		stmt, args, err := q.Query()
+		assert.NoError(t, err)
+		assert.Equal(t, "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?),(?,?)", stmt)
+		assert.ElementsMatch(t, []any{
+			null.StringFrom("user"), null.StringFrom("one"),
+			null.StringFrom("user"), null.StringFrom("two"),
+		}, args)
+	})
+	t.Run("error if args empty", func(t *testing.T) {
+		q, err := exql.QueryForBulkInsert[model.Users]()
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "empty list")
+	})
+}
+
+func TestAggregateModelMetadata(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		m, err := exql.AggregateModelMetadata(&model.Users{
+			FirstName: null.StringFrom("first"),
+			LastName:  null.StringFrom("name"),
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "users", m.TableName)
+		assert.NotNil(t, m.AutoIncrementField)
+		assert.ElementsMatch(t, []string{"first_name", "last_name"}, m.Values.Keys())
+		assert.ElementsMatch(t, []any{null.StringFrom("first"), null.StringFrom("name")}, m.Values.Values())
+	})
 	assertInvalid := func(t *testing.T, m exql.Model, e string) {
 		s, f, err := exql.QueryForInsert(m)
 		assert.Nil(t, s)
@@ -89,6 +125,7 @@ func TestQueryForInsert(t *testing.T) {
 		assertInvalid(t, &sam, "table has no primary key")
 	})
 }
+
 func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{}
