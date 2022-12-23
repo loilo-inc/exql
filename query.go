@@ -23,14 +23,54 @@ func WhereOr(list ...q.Condition) q.Condition {
 	return q.ConditionOr(list...)
 }
 
+type ModelMetadata struct {
+	TableName          string
+	AutoIncrementField *reflect.Value
+	Values             q.KeyIterator
+}
+
 func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
+	m, err := AggregateModelMetadata(modelPtr)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &q.Insert{
+		Into:   m.TableName,
+		Values: m.Values.Map(),
+	}, m.AutoIncrementField, nil
+}
+
+func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
+	if len(modelPtrs) == 0 {
+		return nil, xerrors.New("empty list")
+	}
+	var values [][]any
+	var head *ModelMetadata
+	for _, v := range modelPtrs {
+		if data, err := AggregateModelMetadata(v); err != nil {
+			return nil, err
+		} else {
+			if head == nil {
+				head = data
+			}
+			values = append(values, data.Values.Values())
+		}
+	}
+	return &q.InsertMany{
+		Into:    head.TableName,
+		Columns: head.Values.Keys(),
+		Values:  values,
+	}, nil
+}
+
+func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 	if modelPtr == nil {
-		return nil, nil, xerrors.Errorf("pointer is nil")
+		return nil, xerrors.Errorf("pointer is nil")
 	}
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
-		return nil, nil, xerrors.Errorf("object must be pointer of struct")
+		return nil, xerrors.Errorf("object must be pointer of struct")
 	}
 	data := map[string]any{}
 	// *User -> User
@@ -43,11 +83,11 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 		if t, ok := f.Tag.Lookup("exql"); ok {
 			tags, err := ParseTags(t)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			colName, ok := tags["column"]
 			if !ok || colName == "" {
-				return nil, nil, xerrors.Errorf("column tag is not set")
+				return nil, xerrors.Errorf("column tag is not set")
 			}
 			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
@@ -64,23 +104,22 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 		}
 	}
 	if exqlTagCount == 0 {
-		return nil, nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
+		return nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
 	}
 
 	if len(primaryKeyFields) == 0 {
-		return nil, nil, xerrors.Errorf("table has no primary key")
+		return nil, xerrors.Errorf("table has no primary key")
 	}
 
 	tableName := modelPtr.TableName()
 	if tableName == "" {
-		return nil, nil, xerrors.Errorf("empty table name")
+		return nil, xerrors.Errorf("empty table name")
 	}
-	return &q.Insert{
-			Into:   tableName,
-			Values: data,
-		},
-		autoIncrementField,
-		nil
+	return &ModelMetadata{
+		TableName:          tableName,
+		AutoIncrementField: autoIncrementField,
+		Values:             q.NewKeyIterator(data),
+	}, nil
 }
 
 func QueryForUpdateModel(

@@ -18,6 +18,7 @@ type KeyIterator interface {
 	Keys() []string
 	Values() []any
 	Size() int
+	Map() map[string]any
 }
 
 func NewKeyIterator(data map[string]any) KeyIterator {
@@ -51,6 +52,14 @@ func (k *keyIterator) Keys() []string {
 
 func (k *keyIterator) Values() []any {
 	return k.values
+}
+
+func (k *keyIterator) Map() map[string]any {
+	res := map[string]any{}
+	for i := 0; i < k.Size(); i++ {
+		res[k.keys[i]] = k.values[i]
+	}
+	return res
 }
 
 func Placeholders(repeat int) string {

@@ -8,11 +8,12 @@ import (
 )
 
 func TestKeyIteretor(t *testing.T) {
-	it := NewKeyIterator(map[string]any{
+	src := map[string]any{
 		"a": 1,
 		"b": 2,
 		"c": 3,
-	})
+	}
+	it := NewKeyIterator(src)
 	assert.Equal(t, it.Size(), 3)
 	assert.ElementsMatch(t, it.Keys(), []string{"a", "b", "c"})
 	assert.ElementsMatch(t, it.Values(), []any{1, 2, 3})
@@ -21,6 +22,7 @@ func TestKeyIteretor(t *testing.T) {
 		assert.Equal(t, it.Keys()[i], k)
 		assert.Equal(t, it.Values()[i], v)
 	}
+	assert.InDeltaMapValues(t, it.Map(), src, 0)
 }
 
 func TestSqlPraceholder(t *testing.T) {
