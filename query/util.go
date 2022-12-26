@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 type keyIterator struct {
@@ -70,30 +68,10 @@ func Placeholders(repeat int) string {
 	return strings.Join(res, ",")
 }
 
-var errInvalidContacOp = xerrors.New("invalid concat operator")
-
-const (
-	kAnd = "AND"
-	kOr  = "OR"
-)
-
-func assertContatOp(op string) error {
-	if op != kAnd && op != kOr {
-		return errInvalidContacOp
+func backQuoteAndJoin(str ...string) string {
+	var result []string
+	for _, v := range str {
+		result = append(result, fmt.Sprintf("`%s`", v))
 	}
-	return nil
-}
-
-func assertEmptyQuery(q string) error {
-	if emptyPat.MatchString(q) {
-		return errEmptyPred
-	}
-	return nil
-}
-
-func concatQueries(op string, qs []string) (string, error) {
-	if err := assertContatOp(op); err != nil {
-		return "", errInvalidContacOp
-	}
-	return fmt.Sprintf("(%s)", strings.Join(qs, fmt.Sprintf(" %s ", op))), nil
+	return strings.Join(result, ",")
 }

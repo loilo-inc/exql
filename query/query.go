@@ -3,8 +3,6 @@ package query
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 
 	"golang.org/x/xerrors"
 )
@@ -17,224 +15,105 @@ type Query interface {
 	Query() (string, []any, error)
 }
 
-type Insert struct {
-	Into   string
-	Values map[string]any
+type query struct {
+	query string
+	args  []any
+	err   error
 }
 
-func backQuoteAndJoin(str ...string) string {
-	var result []string
-	for _, v := range str {
-		result = append(result, fmt.Sprintf("`%s`", v))
+func (q *query) Query() (string, []any, error) {
+	if q.err != nil {
+		return "", nil, q.err
 	}
-	return strings.Join(result, ",")
+	return q.query, q.args, nil
 }
 
-func (i Insert) Validate() error {
-	if i.Into == "" {
-		return errEmptyTable
-	}
-	if len(i.Values) == 0 {
-		return errEmyptValues
-	}
-	return nil
+func NewQuery(q string, args ...any) Query {
+	return &query{query: q, args: args}
 }
 
-func (i Insert) Query() (string, []any, error) {
-	if err := i.Validate(); err != nil {
-		return "", nil, err
-	}
-	it := NewKeyIterator(i.Values)
-	columns := backQuoteAndJoin(it.Keys()...)
-	return fmt.Sprintf(
-		"INSERT INTO `%s` (%s) VALUES (%s)",
-		i.Into, columns, Placeholders(it.Size()),
-	), it.Values(), nil
+type fmtQuery struct {
+	fmt string
+	qs  []Query
 }
 
-type InsertMany struct {
-	Into    string
-	Columns []string
-	Values  [][]any
-}
-
-func (i InsertMany) Validate() error {
-	if i.Into == "" {
-		return errEmptyTable
-	}
-	if len(i.Columns) == 0 || len(i.Values) == 0 {
-		return errEmyptValues
-	}
-	return nil
-}
-
-func (i InsertMany) Query() (string, []any, error) {
-	if err := i.Validate(); err != nil {
-		return "", nil, err
-	}
-	var values []string
-	var args []any
-	for _, v := range i.Values {
-		if len(i.Columns) != len(v) {
-			return "", nil, xerrors.Errorf("number of columns/values mismatch")
+func (f *fmtQuery) Query() (string, []any, error) {
+	var fmtArgs []any
+	var sqlArgs []any
+	for _, v := range f.qs {
+		stmt, args, err := v.Query()
+		if err != nil {
+			return "", nil, err
 		}
-		values = append(values, fmt.Sprintf("(%s)", Placeholders(len(v))))
-		args = append(args, v...)
+		fmtArgs = append(fmtArgs, stmt)
+		sqlArgs = append(sqlArgs, args...)
 	}
-	return fmt.Sprintf("INSERT INTO `%s` (%s) VALUES %s",
-		i.Into,
-		backQuoteAndJoin(i.Columns...),
-		strings.Join(values, ","),
-	), args, nil
+	return fmt.Sprintf(f.fmt, fmtArgs...), sqlArgs, nil
 }
 
-type Select struct {
-	Columns   []string
-	From      string
-	Where     Condition
-	OrderBy   string
-	Limit     int
-	Offset    int
-	ForUpdate bool
+func Where(q string, args ...interface{}) Codition {
+	return &chain{qs: []Query{NewQuery(q, args...)}}
 }
 
-func (s Select) Validate() error {
-	if s.From == "" {
-		return errEmptyTable
-	}
-	if s.Where == nil {
-		return errEmptyWhereClause
-	}
-	return nil
+type Codition interface {
+	Query
+	And(other ...Codition) Codition
+	Or(other ...Codition) Codition
 }
 
-func (s Select) Query() (string, []any, error) {
-	if err := s.Validate(); err != nil {
-		return "", nil, err
-	}
-	stmt, args, err := s.Where.Condition()
-	if err != nil {
-		return "", nil, err
-	}
-	var colmuns string
-	if len(s.Columns) == 0 {
-		colmuns = "*"
-	} else {
-		colmuns = backQuoteAndJoin(s.Columns...)
-	}
-	base := []string{fmt.Sprintf(
-		"SELECT %s FROM `%s` WHERE %s",
-		colmuns, s.From, stmt,
-	)}
-	appendOrderByLimitOffest(s, &base, &args)
-	if s.ForUpdate {
-		base = append(base, "FOR UPDATE")
-	}
-	return strings.Join(base, " "), args, nil
+type chain struct {
+	op string
+	qs []Query
 }
 
-type Update struct {
-	Table   string
-	Set     map[string]any
-	Where   Condition
-	OrderBy string
-	Limit   int
-	Offset  int
+func (c *chain) And(other ...Codition) Codition {
+	return c.join(" AND ", other...)
 }
 
-func (q Update) Validate() error {
-	if q.Table == "" {
-		return errEmptyTable
-	}
-	if len(q.Set) == 0 {
-		return errEmyptValues
-	}
-	if q.Where == nil {
-		return errEmptyWhereClause
-	}
-	return nil
+func (c *chain) Or(other ...Codition) Codition {
+	return c.join(" OR ", other...)
 }
 
-func (q Update) Query() (string, []any, error) {
-	if err := q.Validate(); err != nil {
-		return "", nil, err
+func (c *chain) join(sep string, other ...Codition) Codition {
+	list := []Query{c}
+	list = append(list, c.qs...)
+	return &chain{
+		op: sep,
+		qs: list,
 	}
-	it := NewKeyIterator(q.Set)
-	setExprs := make([]string, it.Size())
-	for i, v := range it.Keys() {
-		setExprs[i] = fmt.Sprintf("`%s` = ?", v)
-	}
-	setStmt := strings.Join(setExprs, ",")
-	whereStmt, whereArgs, err := q.Where.Condition()
-	if err != nil {
-		return "", nil, err
-	}
-	var args []any
-	args = append(args, it.Values()...)
-	args = append(args, whereArgs...)
-	base := []string{fmt.Sprintf(
-		"UPDATE `%s` SET %s WHERE %s",
-		q.Table, setStmt, whereStmt,
-	)}
-	appendOrderByLimitOffest(q, &base, &args)
-	return strings.Join(base, " "), args, nil
 }
 
-type Delete struct {
-	From    string
-	Where   Condition
-	OrderBy string
-	Limit   int
-	Offset  int
+func (c *chain) Query() (string, []any, error) {
+	b := NewBuilder()
+	for _, v := range c.qs {
+		b.Add(v)
+	}
+	return b.Join(c.op).Query()
 }
 
-func (d Delete) Validate() error {
-	if d.From == "" {
-		return errEmptyTable
-	}
-	if d.Where == nil {
-		return errEmptyWhereClause
-	}
-	return nil
+func Q(q string, args ...any) Query {
+	return NewQuery(q, args...)
 }
 
-func (d Delete) Query() (string, []any, error) {
-	if err := d.Validate(); err != nil {
-		return "", nil, err
+func Cols(cols []string) Query {
+	return &query{
+		query: backQuoteAndJoin(cols...),
 	}
-	stmt, args, err := d.Where.Condition()
-	if err != nil {
-		return "", nil, err
-	}
-	base := []string{fmt.Sprintf("DELETE FROM `%s` WHERE %s", d.From, stmt)}
-	appendOrderByLimitOffest(d, &base, &args)
-	return strings.Join(base, " "), args, nil
 }
 
-func appendOrderByLimitOffest(p any, dest *[]string, args *[]any) {
-	t := reflect.TypeOf(p)
-	v := reflect.ValueOf(p)
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if f.Name == "OrderBy" {
-			orderBy := v.Field(i).String()
-			if orderBy != "" {
-				*dest = append(*dest, fmt.Sprintf("ORDER BY %s", orderBy))
-			}
-		}
-		if f.Name == "Limit" {
-			limit := v.Field(i).Interface().(int)
-			if limit > 0 {
-				*dest = append(*dest, "LIMIT ?")
-				*args = append(*args, limit)
-			}
-		}
-		if f.Name == "Offset" {
-			offset := v.Field(i).Interface().(int)
-			if offset > 0 {
-				*dest = append(*dest, "OFFSET ?")
-				*args = append(*args, offset)
-			}
-		}
+func Vals(vals []any) Query {
+	return &query{
+		query: fmt.Sprintf("(%s)", Placeholders(len(vals))),
+		args:  vals,
 	}
+}
+
+func Set(m map[string]any) Query {
+	b := NewBuilder()
+	it := NewKeyIterator(m)
+	for i := 0; i < it.Size(); i++ {
+		k, v := it.Get(i)
+		b.Sprintf("`%s` = ?", k).Args(v)
+	}
+	return b.Csv()
 }

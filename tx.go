@@ -28,27 +28,27 @@ func (t *tx) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, err
 	return t.s.InsertContext(ctx, modelPtr)
 }
 
-func (t *tx) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) Update(table string, set map[string]interface{}, where q.Query) (sql.Result, error) {
 	return t.s.Update(table, set, where)
 }
 
-func (t *tx) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModel(ptr ModelUpdate, where q.Query) (sql.Result, error) {
 	return t.s.UpdateModel(ptr, where)
 }
 
-func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Query) (sql.Result, error) {
 	return t.s.UpdateContext(ctx, table, set, where)
 }
 
-func (t *tx) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Query) (sql.Result, error) {
 	return t.s.UpdateModelContext(ctx, ptr, where)
 }
 
-func (t *tx) Delete(table string, where q.Condition) (sql.Result, error) {
+func (t *tx) Delete(table string, where q.Query) (sql.Result, error) {
 	return t.s.Delete(table, where)
 }
 
-func (t *tx) DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error) {
+func (t *tx) DeleteContext(ctx context.Context, table string, where q.Query) (sql.Result, error) {
 	return t.s.DeleteContext(ctx, table, where)
 }
 

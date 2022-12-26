@@ -273,7 +273,7 @@ func TestSaver_Update(t *testing.T) {
 		result, err = s.Update("users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "lang",
-		}, q.NewCondition(`id = ?`, lid))
+		}, q.Where(`id = ?`, lid))
 		assert.Nil(t, err)
 		ra, err := result.RowsAffected()
 		assert.Nil(t, err)
@@ -299,7 +299,7 @@ func TestSaver_Update(t *testing.T) {
 	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{
 			"first_name": "go",
-		}, q.NewCondition(""))
+		}, q.Where(""))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "DANGER: empty predicate")
 	})
@@ -315,7 +315,7 @@ func TestSaver_UpdateModel(t *testing.T) {
 		).WithArgs(firstName, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModel(&model.UpdateUsers{
 			FirstName: &firstName,
-		}, q.NewCondition(`id = ?`, 1))
+		}, q.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -336,7 +336,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 		).WithArgs(firstName, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModelContext(context.Background(), &model.UpdateUsers{
 			FirstName: &firstName,
-		}, q.NewCondition(`id = ?`, 1))
+		}, q.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -348,7 +348,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 	t.Run("should error if model invalid", func(t *testing.T) {
 		db, _, _ := sqlmock.New()
 		s := exql.NewSaver(db)
-		_, err := s.UpdateModelContext(context.Background(), nil, q.NewCondition("id = ?", 1))
+		_, err := s.UpdateModelContext(context.Background(), nil, q.Where("id = ?", 1))
 		assert.EqualError(t, err, "pointer is nil")
 	})
 }
@@ -370,7 +370,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		result, err = s.UpdateContext(context.Background(), "users", map[string]interface{}{
 			"first_name": "go",
 			"last_name":  "lang",
-		}, q.NewCondition(`id = ?`, lid))
+		}, q.Where(`id = ?`, lid))
 		assert.Nil(t, err)
 		ra, err := result.RowsAffected()
 		assert.Nil(t, err)
@@ -392,12 +392,12 @@ func TestSaver_Delete(t *testing.T) {
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		s := exql.NewSaver(db)
-		_, err := s.Delete("table", q.NewCondition("id = ?", 1))
+		_, err := s.Delete("table", q.Where("id = ?", 1))
 		assert.NoError(t, err)
 	})
 	t.Run("should error if clause returened an error", func(t *testing.T) {
 		s := exql.NewSaver(nil)
-		res, err := s.Delete("table", q.NewCondition(""))
+		res, err := s.Delete("table", q.Where(""))
 		assert.EqualError(t, err, "DANGER: empty predicate")
 		assert.Nil(t, res)
 	})
@@ -443,7 +443,7 @@ func (upSampleNoColumn) UpdateTableName() string {
 }
 
 func TestSaver_QueryExtra(t *testing.T) {
-	query := q.Select{From: "table", Where: q.NewCondition("id = ?", 1)}
+	query := q.NewBuilder().Query("SELECT * FROM table WHERE id = ?", 1).Build()
 	stmt := "SELECT * FROM `table` WHERE id = ?"
 	args := []any{1}
 	aErr := fmt.Errorf("err")

@@ -12,36 +12,10 @@ import (
 
 func TestQueryWhere(t *testing.T) {
 	t.Run("Where", func(t *testing.T) {
-		v, args, err := exql.Where("q = ?", 1).Condition()
+		v, args, err := exql.Where("q = ?", 1).Query()
 		assert.NoError(t, err)
 		assert.Equal(t, "q = ?", v)
 		assert.ElementsMatch(t, []any{1}, args)
-	})
-	t.Run("WhereEx", func(t *testing.T) {
-		v, args, err := exql.WhereEx(map[string]any{
-			"id": 1,
-		}).Condition()
-		assert.NoError(t, err)
-		assert.Equal(t, "(`id` = ?)", v)
-		assert.ElementsMatch(t, []any{1}, args)
-	})
-	t.Run("WhereAnd", func(t *testing.T) {
-		v, args, err := exql.WhereAnd(
-			exql.Where("q = ?", 1),
-			exql.Where("p = ?", 2),
-		).Condition()
-		assert.NoError(t, err)
-		assert.Equal(t, "(q = ? AND p = ?)", v)
-		assert.ElementsMatch(t, []any{1, 2}, args)
-	})
-	t.Run("WhereOr", func(t *testing.T) {
-		v, args, err := exql.WhereOr(
-			exql.Where("q = ?", 1),
-			exql.Where("p = ?", 2),
-		).Condition()
-		assert.NoError(t, err)
-		assert.Equal(t, "(q = ? OR p = ?)", v)
-		assert.ElementsMatch(t, []any{1, 2}, args)
 	})
 }
 func TestQueryForInsert(t *testing.T) {
@@ -134,7 +108,7 @@ func TestQueryForUpdateModel(t *testing.T) {
 		q, err := exql.QueryForUpdateModel(&model.UpdateUsers{
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
-		}, q.NewCondition(`id = ?`, 1))
+		}, q.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
