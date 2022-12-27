@@ -51,14 +51,14 @@ func (f *fmtQuery) Query() (string, []any, error) {
 	return fmt.Sprintf(f.fmt, fmtArgs...), sqlArgs, nil
 }
 
-func Where(q string, args ...interface{}) Codition {
+func Where(q string, args ...interface{}) Condition {
 	return &chain{qs: []Query{NewQuery(q, args...)}}
 }
 
-type Codition interface {
+type Condition interface {
 	Query
-	And(other ...Codition) Codition
-	Or(other ...Codition) Codition
+	And(other ...Condition) Condition
+	Or(other ...Condition) Condition
 }
 
 type chain struct {
@@ -66,15 +66,15 @@ type chain struct {
 	qs []Query
 }
 
-func (c *chain) And(other ...Codition) Codition {
+func (c *chain) And(other ...Condition) Condition {
 	return c.join(" AND ", other...)
 }
 
-func (c *chain) Or(other ...Codition) Codition {
+func (c *chain) Or(other ...Condition) Condition {
 	return c.join(" OR ", other...)
 }
 
-func (c *chain) join(sep string, other ...Codition) Codition {
+func (c *chain) join(sep string, other ...Condition) Condition {
 	list := []Query{c}
 	list = append(list, c.qs...)
 	return &chain{
@@ -101,10 +101,14 @@ func Cols(cols []string) Query {
 	}
 }
 
-func Vals(vals []any) Query {
+func Vals[T any](vals []T) Query {
+	var args []any
+	for _, v := range vals {
+		args = append(args, v)
+	}
 	return &query{
 		query: fmt.Sprintf("(%s)", Placeholders(len(vals))),
-		args:  vals,
+		args:  args,
 	}
 }
 
