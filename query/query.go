@@ -115,5 +115,5 @@ func Set(m map[string]any) Query {
 		k, v := it.Get(i)
 		b.Sprintf("`%s` = ?", k).Args(v)
 	}
-	return b.Csv()
+	return b.Join(",")
 }

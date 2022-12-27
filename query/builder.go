@@ -35,10 +35,6 @@ func (b *Builder) Build() Query {
 	return b.Join(" ")
 }
 
-func (b *Builder) Csv() Query {
-	return b.Join(",")
-}
-
 func (b *Builder) Clone() *Builder {
 	return NewBuilder(b.qs...)
 }

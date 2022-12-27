@@ -51,7 +51,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 	}
 	b.Qprintf(
 		"INSERT INTO `%s` (%s) VALUES %s",
-		q.Q(head.TableName), q.Cols(head.Values.Keys()), vals.Csv(),
+		q.Q(head.TableName), q.Cols(head.Values.Keys()), vals.Join(","),
 	)
 	return b.Build(), nil
 }
