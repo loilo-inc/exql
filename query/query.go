@@ -91,6 +91,10 @@ func (c *chain) Query() (string, []any, error) {
 	return b.Join(c.op).Query()
 }
 
+func Qprintf(q string, qs ...Query) Query {
+	return NewBuilder().Qprintf(q, qs...).Build()
+}
+
 func Q(q string, args ...any) Query {
 	return NewQuery(q, args...)
 }
@@ -98,6 +102,13 @@ func Q(q string, args ...any) Query {
 func Cols(cols []string) Query {
 	return &query{
 		query: backQuoteAndJoin(cols...),
+	}
+}
+
+func Val(a any) Query {
+	return &query{
+		query: "?",
+		args:  []any{a},
 	}
 }
 
