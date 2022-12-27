@@ -7,7 +7,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func Where(str string, args ...any) q.Query {
+func Where(str string, args ...any) q.Condition {
 	return q.Where(str, args...)
 }
 
