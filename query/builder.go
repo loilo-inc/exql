@@ -17,12 +17,12 @@ func (b *Builder) Qprintf(str string, args ...Query) *Builder {
 }
 
 func (b *Builder) Query(str string, args ...any) *Builder {
-	b.qs = append(b.qs, NewQuery(str, args...))
+	b.qs = append(b.qs, Q(str, args...))
 	return b
 }
 
 func (b *Builder) Args(args ...any) *Builder {
-	b.qs = append(b.qs, NewQuery("", args...))
+	b.qs = append(b.qs, &argsOnly{args: args})
 	return b
 }
 
@@ -40,7 +40,9 @@ func (b *Builder) Clone() *Builder {
 }
 
 func (b *Builder) Join(sep string) Query {
-	return &chain{op: sep, qs: b.qs}
+	c := &chain{joiner: sep}
+	c.append(b.qs...)
+	return c
 }
 
 func NewBuilder(base ...Query) *Builder {

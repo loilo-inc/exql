@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	q "github.com/loilo-inc/exql/v2/query"
+	"golang.org/x/xerrors"
 )
 
 type Saver interface {
@@ -76,6 +77,11 @@ func (s *saver) UpdateContext(
 	set map[string]any,
 	where q.Condition,
 ) (sql.Result, error) {
+	if table == "" {
+		return nil, xerrors.New("empty table name for update query")
+	} else if where == nil {
+		return nil, xerrors.New("nil condition for update query")
+	}
 	b := q.NewBuilder()
 	b.Qprintf("UPDATE `%s` SET %s WHERE %s", q.Q(table), q.Set(set), where)
 	return s.ExecContext(ctx, b.Build())
@@ -86,6 +92,11 @@ func (s *saver) Delete(from string, where q.Condition) (sql.Result, error) {
 }
 
 func (s *saver) DeleteContext(ctx context.Context, from string, where q.Condition) (sql.Result, error) {
+	if from == "" {
+		return nil, xerrors.New("empty table name for delete query")
+	} else if where == nil {
+		return nil, xerrors.New("nil condition for delete query")
+	}
 	b := q.NewBuilder()
 	b.Qprintf("DELETE FROM `%s` WHERE %s", q.Q(from), where)
 	return s.ExecContext(ctx, b.Build())

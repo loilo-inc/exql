@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"golang.org/x/xerrors"
 )
 
 type keyIterator struct {
@@ -74,4 +76,11 @@ func backQuoteAndJoin(str ...string) string {
 		result = append(result, fmt.Sprintf("`%s`", v))
 	}
 	return strings.Join(result, ",")
+}
+
+func guardQuery(q string) error {
+	if q == "" {
+		return xerrors.New("DANGER: empty query")
+	}
+	return nil
 }

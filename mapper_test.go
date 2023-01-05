@@ -172,7 +172,7 @@ func TestMapper_MapMany(t *testing.T) {
 		users, reset := setupUsers(t, db)
 		defer reset()
 		t.Run("basic", func(t *testing.T) {
-			rows, err := db.DB().Query(`SELECT * FROM users WHERE id in (?,?) ORDER BY id`, users[0].Id, users[1].Id)
+			rows, err := db.DB().Query(`SELECT * FROM users WHERE id IN (?,?) ORDER BY id`, users[0].Id, users[1].Id)
 			assert.Nil(t, err)
 			defer rows.Close()
 			var dest []*model.Users

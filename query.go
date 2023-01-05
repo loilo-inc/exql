@@ -8,7 +8,7 @@ import (
 )
 
 func Where(str string, args ...any) q.Condition {
-	return q.Where(str, args...)
+	return q.Cond(str, args...)
 }
 
 type ModelMetadata struct {
@@ -26,7 +26,7 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	cols := q.Cols(m.Values.Keys())
 	vals := q.Vals(m.Values.Values())
 	b.Qprintf(
-		"INSERT INTO `%s` (%s) VALUES %s",
+		"INSERT INTO `%s` (%s) VALUES (%s)",
 		q.Q(modelPtr.TableName()), cols, vals,
 	)
 	return b.Build(), m.AutoIncrementField, nil
@@ -46,7 +46,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 			if head == nil {
 				head = data
 			}
-			vals.Add(q.Vals(data.Values.Values()))
+			vals.Qprintf("(%s)", q.Vals(data.Values.Values()))
 		}
 	}
 	b.Qprintf(

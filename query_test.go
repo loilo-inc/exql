@@ -5,7 +5,6 @@ import (
 
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
-	q "github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
@@ -108,7 +107,7 @@ func TestQueryForUpdateModel(t *testing.T) {
 		q, err := exql.QueryForUpdateModel(&model.UpdateUsers{
 			FirstName: &user.FirstName,
 			LastName:  &user.LastName,
-		}, q.Where(`id = ?`, 1))
+		}, exql.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
