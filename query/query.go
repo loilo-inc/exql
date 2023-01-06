@@ -63,9 +63,13 @@ type Condition interface {
 }
 
 func Cond(str string, args ...any) Condition {
+	return CondFrom(Q(str, args...))
+}
+
+func CondFrom(q ...Query) Condition {
 	base := &chain{
 		joiner: " ",
-		list:   []Query{Q(str, args...)},
+		list:   q,
 	}
 	return &cond{base: base}
 }

@@ -3,8 +3,8 @@ package query_test
 import (
 	"testing"
 
+	"github.com/loilo-inc/exql/v2/query"
 	q "github.com/loilo-inc/exql/v2/query"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestQuery(t *testing.T) {
@@ -22,14 +22,26 @@ func TestQuery(t *testing.T) {
 	assertQueryErr(t, q.Set(map[string]any{}), "empty values for set clause")
 }
 
+func TestQprintf(t *testing.T) {
+	assertQuery(t, query.Qprintf("id in (%s)", query.Vals([]int{1, 2})), "id in (?,?)", 1, 2)
+	assertQueryErr(t, query.Qprintf(""), "DANGER: empty query")
+	assertQueryErr(t, query.Qprintf("%s", q.Q("")), "DANGER: empty query")
+}
+
 func TestCondition(t *testing.T) {
-	cond := q.Cond("id = ?", 1)
-	cond.And("name = ?", "go")
-	cond.Or("age = ?", 18)
-	cond.AndCond(q.Cond("foo = ?", "foo"))
-	cond.OrCond(q.Cond("var = ?", "var"))
-	stmt, args, err := cond.Query()
-	assert.NoError(t, err)
-	assert.Equal(t, "id = ? AND name = ? OR age = ? AND foo = ? OR var = ?", stmt)
-	assert.ElementsMatch(t, []any{1, "go", 18, "foo", "var"}, args)
+	t.Run("basic", func(t *testing.T) {
+		cond := q.Cond("id = ?", 1)
+		cond.And("name = ?", "go")
+		cond.Or("age = ?", 18)
+		cond.AndCond(q.Cond("foo = ?", "foo"))
+		cond.OrCond(q.Cond("var = ?", "var"))
+		assertQuery(t, cond,
+			"id = ? AND name = ? OR age = ? AND foo = ? OR var = ?",
+			1, "go", 18, "foo", "var",
+		)
+	})
+	t.Run("should error if query retuerned an error", func(t *testing.T) {
+		cond := q.CondFrom(q.Q(""))
+		assertQueryErr(t, cond, "DANGER: empty query")
+	})
 }

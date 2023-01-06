@@ -50,4 +50,10 @@ func TestBuilder(t *testing.T) {
 			"?,?", 1, 2,
 		)
 	})
+	t.Run("Clone", func(t *testing.T) {
+		base := query.NewBuilder().Query("id = ?", 1)
+		copy := base.Clone()
+		assertQuery(t, base.Build(), "id = ?", 1)
+		assertQuery(t, copy.Build(), "id = ?", 1)
+	})
 }
