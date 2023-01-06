@@ -299,7 +299,7 @@ func TestSaver_Update(t *testing.T) {
 	t.Run("should error if map is empty", func(t *testing.T) {
 		q, err := s.Update("users", make(map[string]interface{}), exql.Where("id = 1"))
 		assert.Nil(t, q)
-		assert.EqualError(t, err, "empty values")
+		assert.EqualError(t, err, "empty values for set clause")
 	})
 	t.Run("should error if where clause is empty", func(t *testing.T) {
 		q, err := s.Update("users", map[string]interface{}{"first_name": "go"}, exql.Where(""))

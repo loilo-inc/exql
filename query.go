@@ -117,7 +117,7 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 
 func QueryForUpdateModel(
 	updateStructPtr ModelUpdate,
-	where q.Query,
+	where q.Condition,
 ) (q.Query, error) {
 	if updateStructPtr == nil {
 		return nil, xerrors.Errorf("pointer is nil")
