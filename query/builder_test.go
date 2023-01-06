@@ -28,7 +28,7 @@ func TestBuilder(t *testing.T) {
 	})
 	t.Run("Qprintf", func(t *testing.T) {
 		assertQuery(t,
-			query.NewBuilder().Qprintf("(%s)", query.Q("id = ?", 1)).Build(),
+			query.NewBuilder().Qprintf("(:?)", query.Q("id = ?", 1)).Build(),
 			"(id = ?)", 1,
 		)
 	})

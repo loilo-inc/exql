@@ -24,7 +24,7 @@ func TestQueryForInsert(t *testing.T) {
 			LastName:  null.StringFrom("name"),
 		}
 		s, f, err := exql.QueryForInsert(&user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, f)
 		exp := "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?)"
 		stmt, args, err := s.Query()

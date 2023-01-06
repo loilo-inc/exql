@@ -77,22 +77,22 @@ func TestSaver_Insert(t *testing.T) {
 			LastName:  null.StringFrom("last"),
 		}
 		result, err := s.Insert(user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.False(t, user.Id == 0)
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, user.Id)
 		}()
 		r, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), r)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, user.Id, lid)
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		var actual model.Users
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
 		assert.Equal(t, user.LastName.String, actual.LastName.String)
@@ -130,7 +130,7 @@ func TestSaver_Insert(t *testing.T) {
 		s := exql.NewSaver(db)
 		user := &samplePrimaryUint64{}
 		_, err := s.Insert(user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, uint64(11), user.Id)
 	})
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestSaver_Insert(t *testing.T) {
 			Id: 1,
 		}
 		_, err := s.Insert(user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 1, user.Id)
 	})
 }
@@ -156,22 +156,22 @@ func TestSaver_InsertContext(t *testing.T) {
 			LastName:  null.StringFrom("last"),
 		}
 		result, err := s.InsertContext(context.Background(), user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.False(t, user.Id == 0)
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, user.Id)
 		}()
 		r, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), r)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, user.Id, lid)
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		var actual model.Users
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
 		assert.Equal(t, user.LastName.String, actual.LastName.String)
@@ -182,22 +182,22 @@ func TestSaver_InsertContext(t *testing.T) {
 			CreatedAt: time.Now(),
 		}
 		result, err := s.InsertContext(context.Background(), history)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.False(t, history.Id == 0)
 		defer func() {
 			d.DB().Exec(`DELETE FROM user_login_histries WHERE id = ?`, history.Id)
 		}()
 		r, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), r)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, history.Id, lid)
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		var actual model.UserLoginHistories
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
 		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
@@ -208,22 +208,22 @@ func TestSaver_InsertContext(t *testing.T) {
 			CreatedAt: time.Now(),
 		}
 		result, err := s.InsertContext(context.Background(), history)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.False(t, history.Id == 0)
 		defer func() {
 			d.DB().Exec(`DELETE FROM user_login_histries WHERE id = ?`, history.Id)
 		}()
 		r, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), r)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, history.Id, lid)
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		var actual model.UserLoginHistories
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
 		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
@@ -234,22 +234,22 @@ func TestSaver_InsertContext(t *testing.T) {
 			LastName:  null.StringFrom("last"),
 		}
 		result, err := s.InsertContext(context.Background(), user)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.False(t, user.Id == 0)
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, user.Id)
 		}()
 		r, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), r)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, user.Id, lid)
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		var actual model.Users
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.FirstName.String, actual.FirstName.String)
 		assert.Equal(t, user.LastName.String, actual.LastName.String)
@@ -264,9 +264,9 @@ func TestSaver_Update(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)",
 			"first", "last")
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, lid)
 		}()
@@ -274,15 +274,15 @@ func TestSaver_Update(t *testing.T) {
 			"first_name": "go",
 			"last_name":  "lang",
 		}, exql.Where(`id = ?`, lid))
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		ra, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), ra)
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "go", actual.FirstName.String)
 		assert.Equal(t, "lang", actual.LastName.String)
 	})
@@ -364,9 +364,9 @@ func TestSaver_UpdateContext(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`first_name`, `last_name`) VALUES (?, ?)",
 			"first", "last")
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		lid, err := result.LastInsertId()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, lid)
 		}()
@@ -374,15 +374,15 @@ func TestSaver_UpdateContext(t *testing.T) {
 			"first_name": "go",
 			"last_name":  "lang",
 		}, exql.Where(`id = ?`, lid))
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		ra, err := result.RowsAffected()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, int64(1), ra)
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		err = m.Map(rows, &actual)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "go", actual.FirstName.String)
 		assert.Equal(t, "lang", actual.LastName.String)
 	})
@@ -482,7 +482,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().Exec(stmt, args...).Return(nil, nil)
 		res, err := s.Exec(query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("Exec/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)
@@ -495,7 +495,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().ExecContext(ctx, stmt, args...).Return(nil, nil)
 		res, err := s.ExecContext(ctx, query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("ExecContext/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)
@@ -508,7 +508,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().Query(stmt, args...).Return(nil, nil)
 		res, err := s.Query(query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("Query/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)
@@ -521,7 +521,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().QueryContext(ctx, stmt, args...).Return(nil, nil)
 		res, err := s.QueryContext(ctx, query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("QueryContext/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)
@@ -534,7 +534,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().QueryRow(stmt, args...).Return(nil)
 		res, err := s.QueryRow(query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("QueryRow/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)
@@ -547,7 +547,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ex.EXPECT().QueryRowContext(ctx, stmt, args...).Return(nil)
 		res, err := s.QueryRowContext(ctx, query)
 		assert.Nil(t, res)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 	t.Run("QueryRowContext/Error", func(t *testing.T) {
 		query, s := setupQueryErr(t)

@@ -21,7 +21,7 @@ func TestGenerator_Generate(t *testing.T) {
 			g := exql.NewGenerator(db.DB())
 			checkFiles := func(dir string, elements []string) {
 				entries, err := os.ReadDir(dir)
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				var files []string
 				for _, e := range entries {
 					files = append(files, e.Name())
@@ -30,7 +30,7 @@ func TestGenerator_Generate(t *testing.T) {
 			}
 			t.Run("basic", func(t *testing.T) {
 				dir, err := os.MkdirTemp(os.TempDir(), "dist")
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				err = g.Generate(&exql.GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
@@ -38,7 +38,7 @@ func TestGenerator_Generate(t *testing.T) {
 				if err != nil {
 					log.Errorf(err.Error())
 				}
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go", "fields.go"})
 			})
 			t.Run("exclude", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestGenerator_Generate(t *testing.T) {
 				if err != nil {
 					log.Errorf(err.Error())
 				}
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go"})
 			})
 

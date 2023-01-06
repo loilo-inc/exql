@@ -12,8 +12,8 @@ func (b *Builder) Sprintf(str string, args ...any) *Builder {
 	return b.Query(fmt.Sprintf(str, args...))
 }
 
-func (b *Builder) Qprintf(str string, args ...Query) *Builder {
-	return b.Add(&fmtQuery{fmt: str, qs: args})
+func (b *Builder) Qprintf(str string, args ...any) *Builder {
+	return b.Add(&fmtQuery{fmt: str, args: args})
 }
 
 func (b *Builder) Query(str string, args ...any) *Builder {

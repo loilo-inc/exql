@@ -23,9 +23,16 @@ func TestQuery(t *testing.T) {
 }
 
 func TestQprintf(t *testing.T) {
-	assertQuery(t, query.Qprintf("id in (%s)", query.Vals([]int{1, 2})), "id in (?,?)", 1, 2)
+	assertQuery(t,
+		query.Qprintf("id in (:?) and name = ? and more", query.Vals([]int{1, 2}), "go"),
+		"id in (?,?) and name = ? and more", 1, 2, "go",
+	)
 	assertQueryErr(t, query.Qprintf(""), "DANGER: empty query")
-	assertQueryErr(t, query.Qprintf("%s", q.Q("")), "DANGER: empty query")
+	assertQueryErr(t, query.Qprintf(":?", q.Q("")), "DANGER: empty query")
+	assertQueryErr(t, query.Qprintf("?"), "missing argument at 0")
+	assertQueryErr(t, query.Qprintf("?,?", 1), "missing argument at 1")
+	assertQueryErr(t, query.Qprintf(":?", 1), "unexpected argument type for :? placeholder at 0")
+	assertQueryErr(t, query.Qprintf("?", 1, 2), "arguments count mismatch: found 1, got 2")
 }
 
 func TestCondition(t *testing.T) {

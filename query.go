@@ -25,10 +25,8 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	b := q.NewBuilder()
 	cols := q.Cols(m.Values.Keys())
 	vals := q.Vals(m.Values.Values())
-	b.Qprintf(
-		"INSERT INTO `%s` (%s) VALUES (%s)",
-		q.Q(modelPtr.TableName()), cols, vals,
-	)
+	b.Sprintf("INSERT INTO `%s`", modelPtr.TableName())
+	b.Qprintf("(:?) VALUES (:?)", cols, vals)
 	return b.Build(), m.AutoIncrementField, nil
 }
 
@@ -46,13 +44,11 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 			if head == nil {
 				head = data
 			}
-			vals.Qprintf("(%s)", q.Vals(data.Values.Values()))
+			vals.Qprintf("(:?)", q.Vals(data.Values.Values()))
 		}
 	}
-	b.Qprintf(
-		"INSERT INTO `%s` (%s) VALUES %s",
-		q.Q(head.TableName), q.Cols(head.Values.Keys()), vals.Join(","),
-	)
+	b.Sprintf("INSERT INTO `%s`", head.TableName)
+	b.Qprintf("(:?) VALUES :?", q.Cols(head.Values.Keys()), vals.Join(","))
 	return b.Build(), nil
 }
 
@@ -164,9 +160,7 @@ func QueryForUpdateModel(
 		return nil, xerrors.Errorf("empty table name")
 	}
 	b := q.NewBuilder()
-	b.Qprintf(
-		"UPDATE `%s` SET %s WHERE %s",
-		q.Q(tableName), q.Set(values), where,
-	)
+	b.Sprintf("UPDATE `%s`", tableName)
+	b.Qprintf("SET :? WHERE :?", q.Set(values), where)
 	return b.Build(), nil
 }

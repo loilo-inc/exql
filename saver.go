@@ -83,7 +83,8 @@ func (s *saver) UpdateContext(
 		return nil, xerrors.New("nil condition for update query")
 	}
 	b := q.NewBuilder()
-	b.Qprintf("UPDATE `%s` SET %s WHERE %s", q.Q(table), q.Set(set), where)
+	b.Sprintf("UPDATE `%s`", table)
+	b.Qprintf("SET :? WHERE :?", q.Set(set), where)
 	return s.ExecContext(ctx, b.Build())
 }
 
@@ -98,7 +99,8 @@ func (s *saver) DeleteContext(ctx context.Context, from string, where q.Conditio
 		return nil, xerrors.New("nil condition for delete query")
 	}
 	b := q.NewBuilder()
-	b.Qprintf("DELETE FROM `%s` WHERE %s", q.Q(from), where)
+	b.Sprintf("DELETE FROM `%s`", from)
+	b.Qprintf("WHERE :?", where)
 	return s.ExecContext(ctx, b.Build())
 }
 

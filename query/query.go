@@ -2,7 +2,7 @@
 package query
 
 import (
-	"fmt"
+	"regexp"
 	"strings"
 
 	"golang.org/x/xerrors"
@@ -32,26 +32,61 @@ func errQuery(err error) Query {
 }
 
 type fmtQuery struct {
-	fmt string
-	qs  []Query
+	fmt  string
+	args []any
 }
 
-func (f *fmtQuery) Query() (string, []any, error) {
-	var fmtArgs []any
-	var sqlArgs []any
-	for _, v := range f.qs {
-		if stmt, args, err := v.Query(); err != nil {
-			return "", nil, err
-		} else {
-			fmtArgs = append(fmtArgs, stmt)
-			sqlArgs = append(sqlArgs, args...)
+func (f *fmtQuery) Query() (sqlStmt string, sqlArgs []any, resErr error) {
+	str := f.fmt
+	args := f.args
+	sb := &strings.Builder{}
+	var argIdx = 0
+	reg := regexp.MustCompile(`:?\?`)
+	for {
+		match := reg.FindStringIndex(str)
+		if match == nil {
+			break
 		}
+		if argIdx == len(args) {
+			resErr = xerrors.Errorf("missing argument at %d", argIdx)
+			return
+		}
+		mStart := match[0]
+		mEnd := match[1]
+		if mEnd-mStart == 2 {
+			// :?
+			if q, ok := args[argIdx].(Query); !ok {
+				resErr = xerrors.Errorf("unexpected argument type for :? placeholder at %d", argIdx)
+				return
+			} else if stmt, vals, err := q.Query(); err != nil {
+				resErr = err
+				return
+			} else {
+				pre := str[:mStart]
+				sb.WriteString(pre)
+				sb.WriteString(stmt)
+				sqlArgs = append(sqlArgs, vals...)
+			}
+		} else {
+			// ?
+			sb.WriteString(str[:mEnd])
+			sqlArgs = append(sqlArgs, args[argIdx])
+		}
+		str = str[mEnd:]
+		argIdx += 1
 	}
-	stmt := fmt.Sprintf(f.fmt, fmtArgs...)
-	if err := guardQuery(stmt); err != nil {
-		return "", nil, err
+	if len(args) != argIdx {
+		resErr = xerrors.Errorf("arguments count mismatch: found %d, got %d", argIdx, len(args))
+		return
 	}
-	return stmt, sqlArgs, nil
+	if len(str) > 0 {
+		sb.WriteString(str)
+	}
+	sqlStmt = sb.String()
+	if resErr = guardQuery(sqlStmt); resErr != nil {
+		return
+	}
+	return sqlStmt, sqlArgs, nil
 }
 
 type Condition interface {
@@ -148,8 +183,8 @@ func (a *argsOnly) Query() (string, []any, error) {
 	return "", a.args, errArgsOnly
 }
 
-func Qprintf(q string, qs ...Query) Query {
-	return NewBuilder().Qprintf(q, qs...).Build()
+func Qprintf(q string, args ...any) Query {
+	return NewBuilder().Qprintf(q, args...).Build()
 }
 
 func Q(q string, args ...any) Query {

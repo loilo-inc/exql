@@ -10,7 +10,7 @@ import (
 func TestParseTags(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		tags, err := exql.ParseTags("a:1;b:2;c:3")
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, len(tags), 3)
 		assert.Equal(t, "1", tags["a"])
 		assert.Equal(t, "2", tags["b"])
@@ -18,7 +18,7 @@ func TestParseTags(t *testing.T) {
 	})
 	t.Run("key only", func(t *testing.T) {
 		tags, err := exql.ParseTags("a;b;c;")
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, len(tags), 3)
 		assert.Equal(t, "", tags["a"])
 		assert.Equal(t, "", tags["b"])
