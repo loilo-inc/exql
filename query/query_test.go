@@ -1,191 +1,53 @@
 package query_test
 
 import (
-	"fmt"
-	"reflect"
 	"testing"
 
-	. "github.com/loilo-inc/exql/v2/query"
-	"github.com/stretchr/testify/assert"
+	q "github.com/loilo-inc/exql/v2/query"
 )
 
-type desc struct {
-	query Query
-	stmt  string
-	args  []any
+func TestQuery(t *testing.T) {
+	assertQuery(t, q.V(1, 2), "?,?", 1, 2)
+	assertQuery(t, q.Vals([]int{1, 2}), "?,?", 1, 2)
+	assertQuery(t, q.Cols([]string{"a", "b"}), "`a`,`b`")
+	assertQuery(t, q.Q("id = ?", 1), "id = ?", 1)
+	assertQuery(t,
+		q.Set(map[string]any{"a": 1, "b": 2}),
+		"`a` = ?,`b` = ?", 1, 2,
+	)
+	assertQueryErr(t, q.Q(""), "DANGER: empty query")
+	assertQueryErr(t, q.Vals[any](nil), "empty values")
+	assertQueryErr(t, q.Cols(nil), "empty columns")
+	assertQueryErr(t, q.Set(map[string]any{}), "empty values for set clause")
 }
 
-type desce struct {
-	query Query
-	err   string
+func TestNew(t *testing.T) {
+	assertQuery(t,
+		q.New("id in (:?) and name = ? and more", q.Vals([]int{1, 2}), "go"),
+		"id in (?,?) and name = ? and more", 1, 2, "go",
+	)
+	assertQueryErr(t, q.New(""), "DANGER: empty query")
+	assertQueryErr(t, q.New(":?", q.Q("")), "DANGER: empty query")
+	assertQueryErr(t, q.New("?"), "missing argument at 0")
+	assertQueryErr(t, q.New("?,?", 1), "missing argument at 1")
+	assertQueryErr(t, q.New(":?", 1), "unexpected argument type for :? placeholder at 0")
+	assertQueryErr(t, q.New("?", 1, 2), "arguments count mismatch: found 1, got 2")
 }
 
-func TestQueryBuilder(t *testing.T) {
-	arr := []desc{
-		{
-			query: Insert{
-				Into: "table",
-				Values: map[string]any{
-					"id": 1,
-				},
-			},
-			stmt: "INSERT INTO `table` (`id`) VALUES (?)",
-			args: []any{1},
-		},
-		{
-			query: InsertMany{
-				Into:    "table",
-				Columns: []string{"id"},
-				Values: [][]any{
-					{1}, {2}, {3},
-				},
-			},
-			stmt: "INSERT INTO `table` (`id`) VALUES (?),(?),(?)",
-			args: []any{1, 2, 3},
-		},
-		{
-			query: Select{
-				From:  "table",
-				Where: NewCondition("id = ?", 1),
-			},
-			stmt: "SELECT * FROM `table` WHERE id = ?",
-			args: []any{1},
-		},
-		{
-			query: Select{
-				From:      "table",
-				Columns:   []string{"id", "age"},
-				Where:     NewCondition("id = ?", 1),
-				Limit:     2,
-				Offset:    3,
-				OrderBy:   "id DESC",
-				ForUpdate: true,
-			},
-			stmt: "SELECT `id`,`age` FROM `table` WHERE id = ? ORDER BY id DESC LIMIT ? OFFSET ? FOR UPDATE",
-			args: []any{1, 2, 3},
-		},
-		{
-			query: Update{
-				Table: "table",
-				Set: map[string]any{
-					"id": 1,
-				},
-				Where: NewCondition(`id = ?`, 2),
-			},
-			stmt: "UPDATE `table` SET `id` = ? WHERE id = ?",
-			args: []any{1, 2},
-		},
-		{
-			query: Update{
-				Table: "table",
-				Set: map[string]any{
-					"id":   1,
-					"name": "go",
-				},
-				Where:   NewCondition(`id = ?`, 2),
-				OrderBy: "id",
-				Limit:   3,
-				Offset:  4,
-			},
-			stmt: "UPDATE `table` SET `id` = ?,`name` = ? WHERE id = ? ORDER BY id LIMIT ? OFFSET ?",
-			args: []any{1, "go", 2, 3, 4},
-		},
-		{
-			query: Delete{
-				From:    "table",
-				Where:   NewCondition(`id = ?`, 1),
-				OrderBy: "id",
-				Limit:   2,
-				Offset:  3,
-			},
-			stmt: "DELETE FROM `table` WHERE id = ? ORDER BY id LIMIT ? OFFSET ?",
-			args: []any{1, 2, 3},
-		},
-	}
-	for _, v := range arr {
-		t.Run(v.stmt, func(t *testing.T) {
-			stmt, args, err := v.query.Query()
-			assert.NoError(t, err)
-			assert.Equal(t, v.stmt, stmt)
-			assert.ElementsMatch(t, v.args, args)
-		})
-	}
-}
-
-func TestBuilderError(t *testing.T) {
-	arr := []desce{
-		{
-			query: Insert{},
-			err:   "empty table",
-		},
-		{
-			query: Insert{Into: "table"},
-			err:   "empty values",
-		},
-		{
-			query: InsertMany{},
-			err:   "empty table",
-		},
-		{
-			query: InsertMany{Into: "table"},
-			err:   "empty values",
-		},
-		{
-			query: InsertMany{Into: "table", Columns: []string{"id"}},
-			err:   "empty values",
-		},
-		{
-			query: InsertMany{Into: "table", Columns: []string{"id"}, Values: [][]any{{1}, {1, 2}}},
-			err:   "number of columns/values mismatch",
-		},
-		{
-			query: Select{},
-			err:   "empty table",
-		},
-		{
-			query: Select{From: "table"},
-			err:   "empty where clause",
-		},
-		{
-			query: Select{From: "table", Where: NewCondition("")},
-			err:   "DANGER",
-		},
-		{
-			query: Update{},
-			err:   "empty table",
-		},
-		{
-			query: Update{Table: "table"},
-			err:   "empty values",
-		},
-		{
-			query: Update{Table: "table", Set: map[string]any{"id": 1}},
-			err:   "empty where clause",
-		},
-		{
-			query: Update{Table: "table", Set: map[string]any{"id": 1}, Where: NewCondition("")},
-			err:   "DANGER",
-		},
-		{
-			query: Delete{},
-			err:   "empty table",
-		},
-		{
-			query: Delete{From: "table"},
-			err:   "empty where clause",
-		},
-		{
-			query: Delete{From: "table", Where: NewCondition("")},
-			err:   "DANGER",
-		},
-	}
-	for _, v := range arr {
-		s := reflect.TypeOf(v.query).Name()
-		t.Run(fmt.Sprintf("%s:%s", s, v.err), func(t *testing.T) {
-			stmt, args, err := v.query.Query()
-			assert.Equal(t, "", stmt)
-			assert.Nil(t, args)
-			assert.ErrorContains(t, err, v.err)
-		})
-	}
+func TestCondition(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		cond := q.Cond("id = ?", 1)
+		cond.And("name = ?", "go")
+		cond.Or("age in (:?)", q.V(20, 21))
+		cond.AndCond(q.Cond("foo = ?", "foo"))
+		cond.OrCond(q.Cond("var = ?", "var"))
+		assertQuery(t, cond,
+			"id = ? AND name = ? OR age in (?,?) AND foo = ? OR var = ?",
+			1, "go", 20, 21, "foo", "var",
+		)
+	})
+	t.Run("should error if query retuerned an error", func(t *testing.T) {
+		cond := q.CondFrom(q.Q(""))
+		assertQueryErr(t, cond, "DANGER: empty query")
+	})
 }

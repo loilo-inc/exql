@@ -8,19 +8,7 @@ import (
 )
 
 func Where(str string, args ...any) q.Condition {
-	return q.NewCondition(str, args...)
-}
-
-func WhereEx(m map[string]any) q.Condition {
-	return q.NewKeyValueCondition(m)
-}
-
-func WhereAnd(list ...q.Condition) q.Condition {
-	return q.ConditionAnd(list...)
-}
-
-func WhereOr(list ...q.Condition) q.Condition {
-	return q.ConditionOr(list...)
+	return q.Cond(str, args...)
 }
 
 type ModelMetadata struct {
@@ -34,18 +22,21 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return &q.Insert{
-		Into:   m.TableName,
-		Values: m.Values.Map(),
-	}, m.AutoIncrementField, nil
+	b := q.NewBuilder()
+	cols := q.Cols(m.Values.Keys())
+	vals := q.Vals(m.Values.Values())
+	b.Sprintf("INSERT INTO `%s`", modelPtr.TableName())
+	b.Query("(:?) VALUES (:?)", cols, vals)
+	return b.Build(), m.AutoIncrementField, nil
 }
 
 func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
 		return nil, xerrors.New("empty list")
 	}
-	var values [][]any
 	var head *ModelMetadata
+	b := q.NewBuilder()
+	vals := q.NewBuilder()
 	for _, v := range modelPtrs {
 		if data, err := AggregateModelMetadata(v); err != nil {
 			return nil, err
@@ -53,14 +44,12 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 			if head == nil {
 				head = data
 			}
-			values = append(values, data.Values.Values())
+			vals.Query("(:?)", q.Vals(data.Values.Values()))
 		}
 	}
-	return &q.InsertMany{
-		Into:    head.TableName,
-		Columns: head.Values.Keys(),
-		Values:  values,
-	}, nil
+	b.Sprintf("INSERT INTO `%s`", head.TableName)
+	b.Query("(:?) VALUES :?", q.Cols(head.Values.Keys()), vals.Join(","))
+	return b.Build(), nil
 }
 
 func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
@@ -170,9 +159,8 @@ func QueryForUpdateModel(
 	if tableName == "" {
 		return nil, xerrors.Errorf("empty table name")
 	}
-	return &q.Update{
-		Table: tableName,
-		Where: where,
-		Set:   values,
-	}, nil
+	b := q.NewBuilder()
+	b.Sprintf("UPDATE `%s`", tableName)
+	b.Query("SET :? WHERE :?", q.Set(values), where)
+	return b.Build(), nil
 }

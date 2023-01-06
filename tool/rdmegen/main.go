@@ -16,7 +16,6 @@ func main() {
 		"MapJoinedRows":      catFile("serial_mapper.go"),
 		"MapOuterJoinedRows": catFile("outer_join.go"),
 		"Tx":                 catFile("tx.go"),
-		"BuildingQuery":      catFile("query.go"),
 	}
 	o, err := os.Create("README.md")
 	if err != nil {

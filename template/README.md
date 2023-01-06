@@ -53,8 +53,4 @@ Safe, Strict and Clear ORM for Go
 {{.Tx}}
 ```
 
-### Building Query
-
-```go
-{{.BuildingQuery}}
 ```

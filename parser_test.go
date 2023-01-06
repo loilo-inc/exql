@@ -32,7 +32,7 @@ func TestParser_ParseTable(t *testing.T) {
 func TestParser_ParseType(t *testing.T) {
 	assertType := func(s string, nullable bool, tp interface{}) {
 		ret, err := exql.ParseType(s, nullable)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, ret, tp)
 	}
 	t.Run("int", func(t *testing.T) {
