@@ -3,12 +3,11 @@ package query_test
 import (
 	"testing"
 
-	"github.com/loilo-inc/exql/v2/query"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
 func TestQuery(t *testing.T) {
-	assertQuery(t, q.Val(1), "?", 1)
+	assertQuery(t, q.V(1, 2), "?,?", 1, 2)
 	assertQuery(t, q.Vals([]int{1, 2}), "?,?", 1, 2)
 	assertQuery(t, q.Cols([]string{"a", "b"}), "`a`,`b`")
 	assertQuery(t, q.Q("id = ?", 1), "id = ?", 1)
@@ -22,29 +21,29 @@ func TestQuery(t *testing.T) {
 	assertQueryErr(t, q.Set(map[string]any{}), "empty values for set clause")
 }
 
-func TestQprintf(t *testing.T) {
+func TestNew(t *testing.T) {
 	assertQuery(t,
-		query.Qprintf("id in (:?) and name = ? and more", query.Vals([]int{1, 2}), "go"),
+		q.New("id in (:?) and name = ? and more", q.Vals([]int{1, 2}), "go"),
 		"id in (?,?) and name = ? and more", 1, 2, "go",
 	)
-	assertQueryErr(t, query.Qprintf(""), "DANGER: empty query")
-	assertQueryErr(t, query.Qprintf(":?", q.Q("")), "DANGER: empty query")
-	assertQueryErr(t, query.Qprintf("?"), "missing argument at 0")
-	assertQueryErr(t, query.Qprintf("?,?", 1), "missing argument at 1")
-	assertQueryErr(t, query.Qprintf(":?", 1), "unexpected argument type for :? placeholder at 0")
-	assertQueryErr(t, query.Qprintf("?", 1, 2), "arguments count mismatch: found 1, got 2")
+	assertQueryErr(t, q.New(""), "DANGER: empty query")
+	assertQueryErr(t, q.New(":?", q.Q("")), "DANGER: empty query")
+	assertQueryErr(t, q.New("?"), "missing argument at 0")
+	assertQueryErr(t, q.New("?,?", 1), "missing argument at 1")
+	assertQueryErr(t, q.New(":?", 1), "unexpected argument type for :? placeholder at 0")
+	assertQueryErr(t, q.New("?", 1, 2), "arguments count mismatch: found 1, got 2")
 }
 
 func TestCondition(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		cond := q.Cond("id = ?", 1)
 		cond.And("name = ?", "go")
-		cond.Or("age = ?", 18)
+		cond.Or("age in (:?)", q.V(20, 21))
 		cond.AndCond(q.Cond("foo = ?", "foo"))
 		cond.OrCond(q.Cond("var = ?", "var"))
 		assertQuery(t, cond,
-			"id = ? AND name = ? OR age = ? AND foo = ? OR var = ?",
-			1, "go", 18, "foo", "var",
+			"id = ? AND name = ? OR age in (?,?) AND foo = ? OR var = ?",
+			1, "go", 20, 21, "foo", "var",
 		)
 	})
 	t.Run("should error if query retuerned an error", func(t *testing.T) {

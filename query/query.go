@@ -18,26 +18,16 @@ type query struct {
 	err   error
 }
 
-func (q *query) Query() (string, []any, error) {
-	if q.err != nil {
-		return "", nil, q.err
-	} else if err := guardQuery(q.query); err != nil {
-		return "", nil, err
-	}
-	return q.query, q.args, nil
-}
-
 func errQuery(err error) Query {
 	return &query{err: err}
 }
 
-type fmtQuery struct {
-	fmt  string
-	args []any
-}
-
-func (f *fmtQuery) Query() (sqlStmt string, sqlArgs []any, resErr error) {
-	str := f.fmt
+func (f *query) Query() (sqlStmt string, sqlArgs []any, resErr error) {
+	if f.err != nil {
+		resErr = f.err
+		return
+	}
+	str := f.query
 	args := f.args
 	sb := &strings.Builder{}
 	var argIdx = 0
@@ -157,9 +147,7 @@ func (c *chain) Query() (string, []any, error) {
 	var strs []string
 	var args []any
 	for _, v := range c.list {
-		if s, v, err := v.Query(); err == errArgsOnly {
-			args = append(args, v...)
-		} else if err != nil {
+		if s, v, err := v.Query(); err != nil {
 			return "", nil, err
 		} else {
 			strs = append(strs, s)
@@ -173,18 +161,8 @@ func (c *chain) Query() (string, []any, error) {
 	return stmt, args, nil
 }
 
-type argsOnly struct {
-	args []any
-}
-
-var errArgsOnly = xerrors.New("argsOnly does't buid query")
-
-func (a *argsOnly) Query() (string, []any, error) {
-	return "", a.args, errArgsOnly
-}
-
-func Qprintf(q string, args ...any) Query {
-	return NewBuilder().Qprintf(q, args...).Build()
+func New(q string, args ...any) Query {
+	return NewBuilder().Query(q, args...).Build()
 }
 
 func Q(q string, args ...any) Query {
@@ -203,10 +181,10 @@ func Cols(cols []string) Query {
 	}
 }
 
-func Val(a any) Query {
+func V(a ...any) Query {
 	return &query{
-		query: "?",
-		args:  []any{a},
+		query: Placeholders(len(a)),
+		args:  a,
 	}
 }
 
@@ -232,7 +210,7 @@ func Set(m map[string]any) Query {
 	it := NewKeyIterator(m)
 	for i := 0; i < it.Size(); i++ {
 		k, v := it.Get(i)
-		b.Sprintf("`%s` = ?", k).Args(v)
+		b.Query("`:?` = ?", Q(k), v)
 	}
 	return b.Join(",")
 }

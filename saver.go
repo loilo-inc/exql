@@ -84,7 +84,7 @@ func (s *saver) UpdateContext(
 	}
 	b := q.NewBuilder()
 	b.Sprintf("UPDATE `%s`", table)
-	b.Qprintf("SET :? WHERE :?", q.Set(set), where)
+	b.Query("SET :? WHERE :?", q.Set(set), where)
 	return s.ExecContext(ctx, b.Build())
 }
 
@@ -100,7 +100,7 @@ func (s *saver) DeleteContext(ctx context.Context, from string, where q.Conditio
 	}
 	b := q.NewBuilder()
 	b.Sprintf("DELETE FROM `%s`", from)
-	b.Qprintf("WHERE :?", where)
+	b.Query("WHERE :?", where)
 	return s.ExecContext(ctx, b.Build())
 }
 

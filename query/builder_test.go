@@ -28,7 +28,7 @@ func TestBuilder(t *testing.T) {
 	})
 	t.Run("Qprintf", func(t *testing.T) {
 		assertQuery(t,
-			query.NewBuilder().Qprintf("(:?)", query.Q("id = ?", 1)).Build(),
+			query.NewBuilder().Query("(:?)", query.Q("id = ?", 1)).Build(),
 			"(id = ?)", 1,
 		)
 	})
@@ -42,12 +42,6 @@ func TestBuilder(t *testing.T) {
 		assertQuery(t,
 			query.NewBuilder().Add(query.Q("id = ?", 1)).Build(),
 			"id = ?", 1,
-		)
-	})
-	t.Run("Args", func(t *testing.T) {
-		assertQuery(t,
-			query.NewBuilder().Query("?,?").Args(1, 2).Build(),
-			"?,?", 1, 2,
 		)
 	})
 	t.Run("Clone", func(t *testing.T) {
