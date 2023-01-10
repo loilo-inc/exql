@@ -23,7 +23,7 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 		return nil, nil, err
 	}
 	b := q.NewBuilder()
-	cols := q.Cols(m.Values.Keys())
+	cols := q.Cols(m.Values.Keys()...)
 	vals := q.Vals(m.Values.Values())
 	b.Sprintf("INSERT INTO `%s`", modelPtr.TableName())
 	b.Query("(:?) VALUES (:?)", cols, vals)
@@ -48,7 +48,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 		}
 	}
 	b.Sprintf("INSERT INTO `%s`", head.TableName)
-	b.Query("(:?) VALUES :?", q.Cols(head.Values.Keys()), vals.Join(","))
+	b.Query("(:?) VALUES :?", q.Cols(head.Values.Keys()...), vals.Join(","))
 	return b.Build(), nil
 }
 

@@ -30,3 +30,13 @@ func TestSqlPraceholder(t *testing.T) {
 	assert.Equal(t, "?", Placeholders(1))
 	assert.Equal(t, "?,?,?", Placeholders(3))
 }
+
+func TestCuoteColumn(t *testing.T) {
+	assert.Equal(t, "", QuoteColumn(""))
+	assert.Equal(t, "`table`", QuoteColumn("table"))
+	assert.Equal(t, "`users`.`id`", QuoteColumn("users.id"))
+	assert.Equal(t, "`users`.`id`", QuoteColumn("`users`.`id`"))
+	assert.Equal(t, "`users`.`id`", QuoteColumn("`users`.id"))
+	assert.Equal(t, "`users`.*", QuoteColumn("users.*"))
+	assert.Equal(t, "`users`.", QuoteColumn("users."))
+}
