@@ -73,7 +73,7 @@ func Placeholders(repeat int) string {
 func backQuoteAndJoin(str ...string) string {
 	var result []string
 	for _, v := range str {
-		result = append(result, fmt.Sprintf("`%s`", v))
+		result = append(result, QuoteColumn(v))
 	}
 	return strings.Join(result, ",")
 }
@@ -83,4 +83,31 @@ func guardQuery(q string) error {
 		return xerrors.New("DANGER: empty query")
 	}
 	return nil
+}
+
+// QuoteColumn wrap identifiers with backquote and keep meta charactars (./*/`) intact.
+// Example:
+//
+//	users.id -> `users`.`id`
+//	users.* -> `users`.*
+func QuoteColumn(col string) string {
+	var sb strings.Builder
+	var start = 0
+	var end = len(col)
+	for i := 0; i < end; i++ {
+		char := col[i]
+		if char == '.' || char == '*' || char == '`' {
+			if start != i {
+				sb.WriteString(fmt.Sprintf("`%s`", col[start:i]))
+			}
+			if char != '`' {
+				sb.WriteByte(char)
+			}
+			start = i + 1
+		}
+	}
+	if start < end {
+		sb.WriteString(fmt.Sprintf("`%s`", col[start:end]))
+	}
+	return sb.String()
 }

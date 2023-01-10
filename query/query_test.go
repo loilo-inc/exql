@@ -9,7 +9,7 @@ import (
 func TestQuery(t *testing.T) {
 	assertQuery(t, q.V(1, 2), "?,?", 1, 2)
 	assertQuery(t, q.Vals([]int{1, 2}), "?,?", 1, 2)
-	assertQuery(t, q.Cols([]string{"a", "b"}), "`a`,`b`")
+	assertQuery(t, q.Cols("a.b", "c.*"), "`a`.`b`,`c`.*")
 	assertQuery(t, q.Q("id = ?", 1), "id = ?", 1)
 	assertQuery(t,
 		q.Set(map[string]any{"a": 1, "b": 2}),
@@ -17,7 +17,7 @@ func TestQuery(t *testing.T) {
 	)
 	assertQueryErr(t, q.Q(""), "DANGER: empty query")
 	assertQueryErr(t, q.Vals[any](nil), "empty values")
-	assertQueryErr(t, q.Cols(nil), "empty columns")
+	assertQueryErr(t, q.Cols(), "empty columns")
 	assertQueryErr(t, q.Set(map[string]any{}), "empty values for set clause")
 }
 

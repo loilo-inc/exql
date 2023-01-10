@@ -172,7 +172,7 @@ func Q(q string, args ...any) Query {
 	}
 }
 
-func Cols(cols []string) Query {
+func Cols(cols ...string) Query {
 	if len(cols) == 0 {
 		return errQuery(xerrors.Errorf("empty columns"))
 	}
