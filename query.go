@@ -14,7 +14,9 @@ func Where(str string, args ...any) q.Condition {
 type ModelMetadata struct {
 	TableName          string
 	AutoIncrementField *reflect.Value
-	Values             q.KeyIterator
+	PrimaryKeyColumns  []string
+	PrimaryKeyValues   []any
+	Values             q.KeyIterator[any]
 }
 
 func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
@@ -65,7 +67,8 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 	// *User -> User
 	objType = objType.Elem()
 	exqlTagCount := 0
-	var primaryKeyFields []*reflect.Value
+	var primaryKeyColumns []string
+	var primaryKeyValues []any
 	var autoIncrementField *reflect.Value
 	for i := 0; i < objType.NumField(); i++ {
 		f := objType.Field(i)
@@ -81,7 +84,8 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 			exqlTagCount++
 			if _, primary := tags["primary"]; primary {
 				primaryKeyField := objValue.Elem().Field(i)
-				primaryKeyFields = append(primaryKeyFields, &primaryKeyField)
+				primaryKeyColumns = append(primaryKeyColumns, colName)
+				primaryKeyValues = append(primaryKeyValues, primaryKeyField.Interface())
 			}
 			if _, autoIncrement := tags["auto_increment"]; autoIncrement {
 				field := objValue.Elem().Field(i)
@@ -96,7 +100,7 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 		return nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
 	}
 
-	if len(primaryKeyFields) == 0 {
+	if len(primaryKeyColumns) == 0 {
 		return nil, xerrors.Errorf("table has no primary key")
 	}
 
@@ -107,6 +111,8 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 	return &ModelMetadata{
 		TableName:          tableName,
 		AutoIncrementField: autoIncrementField,
+		PrimaryKeyColumns:  primaryKeyColumns,
+		PrimaryKeyValues:   primaryKeyValues,
 		Values:             q.NewKeyIterator(data),
 	}, nil
 }

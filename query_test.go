@@ -5,6 +5,7 @@ import (
 
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v2/model/testmodel"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
@@ -65,8 +66,25 @@ func TestAggregateModelMetadata(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "users", m.TableName)
 		assert.NotNil(t, m.AutoIncrementField)
+		assert.ElementsMatch(t, []string{"id"}, m.PrimaryKeyColumns)
+		assert.ElementsMatch(t, []any{int64(0)}, m.PrimaryKeyValues)
 		assert.ElementsMatch(t, []string{"first_name", "last_name"}, m.Values.Keys())
 		assert.ElementsMatch(t, []any{null.StringFrom("first"), null.StringFrom("name")}, m.Values.Values())
+	})
+	t.Run("multiple primary key", func(t *testing.T) {
+		data := &testmodel.MultiplePrimaryKey{
+			Pk1:   "val1",
+			Pk2:   "val2",
+			Other: 1,
+		}
+		md, err := exql.AggregateModelMetadata(data)
+		assert.NoError(t, err)
+		assert.Equal(t, data.TableName(), md.TableName)
+		assert.Nil(t, md.AutoIncrementField)
+		assert.ElementsMatch(t, []string{"pk1", "pk2"}, md.PrimaryKeyColumns)
+		assert.ElementsMatch(t, []any{"val1", "val2"}, md.PrimaryKeyValues)
+		assert.ElementsMatch(t, []string{"pk1", "pk2", "other"}, md.Values.Keys())
+		assert.ElementsMatch(t, []any{"val1", "val2", 1}, md.Values.Values())
 	})
 	assertInvalid := func(t *testing.T, m exql.Model, e string) {
 		s, f, err := exql.QueryForInsert(m)
@@ -82,20 +100,19 @@ func TestAggregateModelMetadata(t *testing.T) {
 		assertInvalid(t, user, "object must be pointer of struct")
 	})
 	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
-		var sam sampleBadTableName
-		assertInvalid(t, &sam, "empty table name")
+		assertInvalid(t, &testmodel.BadTableName{}, "empty table name")
 	})
 	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
-		var sam sampleNoColumnTag
-		assertInvalid(t, &sam, "column tag is not set")
+		assertInvalid(t, &testmodel.NoColumnTag{}, "column tag is not set")
 	})
 	t.Run("should error if field tag is invalid", func(t *testing.T) {
-		var sam sampleBadTag
-		assertInvalid(t, &sam, "duplicated tag: a")
+		assertInvalid(t, &testmodel.BadTag{}, "duplicated tag: a")
 	})
 	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
-		var sam sampleNoPrimaryKey
-		assertInvalid(t, &sam, "table has no primary key")
+		assertInvalid(t, &testmodel.NoPrimaryKey{}, "table has no primary key")
+	})
+	t.Run("shoud error if no exql tags found", func(t *testing.T) {
+		assertInvalid(t, &testmodel.NoTag{}, "obj doesn't have exql tags in any fields")
 	})
 }
 
