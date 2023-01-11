@@ -2,10 +2,9 @@ package exql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
-
-	"golang.org/x/xerrors"
 )
 
 type Mapper interface {
@@ -33,7 +32,7 @@ func NewMapper() Mapper {
 }
 
 // Error returned when record not found
-var ErrRecordNotFound = xerrors.New("record not found")
+var ErrRecordNotFound = errors.New("record not found")
 
 type ColumnSplitter func(i int) string
 

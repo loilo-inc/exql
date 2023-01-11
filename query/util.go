@@ -1,11 +1,10 @@
 package query
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 type keyIterator[T any] struct {
@@ -80,7 +79,7 @@ func backQuoteAndJoin(str ...string) string {
 
 func guardQuery(q string) error {
 	if q == "" {
-		return xerrors.New("DANGER: empty query")
+		return errors.New("DANGER: empty query")
 	}
 	return nil
 }
