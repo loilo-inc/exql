@@ -12,60 +12,11 @@ import (
 	"github.com/loilo-inc/exql/v2/mocks/mock_exql"
 	"github.com/loilo-inc/exql/v2/mocks/mock_query"
 	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v2/model/testmodel"
 	q "github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
-
-type sampleBadTableName struct {
-	Id int `exql:"column:id;primary;auto_increment"`
-}
-
-func (sampleBadTableName) TableName() string {
-	return ""
-}
-
-type sampleNoPrimaryKey struct {
-	Id int `exql:"column:id;auto_increment"`
-}
-
-func (sampleNoPrimaryKey) TableName() string {
-	return ""
-}
-
-type sampleNoColumnTag struct {
-	Id int `exql:"primary;auto_increment"`
-}
-
-func (sampleNoColumnTag) TableName() string {
-	return ""
-}
-
-type sampleBadTag struct {
-	Id int `exql:"a;a:1"`
-}
-
-func (sampleBadTag) TableName() string {
-	return ""
-}
-
-type sampleNoAutoIncrementKey struct {
-	Id   int    `exql:"column:id;primary"`
-	Name string `exql:"column:name"`
-}
-
-func (s *sampleNoAutoIncrementKey) TableName() string {
-	return "sampleNoAutoIncrementKey"
-}
-
-type samplePrimaryUint64 struct {
-	Id   uint64 `exql:"column:id;primary;auto_increment"`
-	Name string `exql:"column:name"`
-}
-
-func (s *samplePrimaryUint64) TableName() string {
-	return "samplePrimaryUint64"
-}
 
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
@@ -128,7 +79,7 @@ func TestSaver_Insert(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
 		s := exql.NewSaver(db)
-		user := &samplePrimaryUint64{}
+		user := &testmodel.PrimaryUint64{}
 		_, err := s.Insert(user)
 		assert.NoError(t, err)
 		assert.Equal(t, uint64(11), user.Id)
@@ -137,7 +88,7 @@ func TestSaver_Insert(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
 		s := exql.NewSaver(db)
-		user := &sampleNoAutoIncrementKey{
+		user := &testmodel.PrimaryUint64{
 			Id: 1,
 		}
 		_, err := s.Insert(user)

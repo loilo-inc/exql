@@ -8,20 +8,20 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type keyIterator struct {
+type keyIterator[T any] struct {
 	keys   []string
-	values []any
+	values []T
 }
 
-type KeyIterator interface {
-	Get(i int) (string, any)
+type KeyIterator[T any] interface {
+	Get(i int) (string, T)
 	Keys() []string
-	Values() []any
+	Values() []T
 	Size() int
-	Map() map[string]any
+	Map() map[string]T
 }
 
-func NewKeyIterator(data map[string]any) KeyIterator {
+func NewKeyIterator[T any](data map[string]T) KeyIterator[T] {
 	var keys []string
 	for k := range data {
 		keys = append(keys, k)
@@ -29,33 +29,33 @@ func NewKeyIterator(data map[string]any) KeyIterator {
 	sort.Slice(keys, func(i, j int) bool {
 		return strings.Compare(keys[i], keys[j]) < 0
 	})
-	var values []any
+	var values []T
 	for _, v := range keys {
 		values = append(values, data[v])
 	}
-	return &keyIterator{keys: keys, values: values}
+	return &keyIterator[T]{keys: keys, values: values}
 }
 
-func (e *keyIterator) Get(i int) (string, any) {
+func (e *keyIterator[T]) Get(i int) (string, T) {
 	k := e.keys[i]
 	v := e.values[i]
 	return k, v
 }
 
-func (e *keyIterator) Size() int {
+func (e *keyIterator[T]) Size() int {
 	return len(e.keys)
 }
 
-func (k *keyIterator) Keys() []string {
+func (k *keyIterator[T]) Keys() []string {
 	return k.keys
 }
 
-func (k *keyIterator) Values() []any {
+func (k *keyIterator[T]) Values() []T {
 	return k.values
 }
 
-func (k *keyIterator) Map() map[string]any {
-	res := map[string]any{}
+func (k *keyIterator[T]) Map() map[string]T {
+	res := map[string]T{}
 	for i := 0; i < k.Size(); i++ {
 		res[k.keys[i]] = k.values[i]
 	}
