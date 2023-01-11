@@ -2,10 +2,9 @@
 package query
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 type Query interface {
@@ -38,7 +37,7 @@ func (f *query) Query() (sqlStmt string, sqlArgs []any, resErr error) {
 			break
 		}
 		if argIdx == len(args) {
-			resErr = xerrors.Errorf("missing argument at %d", argIdx)
+			resErr = fmt.Errorf("missing argument at %d", argIdx)
 			return
 		}
 		mStart := match[0]
@@ -46,7 +45,7 @@ func (f *query) Query() (sqlStmt string, sqlArgs []any, resErr error) {
 		if mEnd-mStart == 2 {
 			// :?
 			if q, ok := args[argIdx].(Query); !ok {
-				resErr = xerrors.Errorf("unexpected argument type for :? placeholder at %d", argIdx)
+				resErr = fmt.Errorf("unexpected argument type for :? placeholder at %d", argIdx)
 				return
 			} else if stmt, vals, err := q.Query(); err != nil {
 				resErr = err
@@ -66,7 +65,7 @@ func (f *query) Query() (sqlStmt string, sqlArgs []any, resErr error) {
 		argIdx += 1
 	}
 	if len(args) != argIdx {
-		resErr = xerrors.Errorf("arguments count mismatch: found %d, got %d", argIdx, len(args))
+		resErr = fmt.Errorf("arguments count mismatch: found %d, got %d", argIdx, len(args))
 		return
 	}
 	if len(str) > 0 {
@@ -174,7 +173,7 @@ func Q(q string, args ...any) Query {
 
 func Cols(cols ...string) Query {
 	if len(cols) == 0 {
-		return errQuery(xerrors.Errorf("empty columns"))
+		return errQuery(fmt.Errorf("empty columns"))
 	}
 	return &query{
 		query: backQuoteAndJoin(cols...),
@@ -190,7 +189,7 @@ func V(a ...any) Query {
 
 func Vals[T any](vals []T) Query {
 	if len(vals) == 0 {
-		return errQuery(xerrors.Errorf("empty values"))
+		return errQuery(fmt.Errorf("empty values"))
 	}
 	var args []any
 	for _, v := range vals {
@@ -204,7 +203,7 @@ func Vals[T any](vals []T) Query {
 
 func Set(m map[string]any) Query {
 	if len(m) == 0 {
-		return errQuery(xerrors.Errorf("empty values for set clause"))
+		return errQuery(fmt.Errorf("empty values for set clause"))
 	}
 	b := NewBuilder()
 	it := NewKeyIterator(m)

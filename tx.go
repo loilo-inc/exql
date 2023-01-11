@@ -3,9 +3,9 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	q "github.com/loilo-inc/exql/v2/query"
-	"golang.org/x/xerrors"
 )
 
 type Tx interface {
@@ -102,7 +102,7 @@ func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 		return callback(tx)
 	}()
 	if p != nil {
-		txErr = xerrors.Errorf("recovered: %s", p)
+		txErr = fmt.Errorf("recovered: %s", p)
 	}
 	if txErr != nil {
 		if err := sqlTx.Rollback(); err != nil {

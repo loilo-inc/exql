@@ -4,10 +4,10 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"reflect"
 
 	q "github.com/loilo-inc/exql/v2/query"
-	"golang.org/x/xerrors"
 )
 
 type Saver interface {
@@ -78,9 +78,9 @@ func (s *saver) UpdateContext(
 	where q.Condition,
 ) (sql.Result, error) {
 	if table == "" {
-		return nil, xerrors.New("empty table name for update query")
+		return nil, errors.New("empty table name for update query")
 	} else if where == nil {
-		return nil, xerrors.New("nil condition for update query")
+		return nil, errors.New("nil condition for update query")
 	}
 	b := q.NewBuilder()
 	b.Sprintf("UPDATE `%s`", table)
@@ -94,9 +94,9 @@ func (s *saver) Delete(from string, where q.Condition) (sql.Result, error) {
 
 func (s *saver) DeleteContext(ctx context.Context, from string, where q.Condition) (sql.Result, error) {
 	if from == "" {
-		return nil, xerrors.New("empty table name for delete query")
+		return nil, errors.New("empty table name for delete query")
 	} else if where == nil {
-		return nil, xerrors.New("nil condition for delete query")
+		return nil, errors.New("nil condition for delete query")
 	}
 	b := q.NewBuilder()
 	b.Sprintf("DELETE FROM `%s`", from)
