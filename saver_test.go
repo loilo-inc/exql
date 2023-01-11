@@ -88,7 +88,7 @@ func TestSaver_Insert(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
 		s := exql.NewSaver(db)
-		user := &testmodel.PrimaryUint64{
+		user := &testmodel.NoAutoIncrementKey{
 			Id: 1,
 		}
 		_, err := s.Insert(user)
