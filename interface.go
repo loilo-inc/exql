@@ -6,7 +6,7 @@ import (
 	"database/sql"
 )
 
-// An abstraction of sql.DB/sql.Tx
+// Executor is an abstraction of sql.DB/sql.Tx
 type Executor interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -14,6 +14,11 @@ type Executor interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// Hook is an effect-free middleware for queries
+type Hook interface {
+	Hook(ctx context.Context, query string, args ...any)
 }
 
 type Model interface {

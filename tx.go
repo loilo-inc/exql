@@ -84,6 +84,14 @@ func (t *tx) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 	return t.m.MapMany(rows, pointerOfSliceOfStruct)
 }
 
+func (t *tx) AfterHook() *HookList {
+	return t.s.AfterHook()
+}
+
+func (t *tx) BeforeHook() *HookList {
+	return t.s.BeforeHook()
+}
+
 func (t *tx) Tx() *sql.Tx {
 	return t.tx
 }

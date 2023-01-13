@@ -153,6 +153,46 @@ func (mr *MockExecutorMockRecorder) QueryRowContext(ctx, query interface{}, args
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRowContext", reflect.TypeOf((*MockExecutor)(nil).QueryRowContext), varargs...)
 }
 
+// MockHook is a mock of Hook interface.
+type MockHook struct {
+	ctrl     *gomock.Controller
+	recorder *MockHookMockRecorder
+}
+
+// MockHookMockRecorder is the mock recorder for MockHook.
+type MockHookMockRecorder struct {
+	mock *MockHook
+}
+
+// NewMockHook creates a new mock instance.
+func NewMockHook(ctrl *gomock.Controller) *MockHook {
+	mock := &MockHook{ctrl: ctrl}
+	mock.recorder = &MockHookMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockHook) EXPECT() *MockHookMockRecorder {
+	return m.recorder
+}
+
+// Hook mocks base method.
+func (m *MockHook) Hook(ctx context.Context, query string, args ...any) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, query}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "Hook", varargs...)
+}
+
+// Hook indicates an expected call of Hook.
+func (mr *MockHookMockRecorder) Hook(ctx, query interface{}, args ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, query}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hook", reflect.TypeOf((*MockHook)(nil).Hook), varargs...)
+}
+
 // MockModel is a mock of Model interface.
 type MockModel struct {
 	ctrl     *gomock.Controller

@@ -25,14 +25,22 @@ type Saver interface {
 	QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error)
 	QueryRow(query q.Query) (*sql.Row, error)
 	QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error)
+	BeforeHook() *HookList
+	AfterHook() *HookList
 }
 
 type saver struct {
-	ex Executor
+	ex         Executor
+	beforeHook *HookList
+	afterHook  *HookList
+}
+
+func newSaver(ex Executor) *saver {
+	return &saver{ex: ex, beforeHook: &HookList{}, afterHook: &HookList{}}
 }
 
 func NewSaver(ex Executor) Saver {
-	return &saver{ex: ex}
+	return newSaver(ex)
 }
 
 func (s *saver) Insert(modelPtr Model) (sql.Result, error) {
@@ -124,49 +132,51 @@ func (s *saver) UpdateModelContext(
 }
 
 func (s *saver) Exec(query q.Query) (sql.Result, error) {
-	if stmt, args, err := query.Query(); err != nil {
-		return nil, err
-	} else {
-		return s.ex.Exec(stmt, args...)
-	}
+	return s.ExecContext(context.Background(), query)
 }
 
 func (s *saver) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
+		s.beforeHook.Hook(ctx, stmt, args...)
+		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.ExecContext(ctx, stmt, args...)
 	}
 }
 
 func (s *saver) Query(query q.Query) (*sql.Rows, error) {
-	if stmt, args, err := query.Query(); err != nil {
-		return nil, err
-	} else {
-		return s.ex.Query(stmt, args...)
-	}
+	return s.QueryContext(context.Background(), query)
 }
 
 func (s *saver) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
+		s.beforeHook.Hook(ctx, stmt, args...)
+		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.QueryContext(ctx, stmt, args...)
 	}
 }
 
 func (s *saver) QueryRow(query q.Query) (*sql.Row, error) {
-	if stmt, args, err := query.Query(); err != nil {
-		return nil, err
-	} else {
-		return s.ex.QueryRow(stmt, args...), nil
-	}
+	return s.QueryRowContext(context.Background(), query)
 }
 
 func (s *saver) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
+		s.beforeHook.Hook(ctx, stmt, args...)
+		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.QueryRowContext(ctx, stmt, args...), nil
 	}
+}
+
+func (s *saver) BeforeHook() *HookList {
+	return s.beforeHook
+}
+
+func (s *saver) AfterHook() *HookList {
+	return s.afterHook
 }

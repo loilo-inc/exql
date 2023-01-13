@@ -85,7 +85,7 @@ success:
 func NewDB(d *sql.DB) DB {
 	return &db{
 		db: d,
-		s:  &saver{ex: d},
+		s:  newSaver(d),
 		m:  &mapper{},
 	}
 }
@@ -152,6 +152,14 @@ func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
 
 func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 	return d.m.MapMany(rows, pointerOfSliceOfStruct)
+}
+
+func (d *db) BeforeHook() *HookList {
+	return d.s.BeforeHook()
+}
+
+func (d *db) AfterHook() *HookList {
+	return d.s.AfterHook()
 }
 
 func (d *db) Close() error {

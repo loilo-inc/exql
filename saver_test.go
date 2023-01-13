@@ -13,7 +13,7 @@ import (
 	"github.com/loilo-inc/exql/v2/mocks/mock_query"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/loilo-inc/exql/v2/model/testmodel"
-	q "github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
@@ -409,7 +409,7 @@ func (upSampleNoColumn) UpdateTableName() string {
 }
 
 func TestSaver_QueryExtra(t *testing.T) {
-	query := q.NewBuilder().Query("SELECT * FROM table WHERE id = ?", 1).Build()
+	query := query.NewBuilder().Query("SELECT * FROM table WHERE id = ?", 1).Build()
 	stmt := "SELECT * FROM table WHERE id = ?"
 	args := []any{1}
 	aErr := fmt.Errorf("err")
@@ -418,6 +418,12 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		ex := mock_exql.NewMockExecutor(ctrl)
 		s := exql.NewSaver(ex)
+		beforeHook := mock_exql.NewMockHook(ctrl)
+		afterHook := mock_exql.NewMockHook(ctrl)
+		beforeHook.EXPECT().Hook(gomock.Any(), stmt, args...)
+		afterHook.EXPECT().Hook(gomock.Any(), stmt, args...)
+		s.BeforeHook().Add(beforeHook)
+		s.AfterHook().Add(afterHook)
 		return ex, s
 	}
 	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, exql.Saver) {
@@ -425,12 +431,16 @@ func TestSaver_QueryExtra(t *testing.T) {
 		query := mock_query.NewMockQuery(ctrl)
 		query.EXPECT().Query().Return("", nil, aErr)
 		s := exql.NewSaver(nil)
+		beforeHook := mock_exql.NewMockHook(ctrl)
+		afterHook := mock_exql.NewMockHook(ctrl)
+		s.BeforeHook().Add(beforeHook)
+		s.AfterHook().Add(afterHook)
 		return query, s
 	}
 
 	t.Run("Exec", func(t *testing.T) {
 		ex, s := setup(t)
-		ex.EXPECT().Exec(stmt, args...).Return(nil, nil)
+		ex.EXPECT().ExecContext(ctx, stmt, args...).Return(nil, nil)
 		res, err := s.Exec(query)
 		assert.Nil(t, res)
 		assert.NoError(t, err)
@@ -456,7 +466,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 	})
 	t.Run("Query", func(t *testing.T) {
 		ex, s := setup(t)
-		ex.EXPECT().Query(stmt, args...).Return(nil, nil)
+		ex.EXPECT().QueryContext(ctx, stmt, args...).Return(nil, nil)
 		res, err := s.Query(query)
 		assert.Nil(t, res)
 		assert.NoError(t, err)
@@ -482,7 +492,7 @@ func TestSaver_QueryExtra(t *testing.T) {
 	})
 	t.Run("QueryRow", func(t *testing.T) {
 		ex, s := setup(t)
-		ex.EXPECT().QueryRow(stmt, args...).Return(nil)
+		ex.EXPECT().QueryRowContext(ctx, stmt, args...).Return(nil)
 		res, err := s.QueryRow(query)
 		assert.Nil(t, res)
 		assert.NoError(t, err)
