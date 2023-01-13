@@ -12,8 +12,13 @@ func TestQuery(t *testing.T) {
 	assertQuery(t, q.Cols("a.b", "c.*"), "`a`.`b`,`c`.*")
 	assertQuery(t, q.Q("id = ?", 1), "id = ?", 1)
 	assertQuery(t,
-		q.Set(map[string]any{"a": 1, "b": 2}),
-		"`a` = ?,`b` = ?", 1, 2,
+		q.Set(map[string]any{
+			"a":     "a",
+			"b":     "b",
+			"a.b.*": "ab*",
+			"`c`":   "c",
+		}),
+		"`c` = ?,`a` = ?,`a`.`b`.* = ?,`b` = ?", "c", "a", "ab*", "b",
 	)
 	assertQueryErr(t, q.Q(""), "DANGER: empty query")
 	assertQueryErr(t, q.Vals[any](nil), "empty values")

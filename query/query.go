@@ -209,7 +209,7 @@ func Set(m map[string]any) Query {
 	it := NewKeyIterator(m)
 	for i := 0; i < it.Size(); i++ {
 		k, v := it.Get(i)
-		b.Query("`:?` = ?", Q(k), v)
+		b.Query(":? = ?", Cols(k), v)
 	}
 	return b.Join(",")
 }
