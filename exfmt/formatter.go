@@ -3,7 +3,7 @@ package exfmt
 import (
 	"strings"
 
-	"github.com/kanmu/go-sqlfmt/lexer"
+	"github.com/loilo-inc/exql/v2/exfmt/lexer"
 )
 
 type Formatter struct {

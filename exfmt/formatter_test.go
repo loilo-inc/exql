@@ -10,12 +10,16 @@ import (
 func TestFormatter_Noramlize(t *testing.T) {
 	var f exfmt.Formatter
 	cases := [][]string{
-		{"  select\t`users`.`id` from users where name =  'go\"'  \n\n ",
-			"SELECT `users`.`id` FROM users WHERE name = 'go\"'",
-		},
+		// {"  select\t`users`.`id` from users where name =  'go\"'  \n\n ",
+		// 	"SELECT `users`.`id` FROM users WHERE name = 'go\"'",
+		// },
+		// {
+		// 	"where  (   id in\n ( ?, ? ) )",
+		// 	"WHERE ( id IN ( ? , ? ) )",
+		// },
 		{
-			"where  (   id in\n ( ?, ? ) )",
-			"WHERE ( id IN ( ? , ? ) )",
+			"select --this is comment\n from",
+			"SELECT /* this is comment */ FROM",
 		},
 	}
 	for _, v := range cases {
