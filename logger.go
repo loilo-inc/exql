@@ -8,12 +8,13 @@ import (
 
 type logger struct {
 	w     io.Writer
+	f     Formatter
 	onErr func(error)
 }
 
 func (l *logger) Hook(ctx context.Context, query string, args ...any) {
 	if _, err := fmt.Fprintf(
-		l.w, "%s \t %+v\n", query, args,
+		l.w, "%s\n", l.f.Normalize(query),
 	); err != nil && l.onErr != nil {
 		l.onErr(err)
 	}
