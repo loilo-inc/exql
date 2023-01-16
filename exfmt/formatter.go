@@ -22,6 +22,8 @@ func (f *Formatter) Normalize(q string) (string, error) {
 		switch token.Type {
 		case lexer.EOF:
 			goto end
+		case lexer.COMMENT:
+			continue
 		default:
 			dest = append(dest, token.Value)
 		}

@@ -1,3 +1,4 @@
+// MIT Licence:
 // Copyright (c) 2019 Yu Tanaka https://github.com/kanmu/go-sqlfmt
 // Copyright (c) 2023 LoiLo Inc
 package lexer
@@ -6,10 +7,17 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetTokens(t *testing.T) {
-	var testingSQLStatement = strings.Trim(`select name, age,sum, sum(case xxx) from user where name xxx and age = 'xxx' limit 100 except 100`, "`")
+	var testingSQLStatement = strings.Trim(`
+select name, age,sum, sum(case xxx) from user
+where name xxx and age = 'xxx'
+--single line comment
+limit 100 /* surrounded comment */
+except 100`, "`")
 	want := []Token{
 		{Type: SELECT, Value: "SELECT"},
 		{Type: IDENT, Value: "name"},
@@ -33,8 +41,10 @@ func TestGetTokens(t *testing.T) {
 		{Type: IDENT, Value: "age"},
 		{Type: IDENT, Value: "="},
 		{Type: STRING, Value: "'xxx'"},
+		{Type: COMMENT, Value: "single line comment"},
 		{Type: LIMIT, Value: "LIMIT"},
 		{Type: IDENT, Value: "100"},
+		{Type: COMMENT, Value: " surrounded comment "},
 		{Type: EXCEPT, Value: "EXCEPT"},
 		{Type: IDENT, Value: "100"},
 
@@ -176,6 +186,28 @@ func TestScanIdent(t *testing.T) {
 			if got := tnz.result[0]; got != tt.want {
 				t.Errorf("\nwant %v, \ngot %v", tt.want, got)
 			}
+		})
+	}
+}
+
+func TestScanComments(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		exp  string
+	}{
+		{name: "single line", src: "--comments\n", exp: "comments"},
+		{name: "surrounded", src: "/* comments\n */", exp: " comments\n "},
+	}
+	for _, v := range cases {
+		t.Run(v.name, func(t *testing.T) {
+			tnz := NewTokenizer(v.src)
+			ok, err := tnz.scan()
+			assert.False(t, ok)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, len(tnz.result))
+			assert.Equal(t, COMMENT, tnz.result[0].Type)
+			assert.Equal(t, v.exp, tnz.result[0].Value)
 		})
 	}
 }

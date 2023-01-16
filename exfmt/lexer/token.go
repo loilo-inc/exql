@@ -1,3 +1,4 @@
+// MIT Licence:
 // Copyright (c) 2019 Yu Tanaka https://github.com/kanmu/go-sqlfmt
 // Copyright (c) 2023 LoiLo Inc
 package lexer
@@ -92,6 +93,7 @@ const (
 
 	QUOTEAREA
 	SURROUNDING
+	COMMENT
 )
 
 // TokenType is an alias type that represents a kind of token

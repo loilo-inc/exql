@@ -1,3 +1,4 @@
+// MIT Licence:
 // Copyright (c) 2019 Yu Tanaka https://github.com/kanmu/go-sqlfmt
 // Copyright (c) 2023 LoiLo Inc
 package lexer
@@ -5,6 +6,7 @@ package lexer
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -126,6 +128,14 @@ func isEndBrace(ch rune) bool {
 	return ch == '}'
 }
 
+func isSlash(ch rune) bool {
+	return ch == '/'
+}
+
+func isHyphen(ch rune) bool {
+	return ch == '-'
+}
+
 // scan scans each character and appends to result until "eof" appears
 // when it finishes scanning all characters, it returns true
 func (t *Tokenizer) scan() (bool, error) {
@@ -183,6 +193,19 @@ func (t *Tokenizer) scan() (bool, error) {
 		t.result = append(t.result, token)
 		return false, nil
 	default:
+		if isHyphen(ch) {
+			if has, err := t.readIfHasPrefix([]rune{'-'}); err != nil {
+				return err.Error() == "EOF", err
+			} else if has {
+				return t.scanSingleLineComment()
+			}
+		} else if isSlash(ch) {
+			if has, err := t.readIfHasPrefix([]rune{'*'}); err != nil {
+				return err.Error() == "EOF", err
+			} else if has {
+				return t.scanSurroundedComment()
+			}
+		}
 		if err := t.scanIdent(); err != nil {
 			return false, err
 		}
@@ -297,6 +320,63 @@ func (t *Tokenizer) scanIdent() error {
 	}
 	t.append(t.w.String())
 	return nil
+}
+
+func (t *Tokenizer) readIfHasPrefix(p []rune) (bool, error) {
+	end := len(p)
+	for i := 0; i < end; i++ {
+		r, _, err := t.r.ReadRune()
+		if err != nil {
+			return false, err
+		}
+		if r != p[i] {
+			t.unread()
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (t *Tokenizer) scanSingleLineComment() (bool, error) {
+	return t.scanComment([]rune{'\n'}, "line break")
+}
+
+func (t *Tokenizer) scanSurroundedComment() (bool, error) {
+	return t.scanComment([]rune{'*', '/'}, "comment end")
+}
+
+func (t *Tokenizer) scanComment(prefix []rune, exp string) (bool, error) {
+	if finish, err := t.scanUntil(prefix, exp); err != nil {
+		return finish, err
+	} else {
+		tok := Token{Type: COMMENT, Value: t.w.String()}
+		t.result = append(t.result, tok)
+		t.w.Reset()
+		return finish, nil
+	}
+}
+
+func (t *Tokenizer) scanUntil(pat []rune, exp string) (bool, error) {
+	var loc = 0
+	var end = len(pat)
+	for {
+		r, _, err := t.r.ReadRune()
+		if err != nil {
+			if err.Error() == "EOF" {
+				return true, fmt.Errorf("unexpected eof, expecting %s", exp)
+			}
+			return false, err
+		}
+		if r == pat[loc] {
+			loc += 1
+		} else {
+			loc = 0
+			t.w.WriteRune(r)
+		}
+		if loc == end {
+			return false, nil
+		}
+	}
 }
 
 func (t *Tokenizer) append(v string) {
