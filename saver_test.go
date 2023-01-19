@@ -418,12 +418,6 @@ func TestSaver_QueryExtra(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		ex := mock_exql.NewMockExecutor(ctrl)
 		s := exql.NewSaver(ex)
-		beforeHook := mock_exql.NewMockHook(ctrl)
-		afterHook := mock_exql.NewMockHook(ctrl)
-		beforeHook.EXPECT().Hook(gomock.Any(), stmt, args...)
-		afterHook.EXPECT().Hook(gomock.Any(), stmt, args...)
-		s.BeforeHook().Add(beforeHook)
-		s.AfterHook().Add(afterHook)
 		return ex, s
 	}
 	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, exql.Saver) {
@@ -431,10 +425,6 @@ func TestSaver_QueryExtra(t *testing.T) {
 		query := mock_query.NewMockQuery(ctrl)
 		query.EXPECT().Query().Return("", nil, aErr)
 		s := exql.NewSaver(nil)
-		beforeHook := mock_exql.NewMockHook(ctrl)
-		afterHook := mock_exql.NewMockHook(ctrl)
-		s.BeforeHook().Add(beforeHook)
-		s.AfterHook().Add(afterHook)
 		return query, s
 	}
 

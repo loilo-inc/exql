@@ -7,6 +7,7 @@ import (
 	"errors"
 	"reflect"
 
+	"github.com/loilo-inc/exql/v2/exdriver"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -25,18 +26,16 @@ type Saver interface {
 	QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error)
 	QueryRow(query q.Query) (*sql.Row, error)
 	QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error)
-	BeforeHook() *HookList
-	AfterHook() *HookList
+	Hooks() *exdriver.HookList
 }
 
 type saver struct {
-	ex         Executor
-	beforeHook *HookList
-	afterHook  *HookList
+	ex   Executor
+	hook *exdriver.HookList
 }
 
 func newSaver(ex Executor) *saver {
-	return &saver{ex: ex, beforeHook: &HookList{}, afterHook: &HookList{}}
+	return &saver{ex: ex}
 }
 
 func NewSaver(ex Executor) Saver {
@@ -139,8 +138,6 @@ func (s *saver) ExecContext(ctx context.Context, query q.Query) (sql.Result, err
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
-		s.beforeHook.Hook(ctx, stmt, args...)
-		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.ExecContext(ctx, stmt, args...)
 	}
 }
@@ -153,8 +150,6 @@ func (s *saver) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, err
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
-		s.beforeHook.Hook(ctx, stmt, args...)
-		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.QueryContext(ctx, stmt, args...)
 	}
 }
@@ -167,16 +162,10 @@ func (s *saver) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, e
 	if stmt, args, err := query.Query(); err != nil {
 		return nil, err
 	} else {
-		s.beforeHook.Hook(ctx, stmt, args...)
-		defer s.afterHook.Hook(ctx, stmt, args...)
 		return s.ex.QueryRowContext(ctx, stmt, args...), nil
 	}
 }
 
-func (s *saver) BeforeHook() *HookList {
-	return s.beforeHook
-}
-
-func (s *saver) AfterHook() *HookList {
-	return s.afterHook
+func (s *saver) Hooks() *exdriver.HookList {
+	return s.hook
 }

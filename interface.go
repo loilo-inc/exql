@@ -16,11 +16,6 @@ type Executor interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// Hook is an effect-free middleware for queries
-type Hook interface {
-	Hook(ctx context.Context, query string, args ...any)
-}
-
 type Model interface {
 	TableName() string
 }

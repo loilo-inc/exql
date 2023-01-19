@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	"github.com/loilo-inc/exql/v2/exdriver"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -65,7 +66,12 @@ func Open(opts *OpenOptions) (DB, error) {
 		d, err = sql.Open(driverName, opts.Url)
 		if err != nil {
 			goto retry
-		} else if err = d.Ping(); err != nil {
+		} else {
+			dr := d.Driver()
+			conn := exdriver.NewConnector(dr, opts.Url)
+			d = sql.OpenDB(conn)
+		}
+		if err = d.Ping(); err != nil {
 			goto retry
 		} else {
 			goto success
@@ -154,12 +160,8 @@ func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 	return d.m.MapMany(rows, pointerOfSliceOfStruct)
 }
 
-func (d *db) BeforeHook() *HookList {
-	return d.s.BeforeHook()
-}
-
-func (d *db) AfterHook() *HookList {
-	return d.s.AfterHook()
+func (d *db) Hooks() *exdriver.HookList {
+	return d.s.Hooks()
 }
 
 func (d *db) Close() error {
@@ -176,7 +178,7 @@ func (d *db) SetDB(db *sql.DB) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.db = db
-	d.s.ex = db
+	d.s = newSaver(db)
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {

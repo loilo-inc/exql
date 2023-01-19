@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/loilo-inc/exql/v2/exdriver"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -15,7 +16,7 @@ type Tx interface {
 }
 
 type tx struct {
-	s  Saver
+	s  *saver
 	m  Mapper
 	tx *sql.Tx
 }
@@ -84,12 +85,12 @@ func (t *tx) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 	return t.m.MapMany(rows, pointerOfSliceOfStruct)
 }
 
-func (t *tx) AfterHook() *HookList {
-	return t.s.AfterHook()
+func (t *tx) Ex() Executor {
+	return t.s.ex
 }
 
-func (t *tx) BeforeHook() *HookList {
-	return t.s.BeforeHook()
+func (t *tx) Hooks() *exdriver.HookList {
+	return t.s.Hooks()
 }
 
 func (t *tx) Tx() *sql.Tx {
@@ -101,7 +102,7 @@ func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	if err != nil {
 		return err
 	}
-	tx := &tx{tx: sqlTx, s: NewSaver(sqlTx), m: NewMapper()}
+	tx := &tx{tx: sqlTx, s: newSaver(sqlTx), m: NewMapper()}
 	var p interface{}
 	txErr := func() error {
 		defer func() {

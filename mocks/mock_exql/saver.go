@@ -11,6 +11,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	exql "github.com/loilo-inc/exql/v2"
+	exdriver "github.com/loilo-inc/exql/v2/exdriver"
 	query "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -35,34 +36,6 @@ func NewMockSaver(ctrl *gomock.Controller) *MockSaver {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSaver) EXPECT() *MockSaverMockRecorder {
 	return m.recorder
-}
-
-// AfterHook mocks base method.
-func (m *MockSaver) AfterHook() *exql.HookList {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AfterHook")
-	ret0, _ := ret[0].(*exql.HookList)
-	return ret0
-}
-
-// AfterHook indicates an expected call of AfterHook.
-func (mr *MockSaverMockRecorder) AfterHook() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AfterHook", reflect.TypeOf((*MockSaver)(nil).AfterHook))
-}
-
-// BeforeHook mocks base method.
-func (m *MockSaver) BeforeHook() *exql.HookList {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BeforeHook")
-	ret0, _ := ret[0].(*exql.HookList)
-	return ret0
-}
-
-// BeforeHook indicates an expected call of BeforeHook.
-func (mr *MockSaverMockRecorder) BeforeHook() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BeforeHook", reflect.TypeOf((*MockSaver)(nil).BeforeHook))
 }
 
 // Delete mocks base method.
@@ -123,6 +96,20 @@ func (m *MockSaver) ExecContext(ctx context.Context, query query.Query) (sql.Res
 func (mr *MockSaverMockRecorder) ExecContext(ctx, query interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecContext", reflect.TypeOf((*MockSaver)(nil).ExecContext), ctx, query)
+}
+
+// Hooks mocks base method.
+func (m *MockSaver) Hooks() *exdriver.HookList {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Hooks")
+	ret0, _ := ret[0].(*exdriver.HookList)
+	return ret0
+}
+
+// Hooks indicates an expected call of Hooks.
+func (mr *MockSaverMockRecorder) Hooks() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hooks", reflect.TypeOf((*MockSaver)(nil).Hooks))
 }
 
 // Insert mocks base method.
