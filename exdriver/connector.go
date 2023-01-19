@@ -6,17 +6,21 @@ import (
 )
 
 type Connector struct {
-	dsn  string
-	dr   driver.Driver
-	hook *HookList
+	dsn   string
+	dr    driver.Driver
+	hooks *HookList
+}
+
+type HookDelegate interface {
+	QueryHook() QueryHook
 }
 
 // NewConnector returns wrapped driver.Connector for hooking queries.
 func NewConnector(dr driver.Driver, dsn string) *Connector {
 	return &Connector{
-		dr:   dr,
-		dsn:  dsn,
-		hook: &HookList{},
+		dr:    dr,
+		dsn:   dsn,
+		hooks: &HookList{},
 	}
 }
 
@@ -25,7 +29,7 @@ func (c *Connector) Connect(context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &connection{Conn: conn, hook: c.hook}, nil
+	return &connection{Conn: conn, hook: c.hooks}, nil
 }
 
 func (c *Connector) Driver() driver.Driver {
@@ -33,7 +37,7 @@ func (c *Connector) Driver() driver.Driver {
 }
 
 func (c *Connector) Hooks() *HookList {
-	return c.hook
+	return c.hooks
 }
 
 // Implements:
@@ -64,7 +68,7 @@ func (c *connection) Prepare(query string) (driver.Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &statement{stmt: stmt, hook: c.hook}, nil
+	return &statement{stmt: stmt, q: query, hook: c.hook}, nil
 }
 
 func (c *connection) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
@@ -83,7 +87,7 @@ func (c *connection) PrepareContext(ctx context.Context, query string) (driver.S
 	if err != nil {
 		return nil, err
 	}
-	return &statement{stmt: stmt, hook: c.hook}, nil
+	return &statement{stmt: stmt, q: query, hook: c.hook}, nil
 }
 
 func (c *connection) Ping(ctx context.Context) error {

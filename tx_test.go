@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/extest"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
 )
 
 func TestTx_Transaction(t *testing.T) {
-	db := testDb()
+	db := extest.DB
 	t.Run("basic", func(t *testing.T) {
 		var user *model.Users
 		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
@@ -74,7 +75,7 @@ func TestTx_Transaction(t *testing.T) {
 	})
 }
 func TestTx_Map(t *testing.T) {
-	db := testDb()
+	db := extest.DB
 	user := &model.Users{
 		FirstName: null.StringFrom("go"),
 		LastName:  null.StringFrom("land"),
@@ -105,7 +106,7 @@ func TestTx_MapMany(t *testing.T) {
 		FirstName: null.StringFrom("go"),
 		LastName:  null.StringFrom("land"),
 	}
-	db := testDb()
+	db := extest.DB
 	var dest []*model.Users
 	defer func() {
 		db.DB().Exec(`delete from users where id = ?`, user.Id)

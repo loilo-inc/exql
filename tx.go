@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/loilo-inc/exql/v2/exdriver"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -87,10 +86,6 @@ func (t *tx) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 
 func (t *tx) Ex() Executor {
 	return t.s.ex
-}
-
-func (t *tx) Hooks() *exdriver.HookList {
-	return t.s.Hooks()
 }
 
 func (t *tx) Tx() *sql.Tx {

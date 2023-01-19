@@ -7,6 +7,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/extest"
 
 	"github.com/apex/log"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +15,8 @@ import (
 
 func TestGenerator_Generate(t *testing.T) {
 	for version, db := range map[string]exql.DB{
-		"mysql5.7": testDb(),
-		"mysql8":   testDbMySQL8(),
+		"mysql5.7": extest.DB,
+		"mysql8":   extest.DB8,
 	} {
 		t.Run(version, func(t *testing.T) {
 			g := exql.NewGenerator(db.DB())

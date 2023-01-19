@@ -7,7 +7,6 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/loilo-inc/exql/v2/exdriver"
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -26,16 +25,14 @@ type Saver interface {
 	QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error)
 	QueryRow(query q.Query) (*sql.Row, error)
 	QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error)
-	Hooks() *exdriver.HookList
 }
 
 type saver struct {
-	ex   Executor
-	hook *exdriver.HookList
+	ex Executor
 }
 
 func newSaver(ex Executor) *saver {
-	return &saver{ex: ex, hook: &exdriver.HookList{}}
+	return &saver{ex: ex}
 }
 
 func NewSaver(ex Executor) Saver {
@@ -164,8 +161,4 @@ func (s *saver) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, e
 	} else {
 		return s.ex.QueryRowContext(ctx, stmt, args...), nil
 	}
-}
-
-func (s *saver) Hooks() *exdriver.HookList {
-	return s.hook
 }

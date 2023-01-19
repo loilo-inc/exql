@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/extest"
 	"github.com/loilo-inc/exql/v2/mocks/mock_exql"
 	"github.com/loilo-inc/exql/v2/mocks/mock_query"
 	"github.com/loilo-inc/exql/v2/model"
@@ -19,7 +20,7 @@ import (
 )
 
 func TestSaver_Insert(t *testing.T) {
-	d := testDb()
+	d := extest.DB
 	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
@@ -98,7 +99,7 @@ func TestSaver_Insert(t *testing.T) {
 }
 
 func TestSaver_InsertContext(t *testing.T) {
-	d := testDb()
+	d := extest.DB
 	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
@@ -208,7 +209,7 @@ func TestSaver_InsertContext(t *testing.T) {
 }
 
 func TestSaver_Update(t *testing.T) {
-	d := testDb()
+	d := extest.DB
 	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
@@ -308,7 +309,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 }
 
 func TestSaver_UpdateContext(t *testing.T) {
-	d := testDb()
+	d := extest.DB
 	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
@@ -506,10 +507,4 @@ func TestSaver_QueryExtra(t *testing.T) {
 		assert.Nil(t, res)
 		assert.Equal(t, aErr, err)
 	})
-}
-
-func TestSaver_Hooks(t *testing.T) {
-	s := exql.NewSaver(nil)
-	h := s.Hooks()
-	assert.NotNil(t, h)
 }

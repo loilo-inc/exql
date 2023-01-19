@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/extest"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/volatiletech/null"
@@ -165,8 +166,7 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.JSONEq(t, string(dest.JsonNullField.JSON), string(field.JsonNullField.JSON))
 }
 func TestMapper_MapMany(t *testing.T) {
-	db := testDb()
-	defer db.Close()
+	db := extest.DB
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users, reset := setupUsers(t, db)
@@ -252,7 +252,7 @@ func TestMapper_MapMany(t *testing.T) {
 }
 
 func TestMapper_Map(t *testing.T) {
-	db := testDb()
+	db := extest.DB
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users, reset := setupUsers(t, db)
@@ -344,8 +344,7 @@ func TestMapper_Map(t *testing.T) {
 }
 
 func TestDb_MapRowsSerial(t *testing.T) {
-	db := testDb()
-	defer db.Close()
+	db := extest.DB
 
 	user1 := &model.Users{
 		FirstName: null.StringFrom("user1"),

@@ -18,6 +18,10 @@ type DB interface {
 	DB() *sql.DB
 	// Set db object
 	SetDB(db *sql.DB)
+	// Hooks returns hook manager for sql queries.
+	// It panics if db connectin was not establised by exdriver.Connector,
+	// because there's no way to hook queries without hacking driver.Connector.
+	Hooks() *exdriver.HookList
 	// Begin transaction and commit.
 	// If error returned from callback, transaction is rolled back.
 	// Internally call tx.BeginTx(context.Background(), nil)
@@ -32,7 +36,8 @@ type DB interface {
 type db struct {
 	db    *sql.DB
 	s     *saver
-	m     *mapper
+	conn  *exdriver.Connector
+	m     mapper
 	mutex sync.Mutex
 }
 
@@ -60,40 +65,40 @@ func Open(opts *OpenOptions) (DB, error) {
 		retryInterval = opts.RetryInterval
 	}
 	var d *sql.DB
+	var conn *exdriver.Connector
 	var err error
 	retryCnt := 0
 	for retryCnt < maxRetryCount {
-		d, err = sql.Open(driverName, opts.Url)
+		d, conn, err = open(driverName, opts.Url)
 		if err != nil {
-			goto retry
+			log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
+			<-time.NewTimer(retryInterval).C
+			retryCnt++
 		} else {
-			dr := d.Driver()
-			conn := exdriver.NewConnector(dr, opts.Url)
-			d = sql.OpenDB(conn)
+			break
 		}
-		if err = d.Ping(); err != nil {
-			goto retry
-		} else {
-			goto success
-		}
-	retry:
-		log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
-		<-time.NewTimer(retryInterval).C
-		retryCnt++
 	}
 	if err != nil {
 		return nil, err
 	}
-success:
-	return NewDB(d), nil
+	return &db{db: d, conn: conn, s: newSaver(d)}, nil
+}
+
+func open(driverName string, dsn string) (*sql.DB, *exdriver.Connector, error) {
+	d, err := sql.Open(driverName, dsn)
+	if err != nil {
+		return nil, nil, err
+	}
+	conn := exdriver.NewConnector(d.Driver(), dsn)
+	d = sql.OpenDB(conn)
+	if err = d.Ping(); err != nil {
+		return nil, nil, err
+	}
+	return d, conn, nil
 }
 
 func NewDB(d *sql.DB) DB {
-	return &db{
-		db: d,
-		s:  newSaver(d),
-		m:  &mapper{},
-	}
+	return &db{db: d, s: newSaver(d)}
 }
 
 func (d *db) Insert(modelPtr Model) (sql.Result, error) {
@@ -161,7 +166,10 @@ func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
 }
 
 func (d *db) Hooks() *exdriver.HookList {
-	return d.s.Hooks()
+	if d.conn == nil {
+		panic("hooks is disabled because there's no hooked connector")
+	}
+	return d.conn.Hooks()
 }
 
 func (d *db) Close() error {
@@ -178,6 +186,7 @@ func (d *db) SetDB(db *sql.DB) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.db = db
+	d.conn = nil
 	d.s = newSaver(db)
 }
 
