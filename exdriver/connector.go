@@ -97,14 +97,22 @@ func (c *connection) Ping(ctx context.Context) error {
 
 func (c *connection) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	ex := c.Conn.(driver.ExecerContext)
+	res, err := ex.ExecContext(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
 	c.hook.HookQuery(ctx, query, args)
-	return ex.ExecContext(ctx, query, args)
+	return res, nil
 }
 
 func (c *connection) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	ex := c.Conn.(driver.QueryerContext)
+	res, err := ex.QueryContext(ctx, query, args)
+	if err != nil {
+		return nil, err
+	}
 	c.hook.HookQuery(ctx, query, args)
-	return ex.QueryContext(ctx, query, args)
+	return res, nil
 }
 
 func (c *connection) ResetSession(ctx context.Context) error {
@@ -146,14 +154,22 @@ func (s *statement) Query(args []driver.Value) (driver.Rows, error) {
 
 func (s *statement) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	ex := s.stmt.(driver.StmtExecContext)
+	res, err := ex.ExecContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
 	s.hook.HookQuery(ctx, s.q, args)
-	return ex.ExecContext(ctx, args)
+	return res, nil
 }
 
 func (s *statement) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	qr := s.stmt.(driver.StmtQueryContext)
+	res, err := qr.QueryContext(ctx, args)
+	if err != nil {
+		return nil, err
+	}
 	s.hook.HookQuery(ctx, s.q, args)
-	return qr.QueryContext(ctx, args)
+	return res, nil
 }
 
 type transaction struct {
@@ -162,11 +178,17 @@ type transaction struct {
 }
 
 func (t *transaction) Commit() error {
+	if err := t.tx.Commit(); err != nil {
+		return err
+	}
 	t.hook.HookQuery(context.Background(), "COMMIT", nil)
-	return t.tx.Commit()
+	return nil
 }
 
 func (t *transaction) Rollback() error {
+	if err := t.tx.Rollback(); err != nil {
+		return err
+	}
 	t.hook.HookQuery(context.Background(), "ROLLBACK", nil)
-	return t.tx.Rollback()
+	return nil
 }
