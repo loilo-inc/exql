@@ -35,7 +35,7 @@ type saver struct {
 }
 
 func newSaver(ex Executor) *saver {
-	return &saver{ex: ex}
+	return &saver{ex: ex, hook: &exdriver.HookList{}}
 }
 
 func NewSaver(ex Executor) Saver {

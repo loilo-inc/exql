@@ -507,3 +507,9 @@ func TestSaver_QueryExtra(t *testing.T) {
 		assert.Equal(t, aErr, err)
 	})
 }
+
+func TestSaver_Hooks(t *testing.T) {
+	s := exql.NewSaver(nil)
+	h := s.Hooks()
+	assert.NotNil(t, h)
+}
