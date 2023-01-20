@@ -13,18 +13,18 @@ import (
 type DB interface {
 	Saver
 	Mapper
-	// Return *sql.DB instance
+	// DB returns *sql.DB object.
 	DB() *sql.DB
-	// Set db object
+	// SetDB sets *sql.DB object.
 	SetDB(db *sql.DB)
-	// Begin transaction and commit.
+	// Transaction begins transaction and commits after callback called.
 	// If error returned from callback, transaction is rolled back.
-	// Internally call tx.BeginTx(context.Background(), nil)
+	// Internally call tx.BeginTx(context.Background(), nil).
 	Transaction(callback func(tx Tx) error) error
-	// Same as Transaction()
-	// Internally call tx.BeginTx(ctx, opts)
+	// TransactionWithContext is same as Transaction().
+	// Internally call tx.BeginTx(ctx, opts).
 	TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error
-	// Call db.Close()
+	// Close calls db.Close().
 	Close() error
 }
 
@@ -38,13 +38,25 @@ type db struct {
 type OpenOptions struct {
 	// @default "mysql"
 	DriverName string
-	Url        string
+	// DSN format for database connection.
+	Url string
 	// @default 5
 	MaxRetryCount int
 	// @default 5s
 	RetryInterval time.Duration
 }
 
+// Open opens connection to database and makes exql.DB interface.
+// If something failed, it retries automatically until given retry strategies satisfied
+// or aborts handshaking.
+//
+// Example:
+//
+//	db, err := exql.Open(&exql.OpenOptions{
+//		Url: "user:pass@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local",
+//		MaxRetryCount: 3,
+//		RetryInterval: 10, //sec
+//	})
 func Open(opts *OpenOptions) (DB, error) {
 	driverName := "mysql"
 	if opts.DriverName != "" {

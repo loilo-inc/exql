@@ -160,11 +160,11 @@ func (c *chain) Query() (string, []any, error) {
 	return stmt, args, nil
 }
 
-// New returns Query based on given query and argumentns.
+// New returns Query based on given query and arguments.
 // First argument query can contain exql placeholder format (:?) with corresponded Query in rest arguments.
-// Given query component will be interpolated internally and embeded into final sql statement.
-// Except :? placeholders, all static statement will be embeded barely with no assertions.
-// You must pay attension to input query if it is variable.
+// Given query component will be interpolated internally and embedded into final sql statement.
+// Except :? placeholders, all static statement will be embedded barely with no assertions.
+// You must pay attention to input query if it is variable.
 func New(q string, args ...any) Query {
 	return NewBuilder().Query(q, args...).Build()
 }
@@ -195,8 +195,8 @@ func Cols(cols ...string) Query {
 }
 
 // V wraps one or more values for prepared statement.
-// It counts number of values and interpolate go's sql placehoder(?), passing acutal values later.
-// Multiple values will be jained by comma(,).
+// It counts number of values and interpolate go's sql placeholder(?), passing acutal values later.
+// Multiple values will be joined by comma(,).
 //
 // Example:
 //
@@ -231,7 +231,7 @@ func Vals[T any](vals []T) Query {
 	}
 }
 
-// Set transforms map into "key = value" assigment expression in SQL.
+// Set transforms map into "key = value" assignment expression in SQL.
 // Example:
 //
 //	values := map[string]any{ "name": "go", "age": 20}

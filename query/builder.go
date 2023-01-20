@@ -11,7 +11,7 @@ type Builder struct {
 
 // Sprintf is short-hand for fmt.Sprintf.
 //
-// Exapmle:
+// Example:
 //
 //	b.Sprintf("%s", "go")
 //
