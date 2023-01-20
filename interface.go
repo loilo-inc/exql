@@ -6,7 +6,7 @@ import (
 	"database/sql"
 )
 
-// An abstraction of sql.DB/sql.Tx
+// Executor is an abstraction of both sql.DB/sql.Tx
 type Executor interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
