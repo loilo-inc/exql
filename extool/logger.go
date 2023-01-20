@@ -17,7 +17,8 @@ type logger struct {
 }
 
 func (l *logger) HookQuery(ctx context.Context, query string, args []driver.NamedValue) {
-	if q, err := l.f.Normalize(query); err != nil {
+	q, err := l.f.Normalize(query)
+	if err != nil {
 		l.onErr(err)
 	} else if _, err := fmt.Fprintf(l.w, "%s\n", q); err != nil {
 		l.onErr(err)

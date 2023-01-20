@@ -7,9 +7,10 @@ import (
 	"github.com/loilo-inc/exql/v2"
 )
 
-func testDb(dsn string) exql.DB {
+func testDb(dsn string, exp bool) exql.DB {
 	db, err := exql.Open(&exql.OpenOptions{
-		Url: dsn,
+		Url:                dsn,
+		Experimental_Hooks: exp,
 	})
 	if err != nil {
 		panic(err)
@@ -18,9 +19,10 @@ func testDb(dsn string) exql.DB {
 }
 
 var (
-	DB    = TestDb()
-	DB8   = TestDbMySQL8()
-	SqlDB = TestSqlDB()
+	DB     = TestDb()
+	DB_Exp = testDb(Dsn, true)
+	DB8    = TestDbMySQL8()
+	SqlDB  = TestSqlDB()
 )
 
 const (
@@ -29,11 +31,11 @@ const (
 )
 
 func TestDb() exql.DB {
-	return testDb(Dsn)
+	return testDb(Dsn, false)
 }
 
 func TestDbMySQL8() exql.DB {
-	return testDb(Dsn8)
+	return testDb(Dsn8, false)
 }
 
 func TestSqlDB() *sql.DB {

@@ -49,6 +49,8 @@ type OpenOptions struct {
 	MaxRetryCount int
 	// @default 5s
 	RetryInterval time.Duration
+	// Use experimental hooks feature
+	Experimental_Hooks bool
 }
 
 func Open(opts *OpenOptions) (DB, error) {
@@ -69,7 +71,7 @@ func Open(opts *OpenOptions) (DB, error) {
 	var err error
 	retryCnt := 0
 	for retryCnt < maxRetryCount {
-		d, conn, err = open(driverName, opts.Url)
+		d, conn, err = open(driverName, opts)
 		if err != nil {
 			log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
 			<-time.NewTimer(retryInterval).C
@@ -84,13 +86,16 @@ func Open(opts *OpenOptions) (DB, error) {
 	return &db{db: d, conn: conn, s: newSaver(d)}, nil
 }
 
-func open(driverName string, dsn string) (*sql.DB, *exdriver.Connector, error) {
-	d, err := sql.Open(driverName, dsn)
+func open(driverName string, opts *OpenOptions) (*sql.DB, *exdriver.Connector, error) {
+	d, err := sql.Open(driverName, opts.Url)
 	if err != nil {
 		return nil, nil, err
 	}
-	conn := exdriver.NewConnector(d.Driver(), dsn)
-	d = sql.OpenDB(conn)
+	var conn *exdriver.Connector
+	if opts.Experimental_Hooks {
+		conn = exdriver.NewConnector(d.Driver(), opts.Url)
+		d = sql.OpenDB(conn)
+	}
 	if err = d.Ping(); err != nil {
 		return nil, nil, err
 	}

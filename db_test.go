@@ -26,16 +26,12 @@ func TestNewDB(t *testing.T) {
 
 func TestDB_SetDB(t *testing.T) {
 	db := extest.TestDb()
-	assert.NotNil(t, db.Hooks())
 	db.SetDB(extest.SqlDB)
-	assert.PanicsWithValue(t,
-		"hooks is disabled because there's no hooked connector",
-		func() { db.Hooks() },
-	)
+	assert.Equal(t, extest.SqlDB, db.DB())
 }
 
 func TestDB_Hooks(t *testing.T) {
-	db := extest.TestDb()
+	db := extest.DB_Exp
 	ctrl := gomock.NewController(t)
 	hook := mock_exdriver.NewMockQueryHook(ctrl)
 	ctx := context.Background()
