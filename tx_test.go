@@ -8,7 +8,6 @@ import (
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null"
 )
 
 func TestTx_Transaction(t *testing.T) {
@@ -16,10 +15,7 @@ func TestTx_Transaction(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		var user *model.Users
 		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
-			user = &model.Users{
-				FirstName: null.StringFrom("go"),
-				LastName:  null.StringFrom("land"),
-			}
+			user = &model.Users{Name: "go"}
 			res, err := tx.Insert(user)
 			assert.NoError(t, err)
 			lid, err := res.LastInsertId()
@@ -37,10 +33,7 @@ func TestTx_Transaction(t *testing.T) {
 	t.Run("rollback", func(t *testing.T) {
 		var user *model.Users
 		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
-			user = &model.Users{
-				FirstName: null.StringFrom("go"),
-				LastName:  null.StringFrom("land"),
-			}
+			user = &model.Users{Name: "go"}
 			res, err := tx.Insert(user)
 			assert.NoError(t, err)
 			lid, err := res.LastInsertId()
@@ -58,10 +51,7 @@ func TestTx_Transaction(t *testing.T) {
 	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
 		var user *model.Users
 		err := exql.Transaction(db.DB(), context.Background(), nil, func(tx exql.Tx) error {
-			user = &model.Users{
-				FirstName: null.String{},
-				LastName:  null.String{},
-			}
+			user = &model.Users{}
 			_, err := tx.Insert(user)
 			assert.NoError(t, err)
 			panic("panic")
@@ -75,10 +65,7 @@ func TestTx_Transaction(t *testing.T) {
 }
 func TestTx_Map(t *testing.T) {
 	db := testDb()
-	user := &model.Users{
-		FirstName: null.StringFrom("go"),
-		LastName:  null.StringFrom("land"),
-	}
+	user := &model.Users{Name: "go"}
 	defer func() {
 		db.DB().Exec(`delete from users where id = ?`, user.Id)
 	}()
@@ -101,10 +88,7 @@ func TestTx_Map(t *testing.T) {
 }
 
 func TestTx_MapMany(t *testing.T) {
-	user := &model.Users{
-		FirstName: null.StringFrom("go"),
-		LastName:  null.StringFrom("land"),
-	}
+	user := &model.Users{Name: "go"}
 	db := testDb()
 	var dest []*model.Users
 	defer func() {

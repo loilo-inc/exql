@@ -17,8 +17,8 @@ type DB interface {
 	DB() *sql.DB
 	// SetDB sets *sql.DB object.
 	SetDB(db *sql.DB)
-	// Transaction begins transaction and commits after callback called.
-	// If error returned from callback, transaction is rolled back.
+	// Transaction begins a transaction and commits after the callback is called.
+	// If an error is returned from the callback, it is rolled back.
 	// Internally call tx.BeginTx(context.Background(), nil).
 	Transaction(callback func(tx Tx) error) error
 	// TransactionWithContext is same as Transaction().
@@ -46,7 +46,7 @@ type OpenOptions struct {
 	RetryInterval time.Duration
 }
 
-// Open opens connection to database and makes exql.DB interface.
+// Open opens the connection to the database and makes exql.DB interface.
 // If something failed, it retries automatically until given retry strategies satisfied
 // or aborts handshaking.
 //

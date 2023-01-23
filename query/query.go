@@ -161,15 +161,15 @@ func (c *chain) Query() (string, []any, error) {
 }
 
 // New returns Query based on given query and arguments.
-// First argument query can contain exql placeholder format (:?) with corresponded Query in rest arguments.
-// Given query component will be interpolated internally and embedded into final sql statement.
-// Except :? placeholders, all static statement will be embedded barely with no assertions.
-// You must pay attention to input query if it is variable.
+// First argument query can contain exql placeholder format (:?) with the corresponding Query in rest arguments.
+// Given query component will be interpolated internally and embedded into the final SQL statement.
+// Except (:?) placeholders, all static statements will be embedded barely with no assertions.
+// You must pay attention to the input query if it is variable.
 func New(q string, args ...any) Query {
 	return NewBuilder().Query(q, args...).Build()
 }
 
-// Q is short-hand version of New.
+// Q is a short-hand version of New.
 func Q(q string, args ...any) Query {
 	return &query{
 		query: q,
@@ -177,9 +177,9 @@ func Q(q string, args ...any) Query {
 	}
 }
 
-// Cols wraps given identifiers like column, table with backquote as possible.
-// It is used for embedding table name or columns into query dynamically.
-// If multiple values given, they will be joined by comma(,).
+// Cols wraps given identifiers like column, and table with backquote as possible.
+// It is used for embedding table names or columns into queries dynamically.
+// If multiple values are given, they will be joined by a comma(,).
 //
 // Example:
 //
@@ -194,8 +194,8 @@ func Cols(cols ...string) Query {
 	}
 }
 
-// V wraps one or more values for prepared statement.
-// It counts number of values and interpolate go's sql placeholder(?), passing acutal values later.
+// V wraps one or more values for the prepared statement.
+// It counts number of values and interpolates Go's SQL placeholder(?), holding  values for later.
 // Multiple values will be joined by comma(,).
 //
 // Example:
@@ -206,7 +206,7 @@ func Cols(cols ...string) Query {
 //
 //	db.Query(query.New("select * from users where id in (:?)", query.V(1,2)))
 //
-// is same as:
+// is the same as:
 //
 //	db.DB().Query("select * from users where id in (?,?)", 1, 2)
 func V(a ...any) Query {
@@ -216,7 +216,7 @@ func V(a ...any) Query {
 	}
 }
 
-// Vals is another form of V that accepts slice in generic type.
+// Vals is another form of V that accepts a slice in generic type.
 func Vals[T any](vals []T) Query {
 	if len(vals) == 0 {
 		return errQuery(fmt.Errorf("empty values"))
@@ -237,7 +237,7 @@ func Vals[T any](vals []T) Query {
 //	values := map[string]any{ "name": "go", "age": 20}
 //	db.Exec("update users set :? where id = ?", query.Set(values, 1))
 //
-// is same as:
+// is the same as:
 //
 //	db.DB().Exec("update users set age = ?, name = ? where id = ?", 20, "go", 1)
 func Set(m map[string]any) Query {

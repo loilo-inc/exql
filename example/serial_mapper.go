@@ -3,28 +3,19 @@ package main
 import (
 	"github.com/apex/log"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
 )
 
-type School struct {
-	Id   int64  `exql:"column:id;primary;not null;auto_increment"`
-	Name string `exql:"column:name;not null"`
-}
-type SchoolUsers struct {
-	Id       int64 `exql:"column:id;primary;not null;auto_increment"`
-	UserId   int64 `exql:"column:user_id;not null"`
-	SchoolId int64 `exql:"column:school_id;not null"`
-}
-
 /*
-school has many users
-users has many schools
+groups has many users
+users belongs to many groups
 */
 func MapSerial() {
 	query := `
 	SELECT * FROM users
-	JOIN school_users ON school_users.user_id = users.id
-	JOIN schools ON schools.id = school_users.id
-	WHERE schools.id = ?`
+	JOIN group_users ON group_users.user_id = users.id
+	JOIN groups ON groups.id = group_users.id
+	WHERE groups.name = ?`
 	rows, err := db.DB().Query(query, "goland")
 	if err != nil {
 		log.Errorf("err")
@@ -35,20 +26,20 @@ func MapSerial() {
 		// Each column's separator is `id`
 		return "id"
 	})
-	var users []*User
+	var users []*model.Users
 	for rows.Next() {
-		var user User
-		var schoolUser SchoolUsers
-		var school School
+		var user model.Users
+		var group_users model.GroupUsers
+		var group model.Groups
 		// Create serial mapper. It will split joined columns by logical tables.
 		// In this case, joined table and destination mappings are:
-		// |   users   |       school_users       |   school  |
+		// |   users   |       group_users        |  groups   |
 		// + --------- + ------------------------ + --------- +
-		// | id | name | id | user_id | school_id | id | name |
+		// | id | name | id | user_id |  group_id | id | name |
 		// + --------- + ------------------------ + --------- +
-		// |   &user   |       &schoolUser        |  &school  |
+		// |   &user   |       &group_users       |  &group   |
 		// + --------- + ------------------------ + --------- +
-		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
+		if err := serialMapper.Map(rows, &user, &group_users, &group); err != nil {
 			log.Error(err.Error())
 			return
 		}

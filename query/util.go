@@ -61,7 +61,7 @@ func (k *keyIterator[T]) Map() map[string]T {
 	return res
 }
 
-// Placeholders makes n-th repeats of Go's sql placeholder(?),
+// Placeholders makes n-th repeats of Go's SQL placeholder(?),
 // joining them by comma(,).
 //
 // Example:
@@ -90,8 +90,8 @@ func guardQuery(q string) error {
 	return nil
 }
 
-// QuoteColumn surrounds sql identifiers with backquote,
-// keeping some meta characters "*", ".", "`" intact.
+// QuoteColumn surrounds SQL identifiers with backquote,
+// keeping some meta-characters "*", ".", "`" intact.
 //
 // Example:
 //

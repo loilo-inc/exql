@@ -1,11 +1,53 @@
-# exql
+exql
+---
 [![codecov](https://codecov.io/gh/loilo-inc/exql/branch/master/graph/badge.svg?token=aGixN2xIMP)](https://codecov.io/gh/loilo-inc/exql)
 
-Safe, Strict and Clear ORM for Go
+Safe, strict and clear ORM for Go
+
+## Introduction
+
+exql is a simple ORM library for MySQL, written in Go. It is designed to work at the minimum for real software development. It has a few, limited but enough convenient functionalities of SQL database.
+We adopted the data mapper model, not the active record. Records in the database are mapped into structs simply. Each model has no state and also no methods to modify itself and sync database records. You need to write bare SQL code for every operation you need except for a few cases.
+
+exql is designed by focusing on safety and clearness in SQL usage. In other words, we never generate any SQL statements that are potentially dangerous or have ambiguous side effects across tables and the database.
+
+It does:
+
+- make insert/update query from model structs.
+- map rows returned from the database into structs.
+- map joined table into one or more structs.
+- provide a safe syntax for the transaction.
+- provide a framework to build dynamic SQL statements safely.
+- generate model codes automatically from the database.
+
+It DOESN'T
+
+- make delete/update statements across the table.
+- make unexpectedly slow select queries that don't use correct indices.
+- modify any database settings, schemas and indices.
+
+## Table of contents
+
+- [exql](#exql)
+- [Introduction](#introduction)
+- [Table of contents](#table-of-contents)
+- [Usage](#usage)
+  - [Open database connection](#open-database-connection)
+  - [Generate models from the database](#generate-models-from-the-database)
+- [Execute queries](#execute-queries)
+  - [Insert](#insert)
+  - [Update](#update)
+  - [Transaction](#transaction)
+- [Map rows into structs](#map-rows-into-structs)
+  - [Map rows](#map-rows)
+  - [For joined table](#for-joined-table)
+  - [For outer-joined table](#for-outer-joined-table)
+- [Using query builder](#using-query-builder)
+- [License](#license)
 
 ## Usage
 
-### Open
+### Open database connection
 
 ```go
 package main
@@ -34,7 +76,7 @@ func OpenDB() exql.DB {
 
 ```
 
-### Generate Models
+### Generate models from the database
 
 ```go
 package main
@@ -63,6 +105,8 @@ func GenerateModels() {
 }
 
 ```
+
+## Execute queries
 
 ### Insert
 
@@ -125,6 +169,45 @@ func Delete() {
 
 ```
 
+### Transaction
+
+```go
+package main
+
+import (
+	"context"
+	"database/sql"
+	"time"
+
+	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
+	"github.com/volatiletech/null"
+)
+
+func Transaction() {
+	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err := db.TransactionWithContext(timeout, &sql.TxOptions{
+		Isolation: sql.LevelDefault,
+		ReadOnly:  false,
+	}, func(tx exql.Tx) error {
+		user := model.Users{
+			FirstName: null.String{},
+			LastName:  null.String{},
+		}
+		_, err := tx.Insert(&user)
+		return err
+	})
+	if err != nil {
+		// Transaction has been rolled back
+	} else {
+		// Transaction has been committed
+	}
+}
+
+```
+
+## Map rows into structs
+
 ### Map rows
 
 ```go
@@ -140,7 +223,7 @@ func Map() {
 	} else {
 		// Destination model struct
 		var user User
-		// Passing destination to Map(). Second argument must be a pointer of model struct.
+		// Passing destination to Map(). The second argument must be a pointer of the model.
 		if err := db.Map(rows, &user); err != nil {
 			log.Error(err.Error())
 		}
@@ -153,8 +236,8 @@ func MapMany() {
 	if err != nil {
 		log.Errorf(err.Error())
 	} else {
-		// Destination model structs.
-		// NOTE: It must be slice of pointer of model structure
+		// Destination slice of models.
+		// NOTE: It must be the slice of pointers of models.
 		var users []*User
 		// Passing destination to MapMany().
 		// Second argument must be a pointer.
@@ -167,7 +250,7 @@ func MapMany() {
 
 ```
 
-### Map joined rows
+### For joined table
 
 ```go
 package main
@@ -231,7 +314,7 @@ func MapSerial() {
 
 ```
 
-#### In case of outer join
+### For outer-joined table
 
 ```go
 package main
@@ -275,41 +358,46 @@ func MapSerialOuterJoin() {
 
 ```
 
-### Transaction
+## Using query builder
 
 ```go
 package main
 
 import (
-	"context"
-	"database/sql"
-	"time"
-
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/volatiletech/null"
+	"github.com/loilo-inc/exql/v2/query"
 )
 
-func Transaction() {
-	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err := db.TransactionWithContext(timeout, &sql.TxOptions{
-		Isolation: sql.LevelDefault,
-		ReadOnly:  false,
-	}, func(tx exql.Tx) error {
-		user := model.Users{
-			FirstName: null.String{},
-			LastName:  null.String{},
-		}
-		_, err := tx.Insert(&user)
-		return err
-	})
-	if err != nil {
-		// Transaction has been rolled back
-	} else {
-		// Transaction has been committed
-	}
+func Query() {
+	query.New(
+		`SELECT * FROM users WHERE id IN (:?) AND age = ?`,
+		query.V(1, 2, 3), 20,
+	)
+	// SELECT * FROM users WHERE id IN (?,?,?) AND age = ?
+	// [1,2,3,20]
+}
+
+func QueryBulider() {
+	qb := query.NewBuilder()
+	qb.Sprintf("SELECT * FROM %s", "users")
+	qb.Query("WHERE id IN (:?) AND age >= ?", query.V(1, 2), 20)
+	// SELECT * FROM users WHERE id IN (?,?) AND age >= ?
+	// [1,2,20]
+	_, _ = db.Query(qb.Build())
+}
+
+func CondBulider() {
+	cond := query.Cond("id = ?", 1)
+	cond.And("age >= ?", 20)
+	cond.And("name in (:?)", query.V("go", "lang"))
+	q := query.New("SELECT * FROM users WHERE :?", cond)
+	// SELECT * FROM users WHERE id = ? and age >= ? and name in (?,?)
+	// [1, 20, go, lang]
+	_, _ = db.Query(q)
 }
 
 ```
 
-```
+## License
+
+MIT License / Copyright (c) 2020-Present LoiLo inc.
+
