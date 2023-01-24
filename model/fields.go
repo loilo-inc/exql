@@ -63,7 +63,7 @@ type Fields struct {
 	JsonNullField                  null.JSON       `exql:"column:json_null_field;type:json" json:"json_null_field"`
 }
 
-func (f Fields) TableName() string {
+func (f *Fields) TableName() string {
 	return FieldsTableName
 }
 
@@ -125,7 +125,7 @@ type UpdateFields struct {
 	JsonNullField                  *null.JSON       `exql:"column:json_null_field;type:json" json:"json_null_field"`
 }
 
-func (f UpdateFields) UpdateTableName() string {
+func (f *UpdateFields) UpdateTableName() string {
 	return FieldsTableName
 }
 

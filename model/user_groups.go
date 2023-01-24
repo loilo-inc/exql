@@ -6,7 +6,7 @@ type UserGroups struct {
 	Name string `exql:"column:name;type:varchar(255);not null" json:"name"`
 }
 
-func (u UserGroups) TableName() string {
+func (u *UserGroups) TableName() string {
 	return UserGroupsTableName
 }
 
@@ -15,7 +15,7 @@ type UpdateUserGroups struct {
 	Name *string `exql:"column:name;type:varchar(255);not null" json:"name"`
 }
 
-func (u UpdateUserGroups) UpdateTableName() string {
+func (u *UpdateUserGroups) UpdateTableName() string {
 	return UserGroupsTableName
 }
 

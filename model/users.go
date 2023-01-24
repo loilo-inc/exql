@@ -9,7 +9,7 @@ type Users struct {
 	LastName  null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
-func (u Users) TableName() string {
+func (u *Users) TableName() string {
 	return UsersTableName
 }
 
@@ -19,7 +19,7 @@ type UpdateUsers struct {
 	LastName  *null.String `exql:"column:last_name;type:varchar(255)" json:"last_name"`
 }
 
-func (u UpdateUsers) UpdateTableName() string {
+func (u *UpdateUsers) UpdateTableName() string {
 	return UsersTableName
 }
 
