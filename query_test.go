@@ -51,7 +51,7 @@ func TestQueryForBulkInsert(t *testing.T) {
 		}, args)
 	})
 	t.Run("error if args empty", func(t *testing.T) {
-		q, err := exql.QueryForBulkInsert[model.Users]()
+		q, err := exql.QueryForBulkInsert[*model.Users]()
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty list")
 	})
@@ -95,10 +95,6 @@ func TestAggregateModelMetadata(t *testing.T) {
 	t.Run("should error if dest is nil", func(t *testing.T) {
 		assertInvalid(t, nil, "pointer is nil")
 	})
-	t.Run("should error if dest is not pointer", func(t *testing.T) {
-		user := model.Users{}
-		assertInvalid(t, user, "object must be pointer of struct")
-	})
 	t.Run("should error if TableName() doesn't return string", func(t *testing.T) {
 		assertInvalid(t, &testmodel.BadTableName{}, "empty table name")
 	})
@@ -138,10 +134,6 @@ func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("should error if pointer is nil", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(nil, nil)
 		assert.EqualError(t, err, "pointer is nil")
-	})
-	t.Run("should error if not pointer", func(t *testing.T) {
-		_, err := exql.QueryForUpdateModel(model.UpdateUsers{}, nil)
-		assert.EqualError(t, err, "must be pointer of struct")
 	})
 	t.Run("should error if has invalid tag", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(&upSampleInvalidTag{}, nil)
