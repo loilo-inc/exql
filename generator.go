@@ -155,7 +155,7 @@ type {{.Model}} struct {
 {{.Fields}}
 }
 
-func ({{.M}} {{.Model}}) TableName() string {
+func ({{.M}} *{{.Model}}) TableName() string {
 	return {{.Model}}TableName
 }
 
@@ -163,7 +163,7 @@ type Update{{.Model}} struct {
 {{.UpdaterFields}}
 }
 
-func ({{.M}} Update{{.Model}}) UpdateTableName() string {
+func ({{.M}} *Update{{.Model}}) UpdateTableName() string {
 	return {{.Model}}TableName
 }
 
