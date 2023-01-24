@@ -8,15 +8,16 @@ import (
 func main() {
 	t := template.Must(template.ParseFiles("template/README.md"))
 	data := map[string]string{
-		"Open":               catFile("open.go"),
-		"GenerateModels":     catFile("generator.go"),
-		"Insert":             catFile("insert.go"),
-		"Update":             catFile("update.go"),
-		"MapRows":            catFile("mapper.go"),
-		"MapJoinedRows":      catFile("serial_mapper.go"),
-		"MapOuterJoinedRows": catFile("outer_join.go"),
-		"Tx":                 catFile("tx.go"),
-		"QueryBuilder":       catFile("query_builder.go"),
+		"Open":               catFile("example/open.go"),
+		"GenerateModels":     catFile("example/generator.go"),
+		"Insert":             catFile("example/insert.go"),
+		"Update":             catFile("example/update.go"),
+		"MapRows":            catFile("example/mapper.go"),
+		"MapJoinedRows":      catFile("example/serial_mapper.go"),
+		"MapOuterJoinedRows": catFile("example/outer_join.go"),
+		"Tx":                 catFile("example/tx.go"),
+		"QueryBuilder":       catFile("example/query_builder.go"),
+		"AutoGenerateCode":   catFile("model/users.go"),
 	}
 	o, err := os.Create("README.md")
 	if err != nil {
@@ -28,7 +29,7 @@ func main() {
 }
 
 func catFile(f string) string {
-	s, err := os.ReadFile("example/" + f)
+	s, err := os.ReadFile(f)
 	if err != nil {
 		panic(err)
 	}

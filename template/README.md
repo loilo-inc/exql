@@ -34,8 +34,6 @@ It DOESN'T
 - [Usage](#usage)
   - [Open database connection](#open-database-connection)
   - [Code Generation](#code-generation)
-    - [Generate models from the database](#generate-models-from-the-database)
-    - [Auto-Generated code](#auto-generated-code)
   - [Execute queries](#execute-queries)
     - [Insert](#insert)
     - [Update](#update)
@@ -56,18 +54,34 @@ It DOESN'T
 ```
 
 ### Code Generation
+exql provides an automated code generator of models based on the database schema. This is a typical table schema of MySQL database.
 
-#### Generate models from the database
+```
+mysql> show columns from users;
++-------+--------------+------+-----+---------+----------------+
+| Field | Type         | Null | Key | Default | Extra          |
++-------+--------------+------+-----+---------+----------------+
+| id    | int(11)      | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(255) | NO   |     | NULL    |                |
+| age   | int(11)      | NO   |     | NULL    |                |
++-------+--------------+------+-----+---------+----------------+
+```
+
+To generate model codes, based on the schema, you need to write the code like this:
 
 ```go
 {{.GenerateModels}}
 ```
 
-#### Auto-Generated code
+And results are mostly like this:
 
 ```go
 {{.AutoGenerateCode}}
 ```
+
+`Users` is the destination of the data mapper. It only has value fields and one method, `TableName()`. This is the implementation of `exql.Model` that can be passed into data saver. All structs, methods and field tags must be preserved as it is, for internal use. If you want to modify the results, you must run the generator again.
+
+`UpdateUsers` is a partial structure for the data model. It has identical name fields to `Users`, but all types are represented as a pointer. It is used to update table columns partially. In other words, it is a designated, typesafe map for the model.
 
 ### Execute queries
 
