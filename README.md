@@ -33,16 +33,18 @@ It DOESN'T
 - [Table of contents](#table-of-contents)
 - [Usage](#usage)
   - [Open database connection](#open-database-connection)
-  - [Generate models from the database](#generate-models-from-the-database)
-- [Execute queries](#execute-queries)
-  - [Insert](#insert)
-  - [Update](#update)
+  - [Code Generation](#code-generation)
+    - [Generate models from the database](#generate-models-from-the-database)
+    - [Auto-Generated code](#auto-generated-code)
+  - [Execute queries](#execute-queries)
+    - [Insert](#insert)
+    - [Update](#update)
   - [Transaction](#transaction)
-- [Map rows into structs](#map-rows-into-structs)
-  - [Map rows](#map-rows)
-  - [For joined table](#for-joined-table)
-  - [For outer-joined table](#for-outer-joined-table)
-- [Using query builder](#using-query-builder)
+  - [Map rows into structs](#map-rows-into-structs)
+    - [Map rows](#map-rows)
+    - [For joined table](#for-joined-table)
+    - [For outer-joined table](#for-outer-joined-table)
+  - [Use query builder](#use-query-builder)
 - [License](#license)
 
 ## Usage
@@ -76,7 +78,9 @@ func OpenDB() exql.DB {
 
 ```
 
-### Generate models from the database
+### Code Generation
+
+#### Generate models from the database
 
 ```go
 package main
@@ -106,38 +110,62 @@ func GenerateModels() {
 
 ```
 
-## Execute queries
+#### Auto-Generated code
 
-### Insert
+```go
+<no value>
+```
+
+### Execute queries
+
+#### Insert
 
 ```go
 package main
 
 import (
-	"github.com/apex/log"
+	"log"
+
+	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
 )
 
-func main() {
-	// Create user model
-	// Primary key (id) is not needed to set. It will be ignored on building insert query.
-	user := User{
+func Insert() {
+	// Create a user model
+	// Primary key (id) is not needed to set.
+	// It will be ignored on building the insert query.
+	user := model.Users{
 		Name: "Go",
 	}
-	// You must pass model as a pointer.
+	// You must pass the model as a pointer.
 	if result, err := db.Insert(&user); err != nil {
-		log.Error(err.Error())
+		log.Fatal(err.Error())
 	} else {
 		insertedId, _ := result.LastInsertId()
-		// Inserted id is inserted into primary key field after insertion, if field is int64/uint64
+		// Inserted id is assigned into the auto-increment field after the insertion,
+		// if these field is int64/uint64
 		if insertedId != user.Id {
-			log.Fatalf("impossible")
+			log.Fatal("never happens")
 		}
 	}
 }
 
+func BulkInsert() {
+	user1 := model.Users{Name: "Go"}
+	user2 := model.Users{Name: "Lang"}
+	// INSERT INTO users (name) VALUES (?),(?)
+	// ["Go", "Lang"]
+	if q, err := exql.QueryForBulkInsert(user1, user2); err != nil {
+		log.Fatal(err)
+	} else if _, err := db.Exec(q); err != nil {
+		log.Fatal(err)
+	}
+	// NOTE: unlike a single insertion, bulk insertion doesn't obtain auto-incremented values from results.
+}
+
 ```
 
-### Update
+#### Update
 
 ```go
 package main
@@ -181,7 +209,6 @@ import (
 
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
-	"github.com/volatiletech/null"
 )
 
 func Transaction() {
@@ -190,10 +217,7 @@ func Transaction() {
 		Isolation: sql.LevelDefault,
 		ReadOnly:  false,
 	}, func(tx exql.Tx) error {
-		user := model.Users{
-			FirstName: null.String{},
-			LastName:  null.String{},
-		}
+		user := model.Users{Name: "go"}
 		_, err := tx.Insert(&user)
 		return err
 	})
@@ -206,14 +230,17 @@ func Transaction() {
 
 ```
 
-## Map rows into structs
+### Map rows into structs
 
-### Map rows
+#### Map rows
 
 ```go
 package main
 
-import "github.com/apex/log"
+import (
+	"github.com/apex/log"
+	"github.com/loilo-inc/exql/v2/model"
+)
 
 func Map() {
 	// select query
@@ -222,7 +249,7 @@ func Map() {
 		log.Errorf(err.Error())
 	} else {
 		// Destination model struct
-		var user User
+		var user model.Users
 		// Passing destination to Map(). The second argument must be a pointer of the model.
 		if err := db.Map(rows, &user); err != nil {
 			log.Error(err.Error())
@@ -238,7 +265,7 @@ func MapMany() {
 	} else {
 		// Destination slice of models.
 		// NOTE: It must be the slice of pointers of models.
-		var users []*User
+		var users []*model.Users
 		// Passing destination to MapMany().
 		// Second argument must be a pointer.
 		if err := db.MapMany(rows, &users); err != nil {
@@ -250,7 +277,7 @@ func MapMany() {
 
 ```
 
-### For joined table
+#### For joined table
 
 ```go
 package main
@@ -258,28 +285,19 @@ package main
 import (
 	"github.com/apex/log"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
 )
 
-type School struct {
-	Id   int64  `exql:"column:id;primary;not null;auto_increment"`
-	Name string `exql:"column:name;not null"`
-}
-type SchoolUsers struct {
-	Id       int64 `exql:"column:id;primary;not null;auto_increment"`
-	UserId   int64 `exql:"column:user_id;not null"`
-	SchoolId int64 `exql:"column:school_id;not null"`
-}
-
 /*
-school has many users
-users has many schools
+groups has many users
+users belongs to many groups
 */
 func MapSerial() {
 	query := `
 	SELECT * FROM users
-	JOIN school_users ON school_users.user_id = users.id
-	JOIN schools ON schools.id = school_users.id
-	WHERE schools.id = ?`
+	JOIN group_users ON group_users.user_id = users.id
+	JOIN groups ON groups.id = group_users.id
+	WHERE groups.name = ?`
 	rows, err := db.DB().Query(query, "goland")
 	if err != nil {
 		log.Errorf("err")
@@ -290,20 +308,20 @@ func MapSerial() {
 		// Each column's separator is `id`
 		return "id"
 	})
-	var users []*User
+	var users []*model.Users
 	for rows.Next() {
-		var user User
-		var schoolUser SchoolUsers
-		var school School
+		var user model.Users
+		var group_users model.GroupUsers
+		var group model.Groups
 		// Create serial mapper. It will split joined columns by logical tables.
 		// In this case, joined table and destination mappings are:
-		// |   users   |       school_users       |   school  |
+		// |   users   |       group_users        |  groups   |
 		// + --------- + ------------------------ + --------- +
-		// | id | name | id | user_id | school_id | id | name |
+		// | id | name | id | user_id |  group_id | id | name |
 		// + --------- + ------------------------ + --------- +
-		// |   &user   |       &schoolUser        |  &school  |
+		// |   &user   |       &group_users       |  &group   |
 		// + --------- + ------------------------ + --------- +
-		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
+		if err := serialMapper.Map(rows, &user, &group_users, &group); err != nil {
 			log.Error(err.Error())
 			return
 		}
@@ -314,7 +332,7 @@ func MapSerial() {
 
 ```
 
-### For outer-joined table
+#### For outer-joined table
 
 ```go
 package main
@@ -322,13 +340,14 @@ package main
 import (
 	"github.com/apex/log"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
 )
 
 func MapSerialOuterJoin() {
 	query := `
 	SELECT * FROM users
-	LEFT JOIN school_users ON school_users.user_id = users.id
-	LEFT JOIN schools ON schools.id = school_users.id
+	LEFT JOIN group_users ON group_users.user_id = users.id
+	LEFT JOIN groups ON groups.id = group_users.id
 	WHERE users.id = ?`
 	rows, err := db.DB().Query(query, 1)
 	if err != nil {
@@ -340,25 +359,25 @@ func MapSerialOuterJoin() {
 		// Each column's separator is `id`
 		return "id"
 	})
-	var users []*User
-	var schools []*School
+	var users []*model.Users
+	var groups []*model.Groups
 	for rows.Next() {
-		var user User
-		var schoolUser *SchoolUsers // Use *SchoolUsers/*School for outer join so that it can be nil
-		var school *School          // when the values of outer joined columns are NULL.
-		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
+		var user model.Users
+		var groupUser *model.GroupUsers // Use *GroupUsers/*Group for outer join so that it can be nil
+		var group *model.Groups         // when the values of outer joined columns are NULL.
+		if err := serialMapper.Map(rows, &user, &groupUser, &group); err != nil {
 			log.Error(err.Error())
 			return
 		}
 		users = append(users, &user)
-		schools = append(schools, school) // school = nil when the user does not belong to any school.
+		groups = append(groups, group) // group = nil when the user does not belong to any group.
 	}
-	// enumerate users and schools.
+	// enumerate users and groups.
 }
 
 ```
 
-## Using query builder
+### Use query builder
 
 ```go
 package main
@@ -368,12 +387,13 @@ import (
 )
 
 func Query() {
-	query.New(
+	q := query.New(
 		`SELECT * FROM users WHERE id IN (:?) AND age = ?`,
 		query.V(1, 2, 3), 20,
 	)
 	// SELECT * FROM users WHERE id IN (?,?,?) AND age = ?
 	// [1,2,3,20]
+	db.Query(q)
 }
 
 func QueryBulider() {
@@ -382,7 +402,7 @@ func QueryBulider() {
 	qb.Query("WHERE id IN (:?) AND age >= ?", query.V(1, 2), 20)
 	// SELECT * FROM users WHERE id IN (?,?) AND age >= ?
 	// [1,2,20]
-	_, _ = db.Query(qb.Build())
+	db.Query(qb.Build())
 }
 
 func CondBulider() {
@@ -392,7 +412,7 @@ func CondBulider() {
 	q := query.New("SELECT * FROM users WHERE :?", cond)
 	// SELECT * FROM users WHERE id = ? and age >= ? and name in (?,?)
 	// [1, 20, go, lang]
-	_, _ = db.Query(q)
+	db.Query(q)
 }
 
 ```
