@@ -20,7 +20,7 @@ type partialUser struct {
 	Name string `exql:"column:name"`
 }
 
-func setupUsers(t *testing.T, db exql.DB) ([]*model.Users, func()) {
+func setupUsers(t *testing.T, db exql.DB) []*model.Users {
 	user1 := &model.Users{
 		Name: "user1",
 		Age:  10,
@@ -33,12 +33,14 @@ func setupUsers(t *testing.T, db exql.DB) ([]*model.Users, func()) {
 	assert.NoError(t, err)
 	_, err = db.Insert(user2)
 	assert.NoError(t, err)
-	return []*model.Users{user1, user2}, func() {
+	t.Cleanup(func() {
 		db.DB().Exec(`DELETE FROM users WHERE id = ?`, user1.Id)
 		db.DB().Exec(`DELETE FROM users WHERE id = ?`, user2.Id)
-	}
+	})
+	return []*model.Users{user1, user2}
 }
-func setupFields(t *testing.T, db exql.DB) (*model.Fields, func()) {
+
+func setupFields(t *testing.T, db exql.DB) *model.Fields {
 	now := time.Unix(time.Now().Unix(), 0)
 	tinyBlob := []byte("tinyblob")
 	mediumBlob := []byte("mediumblob")
@@ -104,9 +106,10 @@ func setupFields(t *testing.T, db exql.DB) (*model.Fields, func()) {
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)
 	assert.NoError(t, err)
-	return &field, func() {
+	t.Cleanup(func() {
 		db.DB().Exec(`DELETE FROM fields WHERE id = ?`, field.Id)
-	}
+	})
+	return &field
 }
 func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.Equal(t, dest.TinyintField, field.TinyintField)
@@ -169,8 +172,7 @@ func TestMapper_MapMany(t *testing.T) {
 	defer db.Close()
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
-		users, reset := setupUsers(t, db)
-		defer reset()
+		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM users WHERE id IN (?,?) ORDER BY id`, users[0].Id, users[1].Id)
 			assert.NoError(t, err)
@@ -185,8 +187,7 @@ func TestMapper_MapMany(t *testing.T) {
 		})
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
+		field := setupFields(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)
@@ -255,8 +256,7 @@ func TestMapper_Map(t *testing.T) {
 	db := testDb()
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
-		users, reset := setupUsers(t, db)
-		defer reset()
+		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(
 				`SELECT * FROM users WHERE id IN (?, ?) ORDER BY id`,
@@ -282,8 +282,7 @@ func TestMapper_Map(t *testing.T) {
 		})
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
+		field := setupFields(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM fields WHERE id = ?", field.Id)
 			assert.NoError(t, err)
@@ -365,7 +364,7 @@ func TestDb_MapRowsSerial(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = db.Insert(user3)
 	assert.NoError(t, err)
-	group := &model.Groups{
+	group := &model.UserGroups{
 		Name: "group1",
 	}
 	_, err = db.Insert(group)
@@ -394,14 +393,14 @@ func TestDb_MapRowsSerial(t *testing.T) {
 		query := `
 SELECT * FROM users
 JOIN group_users on group_users.user_id = users.id
-JOIN groups on group_users.group_id = groups.id
-WHERE groups.id = ?
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ?
 `
 		rows, err := db.DB().Query(query, group.Id)
 		assert.NoError(t, err)
 		var users []*model.Users
 		for rows.Next() {
-			var group model.Groups
+			var group model.UserGroups
 			var user model.Users
 			var mem model.GroupUsers
 			err := m.Map(rows, &user, &group, &mem)
@@ -419,17 +418,17 @@ WHERE groups.id = ?
 	})
 	t.Run("subset", func(t *testing.T) {
 		query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 JOIN group_users on group_users.user_id = users.id
-JOIN groups on group_users.group_id = groups.id
-WHERE groups.id = ?
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ?
 `
 		rows, err := db.DB().Query(query, group.Id)
 		assert.NoError(t, err)
 		var users []*model.Users
-		var groups []*model.Groups
+		var groups []*model.UserGroups
 		for rows.Next() {
-			var group model.Groups
+			var group model.UserGroups
 			var user model.Users
 			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
@@ -448,9 +447,9 @@ WHERE groups.id = ?
 	})
 	t.Run("outer join", func(t *testing.T) {
 		query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
-LEFT JOIN groups on group_users.group_id = groups.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
 WHERE users.id IN (?, ?)
 ORDER BY users.id
 `
@@ -458,10 +457,10 @@ ORDER BY users.id
 
 		assert.NoError(t, err)
 		var users []*model.Users
-		var groups []*model.Groups
+		var groups []*model.UserGroups
 		for rows.Next() {
 			var user model.Users
-			var group *model.Groups
+			var group *model.UserGroups
 			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
 			users = append(users, &user)
@@ -473,14 +472,14 @@ ORDER BY users.id
 		assert.Equal(t, user1, users[0])
 		assert.Equal(t, group, groups[0])
 		assert.Equal(t, user3, users[1])
-		assert.Equal(t, (*model.Groups)(nil), groups[1])
+		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 
 	t.Run("partial", func(t *testing.T) {
 		query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
-LEFT JOIN groups on group_users.group_id = groups.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
 WHERE users.id IN (?, ?)
 ORDER BY users.id
 `
@@ -488,9 +487,9 @@ ORDER BY users.id
 
 		assert.NoError(t, err)
 		var users []*partialUser
-		var groups []*model.Groups
+		var groups []*model.UserGroups
 		for rows.Next() {
-			var group *model.Groups
+			var group *model.UserGroups
 			var user *partialUser
 			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
@@ -503,12 +502,10 @@ ORDER BY users.id
 		assert.Equal(t, user1.Id, users[0].Id)
 		assert.Equal(t, group, groups[0])
 		assert.Equal(t, user3.Id, users[1].Id)
-		assert.Equal(t, (*model.Groups)(nil), groups[1])
+		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
-
+		field := setupFields(t, db)
 		t.Run("struct", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)
@@ -531,10 +528,10 @@ ORDER BY users.id
 	t.Run("should return error if head column is not found", func(t *testing.T) {
 		t.Run("inner join case", func(t *testing.T) {
 			query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 JOIN group_users on group_users.user_id = users.id
-JOIN groups on group_users.group_id = groups.id
-WHERE groups.id = ? ORDER BY users.id LIMIT 1
+JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
@@ -543,7 +540,7 @@ WHERE groups.id = ? ORDER BY users.id LIMIT 1
 			})
 			for rows.Next() {
 				var user model.Users
-				var ug model.Groups
+				var ug model.UserGroups
 				err := m.Map(rows, &user, &ug)
 				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
 				break
@@ -551,10 +548,10 @@ WHERE groups.id = ? ORDER BY users.id LIMIT 1
 		})
 		t.Run("outer join case", func(t *testing.T) {
 			query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
-LEFT JOIN groups on group_users.group_id = groups.id
-WHERE groups.id = ? ORDER BY users.id LIMIT 1
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
+WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
@@ -563,7 +560,7 @@ WHERE groups.id = ? ORDER BY users.id LIMIT 1
 			})
 			for rows.Next() {
 				var user model.Users
-				var ug *model.Groups
+				var ug *model.UserGroups
 				err := m.Map(rows, &user, &ug)
 				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
 				break
@@ -573,16 +570,16 @@ WHERE groups.id = ? ORDER BY users.id LIMIT 1
 	})
 	t.Run("should return error if dest is *struct and left join column is null", func(t *testing.T) {
 		query := `
-SELECT users.*, groups.* FROM users
+SELECT users.*, user_groups.* FROM users
 LEFT JOIN group_users on group_users.user_id = users.id
-LEFT JOIN groups on group_users.group_id = groups.id
+LEFT JOIN user_groups on group_users.group_id = user_groups.id
 WHERE users.id = ?
 `
 		rows, err := db.DB().Query(query, user3.Id)
 
 		assert.NoError(t, err)
 		for rows.Next() {
-			var group model.Groups
+			var group model.UserGroups
 			var user model.Users
 			err := m.Map(rows, &user, &group)
 			assert.NotNil(t, err)
