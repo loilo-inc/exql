@@ -3,7 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/apex/log"
+	"log"
+
 	"github.com/loilo-inc/exql/v2"
 )
 

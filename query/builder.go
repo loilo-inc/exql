@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Builder is dynamic SQL query builder.
+// Builder is a dynamic SQL query builder.
 type Builder struct {
 	qs []Query
 }
@@ -15,20 +15,20 @@ type Builder struct {
 //
 //	b.Sprintf("%s", "go")
 //
-// is same as:
+// is the same as:
 //
 //	b.Query(fmt.Sprintf("%s", "go"))
 func (b *Builder) Sprintf(str string, args ...any) *Builder {
 	return b.Query(fmt.Sprintf(str, args...))
 }
 
-// Query appends given query component and arguments.
+// Query appends the given query component and arguments into the buffer.
 //
 // Example:
 //
 //	b.Query(":?", query.V(1,2))
 //
-// is same as:
+// is the same as:
 //
 //	b.Add(query.Q(":?", query.V(1,2)))
 func (b *Builder) Query(str string, args ...any) *Builder {
@@ -47,7 +47,7 @@ func (b *Builder) Build() Query {
 	return b.Join(" ")
 }
 
-// Clone makes a shallow copy of builder.
+// Clone makes a shallow copy of the builder.
 func (b *Builder) Clone() *Builder {
 	return NewBuilder(b.qs...)
 }

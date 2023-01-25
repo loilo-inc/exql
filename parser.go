@@ -157,16 +157,38 @@ func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
 	}, nil
 }
 
+var (
+	intPat    = regexp.MustCompile(`^(tiny|small|medium|big)?int(\(\d+?\))?( unsigned)?( zerofill)?$`)
+	floatPat  = regexp.MustCompile(`^float$`)
+	doublePat = regexp.MustCompile(`^double$`)
+	charPat   = regexp.MustCompile(`^(var)?char\(\d+?\)$`)
+	textPat   = regexp.MustCompile(`^(tiny|medium|long)?text$`)
+	blobPat   = regexp.MustCompile(`^(tiny|medium|long)?blob$`)
+	datePat   = regexp.MustCompile(`^(date|datetime|datetime\(\d\)|timestamp|timestamp\(\d\))$`)
+	timePat   = regexp.MustCompile(`^(time|time\(\d\))$`)
+	jsonPat   = regexp.MustCompile(`^json$`)
+)
+
+const (
+	nullUint64Type  = "null.Uint64"
+	nullInt64Type   = "null.Int64"
+	uint64Type      = "uint64"
+	int64Type       = "int64"
+	nullFloat64Type = "null.Float64"
+	float64Type     = "float64"
+	nullFloat32Type = "null.Float32"
+	float32Type     = "float32"
+	nullTimeType    = "null.Time"
+	timeType        = "time.Time"
+	nullStrType     = "null.String"
+	strType         = "string"
+	nullBytesType   = "null.Bytes"
+	bytesType       = "[]byte"
+	nullJsonType    = "null.JSON"
+	jsonType        = "json.RawMessage"
+)
+
 func ParseType(t string, nullable bool) (string, error) {
-	intPat := regexp.MustCompile(`^(tiny|small|medium|big)?int(\(\d+?\))?( unsigned)?( zerofill)?$`)
-	floatPat := regexp.MustCompile(`^float$`)
-	doublePat := regexp.MustCompile(`^double$`)
-	charPat := regexp.MustCompile(`^(var)?char\(\d+?\)$`)
-	textPat := regexp.MustCompile(`^(tiny|medium|long)?text$`)
-	blobPat := regexp.MustCompile(`^(tiny|medium|long)?blob$`)
-	datePat := regexp.MustCompile(`^(date|datetime|datetime\(\d\)|timestamp|timestamp\(\d\))$`)
-	timePat := regexp.MustCompile(`^(time|time\(\d\))$`)
-	jsonPat := regexp.MustCompile(`^json$`)
 	if intPat.MatchString(t) {
 		m := intPat.FindStringSubmatch(t)
 		unsigned := strings.Contains(t, "unsigned")
@@ -180,52 +202,52 @@ func ParseType(t string, nullable bool) (string, error) {
 		}
 		if nullable {
 			if unsigned && is64 {
-				return "null.Uint64", nil
+				return nullUint64Type, nil
 			} else {
-				return "null.Int64", nil
+				return nullInt64Type, nil
 			}
 		} else {
 			if unsigned && is64 {
-				return "uint64", nil
+				return uint64Type, nil
 			} else {
-				return "int64", nil
+				return int64Type, nil
 			}
 		}
 	} else if datePat.MatchString(t) {
 		if nullable {
-			return "null.Time", nil
+			return nullTimeType, nil
 		}
-		return "time.Time", nil
+		return timeType, nil
 	} else if timePat.MatchString(t) {
 		if nullable {
-			return "null.String", nil
+			return nullStrType, nil
 		}
-		return "string", nil
+		return strType, nil
 	} else if textPat.MatchString(t) || charPat.MatchString(t) {
 		if nullable {
-			return "null.String", nil
+			return nullStrType, nil
 		}
-		return "string", nil
+		return strType, nil
 	} else if floatPat.MatchString(t) {
 		if nullable {
-			return "null.Float32", nil
+			return nullFloat32Type, nil
 		}
-		return "float32", nil
+		return float32Type, nil
 	} else if doublePat.MatchString(t) {
 		if nullable {
-			return "null.Float64", nil
+			return nullFloat64Type, nil
 		}
-		return "float64", nil
+		return float64Type, nil
 	} else if blobPat.MatchString(t) {
 		if nullable {
-			return "null.Bytes", nil
+			return nullBytesType, nil
 		}
-		return "[]byte", nil
+		return bytesType, nil
 	} else if jsonPat.MatchString(t) {
 		if nullable {
-			return "null.JSON", nil
+			return nullJsonType, nil
 		}
-		return "json.RawMessage", nil
+		return jsonType, nil
 	}
 	return "", fmt.Errorf("unknown type: %s", t)
 }

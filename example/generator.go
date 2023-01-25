@@ -1,13 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v2"
 )
 
 func GenerateModels() {
-	gen := exql.NewGenerator(db.DB())
+	db, _ := sql.Open("mysql", "url-for-db")
+	gen := exql.NewGenerator(db)
 	err := gen.Generate(&exql.GenerateOptions{
 		// Directory path for result. Default is `model`
 		OutDir: "dist",

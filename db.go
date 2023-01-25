@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apex/log"
+	"log"
+
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -17,8 +18,8 @@ type DB interface {
 	DB() *sql.DB
 	// SetDB sets *sql.DB object.
 	SetDB(db *sql.DB)
-	// Transaction begins transaction and commits after callback called.
-	// If error returned from callback, transaction is rolled back.
+	// Transaction begins a transaction and commits after the callback is called.
+	// If an error is returned from the callback, it is rolled back.
 	// Internally call tx.BeginTx(context.Background(), nil).
 	Transaction(callback func(tx Tx) error) error
 	// TransactionWithContext is same as Transaction().
@@ -46,7 +47,7 @@ type OpenOptions struct {
 	RetryInterval time.Duration
 }
 
-// Open opens connection to database and makes exql.DB interface.
+// Open opens the connection to the database and makes exql.DB interface.
 // If something failed, it retries automatically until given retry strategies satisfied
 // or aborts handshaking.
 //
@@ -83,7 +84,7 @@ func Open(opts *OpenOptions) (DB, error) {
 			goto success
 		}
 	retry:
-		log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
+		log.Printf("failed to connect database: %s, retrying after %ds...\n", err, int(retryInterval.Seconds()))
 		<-time.NewTimer(retryInterval).C
 		retryCnt++
 	}

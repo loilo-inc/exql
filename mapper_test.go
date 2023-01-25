@@ -16,29 +16,31 @@ import (
 )
 
 type partialUser struct {
-	Id       int64       `exql:"column:id;primary"`
-	LastName null.String `exql:"column:last_name"`
+	Id   int64  `exql:"column:id;primary"`
+	Name string `exql:"column:name"`
 }
 
-func setupUsers(t *testing.T, db exql.DB) ([]*model.Users, func()) {
+func setupUsers(t *testing.T, db exql.DB) []*model.Users {
 	user1 := &model.Users{
-		FirstName: null.StringFrom("user1"),
-		LastName:  null.StringFrom("name"),
+		Name: "user1",
+		Age:  10,
 	}
 	user2 := &model.Users{
-		FirstName: null.StringFrom("user2"),
-		LastName:  null.StringFrom("name"),
+		Name: "user2",
+		Age:  20,
 	}
 	_, err := db.Insert(user1)
 	assert.NoError(t, err)
 	_, err = db.Insert(user2)
 	assert.NoError(t, err)
-	return []*model.Users{user1, user2}, func() {
+	t.Cleanup(func() {
 		db.DB().Exec(`DELETE FROM users WHERE id = ?`, user1.Id)
 		db.DB().Exec(`DELETE FROM users WHERE id = ?`, user2.Id)
-	}
+	})
+	return []*model.Users{user1, user2}
 }
-func setupFields(t *testing.T, db exql.DB) (*model.Fields, func()) {
+
+func setupFields(t *testing.T, db exql.DB) *model.Fields {
 	now := time.Unix(time.Now().Unix(), 0)
 	tinyBlob := []byte("tinyblob")
 	mediumBlob := []byte("mediumblob")
@@ -104,9 +106,10 @@ func setupFields(t *testing.T, db exql.DB) (*model.Fields, func()) {
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)
 	assert.NoError(t, err)
-	return &field, func() {
+	t.Cleanup(func() {
 		db.DB().Exec(`DELETE FROM fields WHERE id = ?`, field.Id)
-	}
+	})
+	return &field
 }
 func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.Equal(t, dest.TinyintField, field.TinyintField)
@@ -169,8 +172,7 @@ func TestMapper_MapMany(t *testing.T) {
 	defer db.Close()
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
-		users, reset := setupUsers(t, db)
-		defer reset()
+		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM users WHERE id IN (?,?) ORDER BY id`, users[0].Id, users[1].Id)
 			assert.NoError(t, err)
@@ -178,15 +180,14 @@ func TestMapper_MapMany(t *testing.T) {
 			var dest []*model.Users
 			err = m.MapMany(rows, &dest)
 			assert.NoError(t, err)
-			assert.Equal(t, dest[0].FirstName.String, users[0].FirstName.String)
-			assert.Equal(t, dest[0].LastName.String, users[0].LastName.String)
-			assert.Equal(t, dest[1].FirstName.String, users[1].FirstName.String)
-			assert.Equal(t, dest[1].LastName.String, users[1].LastName.String)
+			assert.Equal(t, dest[0].Name, users[0].Name)
+			assert.Equal(t, dest[0].Age, users[0].Age)
+			assert.Equal(t, dest[1].Name, users[1].Name)
+			assert.Equal(t, dest[1].Age, users[1].Age)
 		})
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
+		field := setupFields(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)
@@ -255,8 +256,7 @@ func TestMapper_Map(t *testing.T) {
 	db := testDb()
 	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
-		users, reset := setupUsers(t, db)
-		defer reset()
+		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query(
 				`SELECT * FROM users WHERE id IN (?, ?) ORDER BY id`,
@@ -267,8 +267,8 @@ func TestMapper_Map(t *testing.T) {
 			var dest model.Users
 			err = m.Map(rows, &dest)
 			assert.NoError(t, err)
-			assert.Equal(t, dest.FirstName.String, users[0].FirstName.String)
-			assert.Equal(t, dest.LastName.String, users[0].LastName.String)
+			assert.Equal(t, dest.Name, users[0].Name)
+			assert.Equal(t, dest.Age, users[0].Age)
 		})
 		t.Run("partial", func(t *testing.T) {
 			user := users[0]
@@ -278,12 +278,11 @@ func TestMapper_Map(t *testing.T) {
 			err = m.Map(rows, &p)
 			assert.NoError(t, err)
 			assert.Equal(t, user.Id, p.Id)
-			assert.Equal(t, user.LastName.String, p.LastName.String)
+			assert.Equal(t, user.Name, p.Name)
 		})
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
+		field := setupFields(t, db)
 		t.Run("basic", func(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM fields WHERE id = ?", field.Id)
 			assert.NoError(t, err)
@@ -348,16 +347,16 @@ func TestDb_MapRowsSerial(t *testing.T) {
 	defer db.Close()
 
 	user1 := &model.Users{
-		FirstName: null.StringFrom("user1"),
-		LastName:  null.StringFrom("name"),
+		Name: "user1",
+		Age:  10,
 	}
 	user2 := &model.Users{
-		FirstName: null.StringFrom("user2"),
-		LastName:  null.StringFrom("name"),
+		Name: "user2",
+		Age:  20,
 	}
 	user3 := &model.Users{
-		FirstName: null.StringFrom("user3"),
-		LastName:  null.StringFrom("name"),
+		Name: "user3",
+		Age:  30,
 	}
 	_, err := db.Insert(user1)
 	assert.NoError(t, err)
@@ -384,7 +383,7 @@ func TestDb_MapRowsSerial(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		db.DB().Exec(`DELETE FROM users WHERE id IN (?,?,?)`, user1.Id, user2.Id, user3.Id)
-		db.DB().Exec(`DELETE FROM user_groups WHERE id = ?`, group.Id)
+		db.DB().Exec(`DELETE FROM groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
 	m := exql.NewSerialMapper(func(i int) string {
@@ -506,9 +505,7 @@ ORDER BY users.id
 		assert.Equal(t, (*model.UserGroups)(nil), groups[1])
 	})
 	t.Run("fields", func(t *testing.T) {
-		field, reset := setupFields(t, db)
-		defer reset()
-
+		field := setupFields(t, db)
 		t.Run("struct", func(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)

@@ -8,9 +8,9 @@ import (
 )
 
 type Mapper interface {
-	// Map reads data from single row and maps those columns into destination struct.
-	// pointerOfStruct MUST BE a pointer of struct.
-	// It closes rows after mapping regardless error occurred.
+	// Map reads data from a single row and maps those columns into the destination struct.
+	// pointerOfStruct MUST BE a pointer of the struct.
+	// It closes rows after mapping regardless of whether an error occurred.
 	//
 	// Example:
 	//
@@ -18,8 +18,8 @@ type Mapper interface {
 	//	err := m.Map(rows, &user)
 	Map(rows *sql.Rows, pointerOfStruct interface{}) error
 	// MapMany reads all rows and maps columns for each destination struct.
-	// pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
-	// It closes rows after mapping regardless error occurred.
+	// pointerOfSliceOfStruct MUST BE a pointer of the slice of a pointer of the struct.
+	// It closes rows after mapping regardless of whether an error occurred.
 	//
 	// Example:
 	//
@@ -40,10 +40,10 @@ var ErrRecordNotFound = errors.New("record not found")
 
 type ColumnSplitter func(i int) string
 
-// SerialMapper is interface for mapping joined row serially into one or more destinations.
+// SerialMapper is an interface for mapping a joined row into one or more destinations serially.
 type SerialMapper interface {
 	// Map reads joined rows and maps columns for each destination serially.
-	// Second argument pointerOfStruct, MUST BE a pointer of struct.
+	// The second argument, pointerOfStruct, MUST BE a pointer of the struct.
 	//
 	// NOTE: DO NOT FORGET to close rows manually, as it WON'T do it automatically.
 	//

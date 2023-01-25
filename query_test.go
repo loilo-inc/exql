@@ -7,7 +7,6 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/loilo-inc/exql/v2/model/testmodel"
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null"
 )
 
 func TestQueryWhere(t *testing.T) {
@@ -21,34 +20,30 @@ func TestQueryWhere(t *testing.T) {
 func TestQueryForInsert(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		user := model.Users{
-			FirstName: null.StringFrom("first"),
-			LastName:  null.StringFrom("name"),
+			Name: "go", Age: 10,
 		}
 		s, f, err := exql.QueryForInsert(&user)
 		assert.NoError(t, err)
 		assert.NotNil(t, f)
-		exp := "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?)"
+		exp := "INSERT INTO `users` (`age`,`name`) VALUES (?,?)"
 		stmt, args, err := s.Query()
 		assert.NoError(t, err)
 		assert.Equal(t, exp, stmt)
-		assert.ElementsMatch(t, args, []any{user.FirstName, user.LastName})
+		assert.ElementsMatch(t, args, []any{user.Age, user.Name})
 	})
 }
 
 func TestQueryForBulkInsert(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		q, err := exql.QueryForBulkInsert(
-			&model.Users{FirstName: null.StringFrom("user"), LastName: null.StringFrom("one")},
-			&model.Users{FirstName: null.StringFrom("user"), LastName: null.StringFrom("two")},
+			&model.Users{Age: 1, Name: "one"},
+			&model.Users{Age: 2, Name: "two"},
 		)
 		assert.NoError(t, err)
 		stmt, args, err := q.Query()
 		assert.NoError(t, err)
-		assert.Equal(t, "INSERT INTO `users` (`first_name`,`last_name`) VALUES (?,?),(?,?)", stmt)
-		assert.ElementsMatch(t, []any{
-			null.StringFrom("user"), null.StringFrom("one"),
-			null.StringFrom("user"), null.StringFrom("two"),
-		}, args)
+		assert.Equal(t, "INSERT INTO `users` (`age`,`name`) VALUES (?,?),(?,?)", stmt)
+		assert.ElementsMatch(t, []any{int64(1), "one", int64(2), "two"}, args)
 	})
 	t.Run("error if args empty", func(t *testing.T) {
 		q, err := exql.QueryForBulkInsert[*model.Users]()
@@ -59,17 +54,14 @@ func TestQueryForBulkInsert(t *testing.T) {
 
 func TestAggregateModelMetadata(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		m, err := exql.AggregateModelMetadata(&model.Users{
-			FirstName: null.StringFrom("first"),
-			LastName:  null.StringFrom("name"),
-		})
+		m, err := exql.AggregateModelMetadata(&model.Users{Name: "go", Age: 10})
 		assert.NoError(t, err)
 		assert.Equal(t, "users", m.TableName)
 		assert.NotNil(t, m.AutoIncrementField)
 		assert.ElementsMatch(t, []string{"id"}, m.PrimaryKeyColumns)
 		assert.ElementsMatch(t, []any{int64(0)}, m.PrimaryKeyValues)
-		assert.ElementsMatch(t, []string{"first_name", "last_name"}, m.Values.Keys())
-		assert.ElementsMatch(t, []any{null.StringFrom("first"), null.StringFrom("name")}, m.Values.Values())
+		assert.ElementsMatch(t, []string{"age", "name"}, m.Values.Keys())
+		assert.ElementsMatch(t, []any{int64(10), "go"}, m.Values.Values())
 	})
 	t.Run("multiple primary key", func(t *testing.T) {
 		data := &testmodel.MultiplePrimaryKey{
@@ -114,12 +106,11 @@ func TestAggregateModelMetadata(t *testing.T) {
 
 func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		user := &model.Users{}
-		user.FirstName.SetValid("new")
-		user.LastName.SetValid("name")
+		name := "go"
+		age := int64(20)
 		q, err := exql.QueryForUpdateModel(&model.UpdateUsers{
-			FirstName: &user.FirstName,
-			LastName:  &user.LastName,
+			Name: &name,
+			Age:  &age,
 		}, exql.Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
@@ -127,9 +118,9 @@ func TestQueryForUpdateModel(t *testing.T) {
 		stmt, args, err := q.Query()
 		assert.NoError(t, err)
 		assert.Equal(t, stmt,
-			"UPDATE `users` SET `first_name` = ?,`last_name` = ? WHERE id = ?",
+			"UPDATE `users` SET `age` = ?,`name` = ? WHERE id = ?",
 		)
-		assert.ElementsMatch(t, []any{user.FirstName, user.LastName, 1}, args)
+		assert.ElementsMatch(t, []any{age, name, 1}, args)
 	})
 	t.Run("should error if pointer is nil", func(t *testing.T) {
 		_, err := exql.QueryForUpdateModel(nil, nil)
