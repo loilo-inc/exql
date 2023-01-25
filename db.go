@@ -13,6 +13,7 @@ import (
 
 type DB interface {
 	Saver
+	Mapper
 	Finder
 	// DB returns *sql.DB object.
 	DB() *sql.DB
@@ -202,4 +203,14 @@ func (d *db) FindMany(q q.Query, destSlicePtrOfStruct any) error {
 // FindManyContext implements DB
 func (d *db) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
 	return d.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
+}
+
+// Deprecated: Use Find or MapRow. It will be removed in next version.
+func (d *db) Map(rows *sql.Rows, destPtr any) error {
+	return MapRow(rows, destPtr)
+}
+
+// Deprecated: Use FindContext or MapRows. It will be removed in next version.
+func (d *db) MapMany(rows *sql.Rows, destSlicePtr any) error {
+	return MapRows(rows, destSlicePtr)
 }

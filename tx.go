@@ -11,6 +11,7 @@ import (
 type Tx interface {
 	Saver
 	Finder
+	Mapper
 	Tx() *sql.Tx
 }
 
@@ -98,6 +99,16 @@ func (t *tx) FindMany(q q.Query, destSlicePtrOfStruct any) error {
 // FindManyContext implements DB
 func (t *tx) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
 	return t.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
+}
+
+// Deprecated: Use Find or MapRow/MapRows. It will be removed in next version.
+func (t *tx) Map(rows *sql.Rows, destPtr any) error {
+	return MapRow(rows, destPtr)
+}
+
+// Deprecated: Use FindContext or MapRow/MapRows. It will be removed in next version.
+func (t *tx) MapMany(rows *sql.Rows, destSlicePtr any) error {
+	return MapRows(rows, destSlicePtr)
 }
 
 func (t *tx) Tx() *sql.Tx {

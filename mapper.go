@@ -10,6 +10,14 @@ import (
 // Error returned when record not found
 var ErrRecordNotFound = errors.New("record not found")
 
+// Deprecated: Use Finder It will be removed in next version.
+type Mapper interface {
+	// Deprecated: Use Find or MapRow. It will be removed in next version.
+	Map(rows *sql.Rows, destPtr any) error
+	// Deprecated: Use FindContext or MapRows. It will be removed in next version.
+	MapMany(rows *sql.Rows, destSlicePtr any) error
+}
+
 type ColumnSplitter func(i int) string
 
 // SerialMapper is an interface for mapping a joined row into one or more destinations serially.
@@ -80,7 +88,7 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 }
 
 func mapManyDestinationError() error {
-	return fmt.Errorf("destination must be pointer of slice of struct")
+	return fmt.Errorf("destination must be a pointer of slice of struct")
 }
 
 // MapRows reads all rows and maps columns for each destination struct.
