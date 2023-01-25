@@ -256,6 +256,8 @@ func Update(db exql.DB) {
 
 #### Delete
 
+DELETE query is published to the table with given conditions. There's no way to construct DELETE query from the model as a security reason.
+
 ```go
 package main
 
@@ -278,6 +280,8 @@ func Delete(db exql.DB) {
 
 #### Other
 
+Other queries should be executed by `sql.DB` that got from `DB`.
+
 ```go
 package main
 
@@ -291,6 +295,8 @@ func OtherQuery(db exql.DB) {
 ```
 
 ### Transaction
+
+Transaction with BEGIN~COMMIT/ROLLBACK is done by a `TransactionWithContext`. You don't need to call `BeginTx` and `Commit`/`Rollback` manually.
 
 ```go
 package main
@@ -324,6 +330,8 @@ func Transaction(db exql.DB) {
 ```
 
 ### Map rows into structs
+
+To map query results to models, use `Map` method. It maps column records to destination model fields correctly.
 
 #### Map rows
 
