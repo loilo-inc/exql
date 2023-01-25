@@ -44,9 +44,7 @@ func NewSerialMapper(s ColumnSplitter) SerialMapper {
 	return &serialMapper{splitter: s}
 }
 
-func mapDestinationError() error {
-	return fmt.Errorf("destination must be pointer of struct")
-}
+var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 
 // MapRow reads data from single row and maps those columns into destination struct.
 // pointerOfStruct MUST BE a pointer of struct.
@@ -63,16 +61,16 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 		}
 	}()
 	if pointerOfStruct == nil {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	destValue := reflect.ValueOf(pointerOfStruct)
 	destType := destValue.Type()
 	if destType.Kind() != reflect.Ptr {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	destValue = destValue.Elem()
 	if destValue.Kind() != reflect.Struct {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	if row.Next() {
 		return mapRow(row, &destValue)
@@ -87,9 +85,7 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	return ErrRecordNotFound
 }
 
-func mapManyDestinationError() error {
-	return fmt.Errorf("destination must be a pointer of slice of struct")
-}
+var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
 // MapRows reads all rows and maps columns for each destination struct.
 // pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
@@ -106,21 +102,21 @@ func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 		}
 	}()
 	if structPtrOrSlicePtr == nil {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	destValue := reflect.ValueOf(structPtrOrSlicePtr)
 	destType := destValue.Type()
 	if destType.Kind() != reflect.Ptr {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	destType = destType.Elem()
 	if destType.Kind() != reflect.Slice {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	// []*Model -> *Model
 	sliceType := destType.Elem()
 	if sliceType.Kind() != reflect.Ptr {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	// *Model -> Model
 	sliceType = sliceType.Elem()
@@ -185,7 +181,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 		tag := f.Tag.Get("exql")
 		if tag != "" {
 			if f.Type.Kind() == reflect.Ptr {
-				return nil, fmt.Errorf("struct field must not be pointer: %s %s", f.Type.Name(), f.Type.Kind())
+				return nil, fmt.Errorf("struct field must not be a pointer: %s %s", f.Type.Name(), f.Type.Kind())
 			}
 			tags, err := ParseTags(tag)
 			if err != nil {
