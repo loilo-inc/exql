@@ -7,7 +7,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Insert() {
+func Insert(db exql.DB) {
 	// Create a user model
 	// Primary key (id) is not needed to set.
 	// It will be ignored on building the insert query.
@@ -27,7 +27,7 @@ func Insert() {
 	}
 }
 
-func BulkInsert() {
+func BulkInsert(db exql.DB) {
 	user1 := model.Users{Name: "Go"}
 	user2 := model.Users{Name: "Lang"}
 	// INSERT INTO users (name) VALUES (?),(?)

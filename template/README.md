@@ -37,6 +37,8 @@ It DOESN'T
   - [Execute queries](#execute-queries)
     - [Insert](#insert)
     - [Update](#update)
+    - [Delete](#delete)
+    - [Other](#other)
   - [Transaction](#transaction)
   - [Map rows into structs](#map-rows-into-structs)
     - [Map rows](#map-rows)
@@ -85,7 +87,11 @@ And results are mostly like this:
 
 ### Execute queries
 
+There are several ways to publish SQL statements with exql.
+
 #### Insert
+
+INSERT query is constructed automatically based on model data and executed without writing the statement. To insert new records into the database, set values to the model and pass it to `exql.DB#Insert` method.
 
 ```go
 {{.Insert}}
@@ -93,17 +99,39 @@ And results are mostly like this:
 
 #### Update
 
+UPDATE query is constructed automatically based on the model update struct. To avoid unexpected updates to the table, all values are represented by a pointer of data type.
+
 ```go
 {{.Update}}
 ```
 
+#### Delete
+
+DELETE query is published to the table with given conditions. There's no way to construct DELETE query from the model as a security reason.
+
+```go
+{{.Delete}}
+```
+
+#### Other
+
+Other queries should be executed by `sql.DB` that got from `DB`.
+
+```go
+{{.Other}}
+```
+
 ### Transaction
+
+Transaction with BEGIN~COMMIT/ROLLBACK is done by a `TransactionWithContext`. You don't need to call `BeginTx` and `Commit`/`Rollback` manually.
 
 ```go
 {{.Tx}}
 ```
 
 ### Map rows into structs
+
+To map query results to models, use `Map` method. It maps column records to destination model fields correctly.
 
 #### Map rows
 

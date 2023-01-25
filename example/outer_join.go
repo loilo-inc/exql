@@ -7,7 +7,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func MapSerialOuterJoin() {
+func MapSerialOuterJoin(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	LEFT JOIN group_users ON group_users.user_id = users.id

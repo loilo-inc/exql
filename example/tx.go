@@ -9,7 +9,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Transaction() {
+func Transaction(db exql.DB) {
 	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := db.TransactionWithContext(timeout, &sql.TxOptions{
 		Isolation: sql.LevelDefault,

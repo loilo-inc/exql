@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/apex/log"
+	"log"
+
 	q "github.com/loilo-inc/exql/v2/query"
 )
 
@@ -83,7 +84,7 @@ func Open(opts *OpenOptions) (DB, error) {
 			goto success
 		}
 	retry:
-		log.Errorf("failed to connect database: %s, retrying after %ds...", err, int(retryInterval.Seconds()))
+		log.Printf("failed to connect database: %s, retrying after %ds...\n", err, int(retryInterval.Seconds()))
 		<-time.NewTimer(retryInterval).C
 		retryCnt++
 	}

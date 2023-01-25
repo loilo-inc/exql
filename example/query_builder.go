@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/query"
 )
 
-func Query() {
+func Query(db exql.DB) {
 	q := query.New(
 		`SELECT * FROM users WHERE id IN (:?) AND age = ?`,
 		query.V(1, 2, 3), 20,
@@ -14,7 +15,7 @@ func Query() {
 	db.Query(q)
 }
 
-func QueryBulider() {
+func QueryBulider(db exql.DB) {
 	qb := query.NewBuilder()
 	qb.Sprintf("SELECT * FROM %s", "users")
 	qb.Query("WHERE id IN (:?) AND age >= ?", query.V(1, 2), 20)
@@ -23,7 +24,7 @@ func QueryBulider() {
 	db.Query(qb.Build())
 }
 
-func CondBulider() {
+func CondBulider(db exql.DB) {
 	cond := query.Cond("id = ?", 1)
 	cond.And("age >= ?", 20)
 	cond.And("name in (:?)", query.V("go", "lang"))

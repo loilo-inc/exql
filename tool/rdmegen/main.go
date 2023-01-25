@@ -12,6 +12,8 @@ func main() {
 		"GenerateModels":     catFile("example/generator.go"),
 		"Insert":             catFile("example/insert.go"),
 		"Update":             catFile("example/update.go"),
+		"Delete":             catFile("example/delete.go"),
+		"Other":              catFile("example/other.go"),
 		"MapRows":            catFile("example/mapper.go"),
 		"MapJoinedRows":      catFile("example/serial_mapper.go"),
 		"MapOuterJoinedRows": catFile("example/outer_join.go"),

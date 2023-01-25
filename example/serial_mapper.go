@@ -11,7 +11,7 @@ import (
 user_groups has many users
 users belongs to many groups
 */
-func MapSerial() {
+func MapSerial(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	JOIN group_users ON group_users.user_id = users.id

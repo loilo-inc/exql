@@ -37,6 +37,8 @@ It DOESN'T
   - [Execute queries](#execute-queries)
     - [Insert](#insert)
     - [Update](#update)
+    - [Delete](#delete)
+    - [Other](#other)
   - [Transaction](#transaction)
   - [Map rows into structs](#map-rows-into-structs)
     - [Map rows](#map-rows)
@@ -55,7 +57,8 @@ package main
 import (
 	"time"
 
-	"github.com/apex/log"
+	"log"
+
 	"github.com/loilo-inc/exql/v2"
 )
 
@@ -159,7 +162,11 @@ const UsersTableName = "users"
 
 ### Execute queries
 
+There are several ways to publish SQL statements with exql.
+
 #### Insert
+
+INSERT query is constructed automatically based on model data and executed without writing the statement. To insert new records into the database, set values to the model and pass it to `exql.DB#Insert` method.
 
 ```go
 package main
@@ -171,7 +178,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Insert() {
+func Insert(db exql.DB) {
 	// Create a user model
 	// Primary key (id) is not needed to set.
 	// It will be ignored on building the insert query.
@@ -191,7 +198,7 @@ func Insert() {
 	}
 }
 
-func BulkInsert() {
+func BulkInsert(db exql.DB) {
 	user1 := model.Users{Name: "Go"}
 	user2 := model.Users{Name: "Lang"}
 	// INSERT INTO users (name) VALUES (?),(?)
@@ -208,16 +215,20 @@ func BulkInsert() {
 
 #### Update
 
+UPDATE query is constructed automatically based on the model update struct. To avoid unexpected updates to the table, all values are represented by a pointer of data type.
+
 ```go
 package main
 
 import (
-	"github.com/apex/log"
+	"log"
+
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Update() {
+// Using designated update struct
+func UpdateModel(db exql.DB) {
 	// UPDATE `users` SET `name` = `GoGo` WHERE `id` = ?
 	// [1]
 	_, err := db.UpdateModel(&model.UpdateUsers{
@@ -225,17 +236,56 @@ func Update() {
 	}, exql.Where("id = ?", 1),
 	)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Fatal(err)
 	}
 }
 
-func Delete() {
+// With table name and key-value pairs
+func Update(db exql.DB) {
+	// UPDATE `users` SET `name` = `GoGo` WHERE `id` = ?
+	// [1]
+	_, err := db.Update("users", map[string]any{
+		"name": "GoGo",
+	}, exql.Where("id = ?", 1))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+```
+
+#### Delete
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/loilo-inc/exql/v2"
+)
+
+func Delete(db exql.DB) {
 	// DELETE FROM `users` WHERE id = ?
 	// [1]
 	_, err := db.Delete("users", exql.Where("id = ?", 1))
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Fatal(err)
 	}
+}
+
+```
+
+#### Other
+
+```go
+package main
+
+import "github.com/loilo-inc/exql/v2"
+
+// db.DB() returns *sql.DB
+func OtherQuery(db exql.DB) {
+	db.DB().Exec("SELECT * FROM users LIMIT 10")
 }
 
 ```
@@ -254,7 +304,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Transaction() {
+func Transaction(db exql.DB) {
 	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := db.TransactionWithContext(timeout, &sql.TxOptions{
 		Isolation: sql.LevelDefault,
@@ -281,30 +331,32 @@ func Transaction() {
 package main
 
 import (
-	"github.com/apex/log"
+	"log"
+
+	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func Map() {
+func Map(db exql.DB) {
 	// select query
 	rows, err := db.DB().Query(`SELECT * FROM users WHERE id = ?`, 1)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Fatal(err)
 	} else {
 		// Destination model struct
 		var user model.Users
 		// Passing destination to Map(). The second argument must be a pointer of the model.
 		if err := db.Map(rows, &user); err != nil {
-			log.Error(err.Error())
+			log.Fatal(err)
 		}
-		log.Infof("%d", user.Id) // -> 1
+		log.Printf("%d", user.Id) // -> 1
 	}
 }
 
-func MapMany() {
+func MapMany(db exql.DB) {
 	rows, err := db.DB().Query(`SELECT * FROM users LIMIT ?`, 5)
 	if err != nil {
-		log.Errorf(err.Error())
+		log.Fatal(err)
 	} else {
 		// Destination slice of models.
 		// NOTE: It must be the slice of pointers of models.
@@ -312,9 +364,9 @@ func MapMany() {
 		// Passing destination to MapMany().
 		// Second argument must be a pointer.
 		if err := db.MapMany(rows, &users); err != nil {
-			log.Error(err.Error())
+			log.Fatal(err)
 		}
-		log.Infof("%d", len(users)) // -> 5
+		log.Printf("%d", len(users)) // -> 5
 	}
 }
 
@@ -336,7 +388,7 @@ import (
 user_groups has many users
 users belongs to many groups
 */
-func MapSerial() {
+func MapSerial(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	JOIN group_users ON group_users.user_id = users.id
@@ -388,7 +440,7 @@ import (
 	"github.com/loilo-inc/exql/v2/model"
 )
 
-func MapSerialOuterJoin() {
+func MapSerialOuterJoin(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	LEFT JOIN group_users ON group_users.user_id = users.id
@@ -428,10 +480,11 @@ func MapSerialOuterJoin() {
 package main
 
 import (
+	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/query"
 )
 
-func Query() {
+func Query(db exql.DB) {
 	q := query.New(
 		`SELECT * FROM users WHERE id IN (:?) AND age = ?`,
 		query.V(1, 2, 3), 20,
@@ -441,7 +494,7 @@ func Query() {
 	db.Query(q)
 }
 
-func QueryBulider() {
+func QueryBulider(db exql.DB) {
 	qb := query.NewBuilder()
 	qb.Sprintf("SELECT * FROM %s", "users")
 	qb.Query("WHERE id IN (:?) AND age >= ?", query.V(1, 2), 20)
@@ -450,7 +503,7 @@ func QueryBulider() {
 	db.Query(qb.Build())
 }
 
-func CondBulider() {
+func CondBulider(db exql.DB) {
 	cond := query.Cond("id = ?", 1)
 	cond.And("age >= ?", 20)
 	cond.And("name in (:?)", query.V("go", "lang"))
