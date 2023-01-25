@@ -35,6 +35,10 @@ func NewSaver(ex Executor) Saver {
 	return &saver{ex: ex}
 }
 
+func newSaver(ex Executor) *saver {
+	return &saver{ex: ex}
+}
+
 func (s *saver) Insert(modelPtr Model) (sql.Result, error) {
 	return s.InsertContext(context.Background(), modelPtr)
 }

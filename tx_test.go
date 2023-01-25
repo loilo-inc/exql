@@ -7,6 +7,7 @@ import (
 
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,9 +26,8 @@ func TestTx_Transaction(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		var dest model.Users
-		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
+		err = db.Find(query.Q(`select * from users where id = ?`, user.Id), &dest)
 		assert.NoError(t, err)
-		assert.Nil(t, db.Map(rows, &dest))
 		assert.Equal(t, user.Id, dest.Id)
 	})
 	t.Run("rollback", func(t *testing.T) {
@@ -45,7 +45,7 @@ func TestTx_Transaction(t *testing.T) {
 		var dest model.Users
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.NoError(t, err)
-		err = db.Map(rows, &dest)
+		err = exql.MapRow(rows, &dest)
 		assert.Error(t, err, exql.ErrRecordNotFound.Error())
 	})
 	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
@@ -57,10 +57,9 @@ func TestTx_Transaction(t *testing.T) {
 			panic("panic")
 		})
 		assert.EqualError(t, err, "recovered: panic")
-		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
-		assert.NoError(t, err)
 		var dest model.Users
-		assert.Equal(t, db.Map(rows, &dest), exql.ErrRecordNotFound)
+		err = db.Find(query.Q(`select * from users where id = ?`, user.Id), &dest)
+		assert.Equal(t, exql.ErrRecordNotFound, err)
 	})
 }
 func TestTx_Map(t *testing.T) {
@@ -78,7 +77,7 @@ func TestTx_Map(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if err := tx.Map(rows, &dest); err != nil {
+		if err := exql.MapRow(rows, &dest); err != nil {
 			return err
 		}
 		return nil
@@ -98,14 +97,10 @@ func TestTx_MapMany(t *testing.T) {
 		if _, err := tx.Insert(user); err != nil {
 			return err
 		}
-		rows, err := tx.Tx().Query(`select * from users where id = ?`, user.Id)
-		if err != nil {
-			return err
-		}
-		if err := tx.MapMany(rows, &dest); err != nil {
-			return err
-		}
-		return nil
+		return tx.FindMany(
+			query.Q(`select * from users where id = ?`, user.Id),
+			&dest,
+		)
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, user.Id, dest[0].Id)

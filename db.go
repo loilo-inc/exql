@@ -13,7 +13,7 @@ import (
 
 type DB interface {
 	Saver
-	Mapper
+	Finder
 	// DB returns *sql.DB object.
 	DB() *sql.DB
 	// SetDB sets *sql.DB object.
@@ -32,7 +32,7 @@ type DB interface {
 type db struct {
 	db    *sql.DB
 	s     *saver
-	m     *mapper
+	f     *finder
 	mutex sync.Mutex
 }
 
@@ -99,7 +99,7 @@ func NewDB(d *sql.DB) DB {
 	return &db{
 		db: d,
 		s:  &saver{ex: d},
-		m:  &mapper{},
+		f:  newFinder(d),
 	}
 }
 
@@ -159,14 +159,6 @@ func (d *db) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, erro
 	return d.s.QueryRowContext(ctx, query)
 }
 
-func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
-	return d.m.Map(rows, pointerOfStruct)
-}
-
-func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
-	return d.m.MapMany(rows, pointerOfSliceOfStruct)
-}
-
 func (d *db) Close() error {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -190,4 +182,24 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	return Transaction(d.db, ctx, opts, callback)
+}
+
+// Find implements DB
+func (d *db) Find(q q.Query, destPtrOfStruct any) error {
+	return d.f.Find(q, destPtrOfStruct)
+}
+
+// FindContext implements DB
+func (d *db) FindContext(ctx context.Context, q q.Query, destPtrOfStruct any) error {
+	return d.f.FindContext(ctx, q, destPtrOfStruct)
+}
+
+// FindMany implements DB
+func (d *db) FindMany(q q.Query, destSlicePtrOfStruct any) error {
+	return d.f.FindMany(q, destSlicePtrOfStruct)
+}
+
+// FindManyContext implements DB
+func (d *db) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
+	return d.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
 }

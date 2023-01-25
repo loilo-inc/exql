@@ -7,34 +7,6 @@ import (
 	"reflect"
 )
 
-type Mapper interface {
-	// Map reads data from a single row and maps those columns into the destination struct.
-	// pointerOfStruct MUST BE a pointer of the struct.
-	// It closes rows after mapping regardless of whether an error occurred.
-	//
-	// Example:
-	//
-	//	var user User
-	//	err := m.Map(rows, &user)
-	Map(rows *sql.Rows, pointerOfStruct interface{}) error
-	// MapMany reads all rows and maps columns for each destination struct.
-	// pointerOfSliceOfStruct MUST BE a pointer of the slice of a pointer of the struct.
-	// It closes rows after mapping regardless of whether an error occurred.
-	//
-	// Example:
-	//
-	//	var users []*Users
-	//	m.MapMany(rows, &users)
-	MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error
-}
-
-type mapper struct {
-}
-
-func NewMapper() Mapper {
-	return &mapper{}
-}
-
 // Error returned when record not found
 var ErrRecordNotFound = errors.New("record not found")
 
@@ -68,7 +40,15 @@ func mapDestinationError() error {
 	return fmt.Errorf("destination must be pointer of struct")
 }
 
-func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
+// MapRow reads data from single row and maps those columns into destination struct.
+// pointerOfStruct MUST BE a pointer of struct.
+// It closes rows after mapping regardless error occurred.
+//
+// Example:
+//
+//	var user User
+//	err := m.Map(rows, &user)
+func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	defer func() {
 		if row != nil {
 			row.Close()
@@ -103,7 +83,15 @@ func mapManyDestinationError() error {
 	return fmt.Errorf("destination must be pointer of slice of struct")
 }
 
-func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
+// MapRows reads all rows and maps columns for each destination struct.
+// pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
+// It closes rows after mapping regardless error occurred.
+//
+// Example:
+//
+//	var users []*Users
+//	m.MapMany(rows, &users)
+func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	defer func() {
 		if rows != nil {
 			rows.Close()

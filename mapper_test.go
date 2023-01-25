@@ -167,10 +167,9 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.JSONEq(t, string(dest.JsonField), string(field.JsonField))
 	assert.JSONEq(t, string(dest.JsonNullField.JSON), string(field.JsonNullField.JSON))
 }
-func TestMapper_MapMany(t *testing.T) {
+func TestMapper_MapRows(t *testing.T) {
 	db := testDb()
 	defer db.Close()
-	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
@@ -178,7 +177,7 @@ func TestMapper_MapMany(t *testing.T) {
 			assert.NoError(t, err)
 			defer rows.Close()
 			var dest []*model.Users
-			err = m.MapMany(rows, &dest)
+			err = exql.MapRows(rows, &dest)
 			assert.NoError(t, err)
 			assert.Equal(t, dest[0].Name, users[0].Name)
 			assert.Equal(t, dest[0].Age, users[0].Age)
@@ -192,14 +191,14 @@ func TestMapper_MapMany(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)
 			var dest []*model.Fields
-			err = m.MapMany(rows, &dest)
+			err = exql.MapRows(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, dest[0], field)
 		})
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
 		doTest := func(i interface{}) {
-			assert.EqualError(t, m.MapMany(nil, i),
+			assert.EqualError(t, exql.MapRows(nil, i),
 				"destination must be pointer of slice of struct",
 			)
 		}
@@ -230,7 +229,7 @@ func TestMapper_MapMany(t *testing.T) {
 		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
 		assert.NoError(t, err)
 		var dest []*model.Users
-		err = m.MapMany(rows, &dest)
+		err = exql.MapRows(rows, &dest)
 		assert.Equal(t, exql.ErrRecordNotFound, err)
 	})
 
@@ -248,13 +247,12 @@ func TestMapper_MapMany(t *testing.T) {
 		assert.NoError(t, err)
 
 		var dest []*model.Users
-		assert.EqualError(t, m.MapMany(rows, &dest), "err")
+		assert.EqualError(t, exql.MapRows(rows, &dest), "err")
 	})
 }
 
 func TestMapper_Map(t *testing.T) {
 	db := testDb()
-	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
@@ -265,7 +263,7 @@ func TestMapper_Map(t *testing.T) {
 			assert.NoError(t, err)
 			defer rows.Close()
 			var dest model.Users
-			err = m.Map(rows, &dest)
+			err = exql.MapRow(rows, &dest)
 			assert.NoError(t, err)
 			assert.Equal(t, dest.Name, users[0].Name)
 			assert.Equal(t, dest.Age, users[0].Age)
@@ -275,7 +273,7 @@ func TestMapper_Map(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM users WHERE id = ?", user.Id)
 			assert.NoError(t, err)
 			var p partialUser
-			err = m.Map(rows, &p)
+			err = exql.MapRow(rows, &p)
 			assert.NoError(t, err)
 			assert.Equal(t, user.Id, p.Id)
 			assert.Equal(t, user.Name, p.Name)
@@ -287,14 +285,14 @@ func TestMapper_Map(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM fields WHERE id = ?", field.Id)
 			assert.NoError(t, err)
 			var dest model.Fields
-			err = m.Map(rows, &dest)
+			err = exql.MapRow(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, &dest, field)
 		})
 	})
 	t.Run("should return error if destination is not pointer of struct", func(t *testing.T) {
 		doTest := func(i interface{}) {
-			assert.EqualError(t, m.Map(nil, i), "destination must be pointer of struct")
+			assert.EqualError(t, exql.MapRow(nil, i), "destination must be pointer of struct")
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0)
@@ -320,7 +318,7 @@ func TestMapper_Map(t *testing.T) {
 		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
 		assert.NoError(t, err)
 		var dest model.Users
-		err = m.Map(rows, &dest)
+		err = exql.MapRow(rows, &dest)
 		assert.Equal(t, exql.ErrRecordNotFound, err)
 	})
 
@@ -338,7 +336,7 @@ func TestMapper_Map(t *testing.T) {
 		assert.NoError(t, err)
 
 		var dest model.Users
-		assert.EqualError(t, m.Map(rows, &dest), "err")
+		assert.EqualError(t, exql.MapRow(rows, &dest), "err")
 	})
 }
 
