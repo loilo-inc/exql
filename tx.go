@@ -10,14 +10,19 @@ import (
 
 type Tx interface {
 	Saver
+	Finder
 	Mapper
 	Tx() *sql.Tx
 }
 
 type tx struct {
-	s  Saver
-	m  Mapper
+	s  *saver
+	f  *finder
 	tx *sql.Tx
+}
+
+func newTx(t *sql.Tx) *tx {
+	return &tx{s: newSaver(t), f: newFinder(t), tx: t}
 }
 
 func (t *tx) Insert(modelPtr Model) (sql.Result, error) {
@@ -76,12 +81,34 @@ func (d *tx) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, erro
 	return d.s.QueryRowContext(ctx, query)
 }
 
-func (t *tx) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
-	return t.m.Map(rows, pointerOfStruct)
+// Find implements DB
+func (t *tx) Find(q q.Query, destPtrOfStruct any) error {
+	return t.f.Find(q, destPtrOfStruct)
 }
 
-func (t *tx) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
-	return t.m.MapMany(rows, pointerOfSliceOfStruct)
+// FindContext implements DB
+func (t *tx) FindContext(ctx context.Context, q q.Query, destPtrOfStruct any) error {
+	return t.f.FindContext(ctx, q, destPtrOfStruct)
+}
+
+// FindMany implements DB
+func (t *tx) FindMany(q q.Query, destSlicePtrOfStruct any) error {
+	return t.f.FindMany(q, destSlicePtrOfStruct)
+}
+
+// FindManyContext implements DB
+func (t *tx) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
+	return t.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
+}
+
+// Deprecated: Use Find or MapRow/MapRows. It will be removed in next version.
+func (t *tx) Map(rows *sql.Rows, destPtr any) error {
+	return MapRow(rows, destPtr)
+}
+
+// Deprecated: Use FindContext or MapRow/MapRows. It will be removed in next version.
+func (t *tx) MapMany(rows *sql.Rows, destSlicePtr any) error {
+	return MapRows(rows, destSlicePtr)
 }
 
 func (t *tx) Tx() *sql.Tx {
@@ -93,7 +120,7 @@ func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	if err != nil {
 		return err
 	}
-	tx := &tx{tx: sqlTx, s: NewSaver(sqlTx), m: NewMapper()}
+	tx := newTx(sqlTx)
 	var p interface{}
 	txErr := func() error {
 		defer func() {

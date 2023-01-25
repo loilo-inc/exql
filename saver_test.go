@@ -19,7 +19,6 @@ import (
 
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
-	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
@@ -40,7 +39,7 @@ func TestSaver_Insert(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -91,7 +90,6 @@ func TestSaver_Insert(t *testing.T) {
 
 func TestSaver_InsertContext(t *testing.T) {
 	d := testDb()
-	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
@@ -112,7 +110,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -138,7 +136,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.UserLoginHistories
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
@@ -164,7 +162,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.UserLoginHistories
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
@@ -189,7 +187,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -199,7 +197,6 @@ func TestSaver_InsertContext(t *testing.T) {
 
 func TestSaver_Update(t *testing.T) {
 	d := testDb()
-	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
@@ -222,7 +219,7 @@ func TestSaver_Update(t *testing.T) {
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, "lang", actual.Name)
 		assert.Equal(t, int64(20), actual.Age)
@@ -299,7 +296,6 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 
 func TestSaver_UpdateContext(t *testing.T) {
 	d := testDb()
-	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
@@ -322,7 +318,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
-		err = m.Map(rows, &actual)
+		err = exql.MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, "lang", actual.Name)
 		assert.Equal(t, int64(20), actual.Age)

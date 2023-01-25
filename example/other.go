@@ -1,8 +1,16 @@
 package main
 
-import "github.com/loilo-inc/exql/v2"
+import (
+	"log"
 
-// db.DB() returns *sql.DB
+	"github.com/loilo-inc/exql/v2"
+)
+
+// To execute other kind of queries, unwrap sql.DB.
 func OtherQuery(db exql.DB) {
-	db.DB().Exec("SELECT * FROM users LIMIT 10")
+	// db.DB() returns *sql.DB
+	row := db.DB().QueryRow("SELECT COUNT(*) FROM users")
+	var count int
+	row.Scan(&count)
+	log.Printf("%d", count)
 }
