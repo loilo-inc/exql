@@ -53,7 +53,7 @@ var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 // Example:
 //
 //	var user User
-//	err := m.Map(rows, &user)
+//	err := exql.MapRow(rows, &user)
 func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	defer func() {
 		if row != nil {
@@ -87,14 +87,14 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 
 var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
-// MapRows reads all rows and maps columns for each destination struct.
+// MapRows reads all data from rows and maps those columns for each destination struct.
 // pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
 // It closes rows after mapping regardless error occurred.
 //
 // Example:
 //
 //	var users []*Users
-//	m.MapMany(rows, &users)
+//	err := exql.MapRows(rows, &users)
 func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	defer func() {
 		if rows != nil {
