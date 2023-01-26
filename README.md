@@ -40,8 +40,8 @@ It DOESN'T
     - [Delete](#delete)
     - [Other](#other)
   - [Transaction](#transaction)
-  - [Map rows into structs](#map-rows-into-structs)
-    - [Map rows](#map-rows)
+  - [Find records](#find-records)
+    - [For simple query](#for-simple-query)
     - [For joined table](#for-joined-table)
     - [For outer-joined table](#for-outer-joined-table)
   - [Use query builder](#use-query-builder)
@@ -304,7 +304,7 @@ func OtherQuery(db exql.DB) {
 
 ### Transaction
 
-Transaction with BEGIN~COMMIT/ROLLBACK is done by a `TransactionWithContext`. You don't need to call `BeginTx` and `Commit`/`Rollback` manually.
+Transaction with `BEGIN`~`COMMIT`/`ROLLBACK` is done by `TransactionWithContext`. You don't need to call `BeginTx` and `Commit`/`Rollback` manually and all atomic operations are done within a callback.
 
 ```go
 package main
@@ -337,11 +337,11 @@ func Transaction(db exql.DB) {
 
 ```
 
-### Map rows into structs
+### Find records
 
-To map query results to models, use `Map` method. It maps column records to destination model fields correctly.
+To find records from the database, use `Find`/`FindMany` method. It executes the query and maps results into structs correctly.
 
-#### Map rows
+#### For simple query
 
 ```go
 package main
@@ -484,6 +484,8 @@ func MapSerialOuterJoin(db exql.DB) {
 
 ### Use query builder
 
+`exql/query` package is a low-level API for building complicated SQL statements. See [V2 Release Notes](https://github.com/loilo-inc/exql/blob/main/changelogs/v2.0.md#exqlquery-package) for more details.
+
 ```go
 package main
 
@@ -525,5 +527,5 @@ func CondBulider(db exql.DB) {
 
 ## License
 
-MIT License / Copyright (c) 2020-Present LoiLo inc.
+MIT License / Copyright (c) LoiLo inc.
 
