@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/query"
 )
 
 type Analyzer struct {
 	ex      exql.Executor
-	m       exql.Mapper
+	f       exql.Finder
 	results []*ExplainResult
 }
 
@@ -60,18 +61,14 @@ type Explain struct {
 	Extra        sql.NullString `exql:"column:Extra"`
 }
 
-func (l *Analyzer) Explain(ctx context.Context, query string, args ...any) ([]*Explain, error) {
-	rows, err := l.ex.QueryContext(ctx, fmt.Sprintf("EXPLAIN %s", query), args...)
-	if err != nil {
-		return nil, err
-	}
+func (l *Analyzer) Explain(ctx context.Context, q string, args ...any) ([]*Explain, error) {
 	var dest []*Explain
-	if err := l.m.MapMany(rows, &dest); err != nil {
+	if err := l.f.FindManyContext(ctx, query.Q(fmt.Sprintf("EXPLAIN %s", q), args...), &dest); err != nil {
 		return nil, err
 	}
 	return dest, nil
 }
 
 func NewAnalyzer(ex exql.Executor) *Analyzer {
-	return &Analyzer{ex: ex, m: exql.NewMapper()}
+	return &Analyzer{ex: ex, f: exql.NewFinder(ex)}
 }

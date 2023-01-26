@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/extest"
 	"github.com/loilo-inc/exql/v2/mocks/mock_query"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/loilo-inc/exql/v2/query"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestFinder(t *testing.T) {
-	db := testDb()
+	db := extest.DB
 	ctrl := gomock.NewController(t)
 	user1 := model.Users{Name: "user1"}
 	user2 := model.Users{Name: "user2"}

@@ -41,7 +41,6 @@ type db struct {
 	db    *sql.DB
 	s     *saver
 	conn  *exdriver.Connector
-	m     mapper
 	f     *finder
 	mutex sync.Mutex
 }
@@ -100,7 +99,7 @@ func Open(opts *OpenOptions) (DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &db{db: d, conn: conn, s: newSaver(d)}, nil
+	return newDB(d, conn), nil
 }
 
 func open(driverName string, opts *OpenOptions) (*sql.DB, *exdriver.Connector, error) {
@@ -125,6 +124,9 @@ func NewDB(d *sql.DB) DB {
 		s:  &saver{ex: d},
 		f:  newFinder(d),
 	}
+}
+func newDB(d *sql.DB, conn *exdriver.Connector) *db {
+	return &db{db: d, conn: conn, f: newFinder(d), s: newSaver(d)}
 }
 
 func (d *db) Insert(modelPtr Model) (sql.Result, error) {
@@ -181,14 +183,6 @@ func (d *db) QueryRow(query q.Query) (*sql.Row, error) {
 
 func (d *db) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
 	return d.s.QueryRowContext(ctx, query)
-}
-
-func (d *db) Map(rows *sql.Rows, pointerOfStruct interface{}) error {
-	return d.m.Map(rows, pointerOfStruct)
-}
-
-func (d *db) MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error {
-	return d.m.MapMany(rows, pointerOfSliceOfStruct)
 }
 
 func (d *db) Hooks() *exdriver.HookList {

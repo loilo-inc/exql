@@ -20,7 +20,6 @@ import (
 
 func TestSaver_Insert(t *testing.T) {
 	d := extest.DB
-	m := exql.NewMapper()
 	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{

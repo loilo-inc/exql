@@ -169,9 +169,7 @@ func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.JSONEq(t, string(dest.JsonNullField.JSON), string(field.JsonNullField.JSON))
 }
 func TestMapper_MapMany(t *testing.T) {
-	m := exql.NewMapper()
 	db := extest.DB
-	defer db.Close()
 	t.Run("users", func(t *testing.T) {
 		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {
@@ -253,7 +251,6 @@ func TestMapper_MapMany(t *testing.T) {
 
 func TestMapper_Map(t *testing.T) {
 	db := extest.DB
-	m := exql.NewMapper()
 	t.Run("users", func(t *testing.T) {
 		users := setupUsers(t, db)
 		t.Run("basic", func(t *testing.T) {

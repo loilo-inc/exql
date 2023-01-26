@@ -17,7 +17,6 @@ type Tx interface {
 
 type tx struct {
 	s  *saver
-	m  Mapper
 	f  *finder
 	tx *sql.Tx
 }

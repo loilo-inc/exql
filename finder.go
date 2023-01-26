@@ -18,6 +18,10 @@ type finder struct {
 	ex Executor
 }
 
+func NewFinder(ex Executor) Finder {
+	return newFinder(ex)
+}
+
 // Find implements Finder
 func (f *finder) Find(q query.Query, destPtrOfStruct any) error {
 	return f.FindContext(context.Background(), q, destPtrOfStruct)
