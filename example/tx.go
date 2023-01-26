@@ -7,19 +7,15 @@ import (
 
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
-	"github.com/volatiletech/null"
 )
 
-func Transaction() {
+func Transaction(db exql.DB) {
 	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err := db.TransactionWithContext(timeout, &sql.TxOptions{
 		Isolation: sql.LevelDefault,
 		ReadOnly:  false,
 	}, func(tx exql.Tx) error {
-		user := model.Users{
-			FirstName: null.String{},
-			LastName:  null.String{},
-		}
+		user := model.Users{Name: "go"}
 		_, err := tx.Insert(&user)
 		return err
 	})

@@ -9,7 +9,6 @@ import (
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/extest"
 
-	"github.com/apex/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,28 +29,21 @@ func TestGenerator_Generate(t *testing.T) {
 				assert.ElementsMatch(t, files, elements)
 			}
 			t.Run("basic", func(t *testing.T) {
-				dir, err := os.MkdirTemp(os.TempDir(), "dist")
-				assert.NoError(t, err)
-				err = g.Generate(&exql.GenerateOptions{
+				dir := t.TempDir()
+				err := g.Generate(&exql.GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 				})
-				if err != nil {
-					log.Errorf(err.Error())
-				}
 				assert.NoError(t, err)
 				checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go", "fields.go"})
 			})
 			t.Run("exclude", func(t *testing.T) {
-				dir, _ := os.MkdirTemp(os.TempDir(), "dist")
+				dir := t.TempDir()
 				err := g.Generate(&exql.GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 					Exclude: []string{"fields"},
 				})
-				if err != nil {
-					log.Errorf(err.Error())
-				}
 				assert.NoError(t, err)
 				checkFiles(dir, []string{"users.go", "user_groups.go", "user_login_histories.go", "group_users.go"})
 			})
@@ -66,8 +58,7 @@ func TestGenerator_Generate(t *testing.T) {
 						AddRow("users").
 						RowError(0, fmt.Errorf("err")))
 
-				dir, err := os.MkdirTemp(os.TempDir(), "dist")
-				assert.NoError(t, err)
+				dir := t.TempDir()
 				assert.EqualError(t, exql.NewGenerator(mockDb).
 					Generate(&exql.GenerateOptions{
 						OutDir:  dir,

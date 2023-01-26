@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/apex/log v1.9.0
 	github.com/friendsofgo/errors v0.9.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gofrs/uuid v4.3.1+incompatible // indirect
@@ -24,5 +23,6 @@ require (
 	github.com/volatiletech/inflect v0.0.1 // indirect
 	github.com/volatiletech/sqlboiler v3.7.1+incompatible // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

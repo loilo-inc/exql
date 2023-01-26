@@ -31,12 +31,12 @@ type saver struct {
 	ex Executor
 }
 
-func newSaver(ex Executor) *saver {
-	return &saver{ex: ex}
-}
-
 func NewSaver(ex Executor) Saver {
 	return newSaver(ex)
+}
+
+func newSaver(ex Executor) *saver {
+	return &saver{ex: ex}
 }
 
 func (s *saver) Insert(modelPtr Model) (sql.Result, error) {

@@ -1,19 +1,21 @@
 package main
 
 import (
-	"github.com/apex/log"
+	"log"
+
 	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v2/model"
 )
 
-func MapSerialOuterJoin() {
+func MapSerialOuterJoin(db exql.DB) {
 	query := `
 	SELECT * FROM users
-	LEFT JOIN school_users ON school_users.user_id = users.id
-	LEFT JOIN schools ON schools.id = school_users.id
+	LEFT JOIN group_users ON group_users.user_id = users.id
+	LEFT JOIN user_groups ON user_groups.id = group_users.id
 	WHERE users.id = ?`
 	rows, err := db.DB().Query(query, 1)
 	if err != nil {
-		log.Errorf("err")
+		log.Fatal(err)
 		return
 	}
 	defer rows.Close()
@@ -21,18 +23,18 @@ func MapSerialOuterJoin() {
 		// Each column's separator is `id`
 		return "id"
 	})
-	var users []*User
-	var schools []*School
+	var users []*model.Users
+	var groups []*model.UserGroups
 	for rows.Next() {
-		var user User
-		var schoolUser *SchoolUsers // Use *SchoolUsers/*School for outer join so that it can be nil
-		var school *School          // when the values of outer joined columns are NULL.
-		if err := serialMapper.Map(rows, &user, &schoolUser, &school); err != nil {
-			log.Error(err.Error())
+		var user model.Users
+		var groupUser *model.GroupUsers // Use *GroupUsers/*Group for outer join so that it can be nil
+		var group *model.UserGroups     // when the values of outer joined columns are NULL.
+		if err := serialMapper.Map(rows, &user, &groupUser, &group); err != nil {
+			log.Fatal(err.Error())
 			return
 		}
 		users = append(users, &user)
-		schools = append(schools, school) // school = nil when the user does not belong to any school.
+		groups = append(groups, group) // group = nil when the user does not belong to any group.
 	}
-	// enumerate users and schools.
+	// enumerate users and groups.
 }

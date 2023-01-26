@@ -1,8 +1,8 @@
 drop table if exists users;
 create table users (
     id int(11) not null auto_increment,
-    first_name varchar(255),
-    last_name varchar(255),
+    name varchar(255) not null,
+    age int(11) not null,
     primary key (id)
 );
 

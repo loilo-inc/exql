@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: "1.18"
-      - run: make updb
+      - run: make up
       - name: Check generated codes
         run: |
           go install

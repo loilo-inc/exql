@@ -7,44 +7,33 @@ import (
 	"reflect"
 )
 
-type Mapper interface {
-	// Read single row and map columns to destination.
-	// pointerOfStruct MUST BE a pointer of struct.
-	// It closes rows after mapping regardless error occurred.
-	// example:
-	// 		var user User
-	// 		err := m.Map(rows, &user)
-	Map(rows *sql.Rows, pointerOfStruct interface{}) error
-	// Read all rows and map columns for each destination.
-	// pointerOfSliceOfStruct MUST BE a pointer of slices of pointer of struct.
-	// It closes rows after mapping regardless error occurred.
-	// example:
-	// 		var users []*Users
-	// 		m.MapMany(rows, &users)
-	MapMany(rows *sql.Rows, pointerOfSliceOfStruct interface{}) error
-}
-
-type mapper struct {
-}
-
-func NewMapper() Mapper {
-	return &mapper{}
-}
-
 // Error returned when record not found
 var ErrRecordNotFound = errors.New("record not found")
 
+// Deprecated: Use Finder It will be removed in next version.
+type Mapper interface {
+	// Deprecated: Use Find or MapRow. It will be removed in next version.
+	Map(rows *sql.Rows, destPtr any) error
+	// Deprecated: Use FindContext or MapRows. It will be removed in next version.
+	MapMany(rows *sql.Rows, destSlicePtr any) error
+}
+
 type ColumnSplitter func(i int) string
 
+// SerialMapper is an interface for mapping a joined row into one or more destinations serially.
 type SerialMapper interface {
-	// Read joined rows and map columns for each destination serially.
-	// pointerOfStruct MUST BE a pointer of struct
-	// NOTE: It WON'T close rows automatically. Close rows manually.
-	// example:
-	// 		var user User
-	// 		var favorite UserFavorite
-	// 		err := m.Map(rows, &user, &favorite)
-	Map(rows *sql.Rows, pointersOfStruct ...interface{}) error
+	// Map reads joined rows and maps columns for each destination serially.
+	// The second argument, pointerOfStruct, MUST BE a pointer of the struct.
+	//
+	// NOTE: DO NOT FORGET to close rows manually, as it WON'T do it automatically.
+	//
+	// Example:
+	//
+	//	var user User
+	//	var favorite UserFavorite
+	//	defer rows.Close()
+	//	err := m.Map(rows, &user, &favorite)
+	Map(rows *sql.Rows, pointersOfStruct ...any) error
 }
 
 type serialMapper struct {
@@ -55,26 +44,33 @@ func NewSerialMapper(s ColumnSplitter) SerialMapper {
 	return &serialMapper{splitter: s}
 }
 
-func mapDestinationError() error {
-	return fmt.Errorf("destination must be pointer of struct")
-}
-func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
+var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
+
+// MapRow reads data from single row and maps those columns into destination struct.
+// pointerOfStruct MUST BE a pointer of struct.
+// It closes rows after mapping regardless error occurred.
+//
+// Example:
+//
+//	var user User
+//	err := exql.MapRow(rows, &user)
+func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	defer func() {
 		if row != nil {
 			row.Close()
 		}
 	}()
 	if pointerOfStruct == nil {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	destValue := reflect.ValueOf(pointerOfStruct)
 	destType := destValue.Type()
 	if destType.Kind() != reflect.Ptr {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	destValue = destValue.Elem()
 	if destValue.Kind() != reflect.Struct {
-		return mapDestinationError()
+		return errMapDestination
 	}
 	if row.Next() {
 		return mapRow(row, &destValue)
@@ -89,32 +85,38 @@ func (m *mapper) Map(row *sql.Rows, pointerOfStruct interface{}) error {
 	return ErrRecordNotFound
 }
 
-func mapManyDestinationError() error {
-	return fmt.Errorf("destination must be pointer of slice of struct")
+var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
-}
-func (m *mapper) MapMany(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
+// MapRows reads all data from rows and maps those columns for each destination struct.
+// pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
+// It closes rows after mapping regardless error occurred.
+//
+// Example:
+//
+//	var users []*Users
+//	err := exql.MapRows(rows, &users)
+func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	defer func() {
 		if rows != nil {
 			rows.Close()
 		}
 	}()
 	if structPtrOrSlicePtr == nil {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	destValue := reflect.ValueOf(structPtrOrSlicePtr)
 	destType := destValue.Type()
 	if destType.Kind() != reflect.Ptr {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	destType = destType.Elem()
 	if destType.Kind() != reflect.Slice {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	// []*Model -> *Model
 	sliceType := destType.Elem()
 	if sliceType.Kind() != reflect.Ptr {
-		return mapManyDestinationError()
+		return errMapManyDestination
 	}
 	// *Model -> Model
 	sliceType = sliceType.Elem()
@@ -179,7 +181,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 		tag := f.Tag.Get("exql")
 		if tag != "" {
 			if f.Type.Kind() == reflect.Ptr {
-				return nil, fmt.Errorf("struct field must not be pointer: %s %s", f.Type.Name(), f.Type.Kind())
+				return nil, fmt.Errorf("struct field must not be a pointer: %s %s", f.Type.Name(), f.Type.Kind())
 			}
 			tags, err := ParseTags(tag)
 			if err != nil {
