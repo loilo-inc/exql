@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	query "github.com/loilo-inc/exql/v2/query"
 )
 
 // MockQuery is a mock of Query interface.
@@ -47,4 +48,101 @@ func (m *MockQuery) Query() (string, []any, error) {
 func (mr *MockQueryMockRecorder) Query() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockQuery)(nil).Query))
+}
+
+// MockCondition is a mock of Condition interface.
+type MockCondition struct {
+	ctrl     *gomock.Controller
+	recorder *MockConditionMockRecorder
+}
+
+// MockConditionMockRecorder is the mock recorder for MockCondition.
+type MockConditionMockRecorder struct {
+	mock *MockCondition
+}
+
+// NewMockCondition creates a new mock instance.
+func NewMockCondition(ctrl *gomock.Controller) *MockCondition {
+	mock := &MockCondition{ctrl: ctrl}
+	mock.recorder = &MockConditionMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockCondition) EXPECT() *MockConditionMockRecorder {
+	return m.recorder
+}
+
+// And mocks base method.
+func (m *MockCondition) And(str string, args ...any) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{str}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "And", varargs...)
+}
+
+// And indicates an expected call of And.
+func (mr *MockConditionMockRecorder) And(str interface{}, args ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{str}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "And", reflect.TypeOf((*MockCondition)(nil).And), varargs...)
+}
+
+// AndCond mocks base method.
+func (m *MockCondition) AndCond(other query.Condition) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AndCond", other)
+}
+
+// AndCond indicates an expected call of AndCond.
+func (mr *MockConditionMockRecorder) AndCond(other interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AndCond", reflect.TypeOf((*MockCondition)(nil).AndCond), other)
+}
+
+// Or mocks base method.
+func (m *MockCondition) Or(str string, args ...any) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{str}
+	for _, a := range args {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "Or", varargs...)
+}
+
+// Or indicates an expected call of Or.
+func (mr *MockConditionMockRecorder) Or(str interface{}, args ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{str}, args...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Or", reflect.TypeOf((*MockCondition)(nil).Or), varargs...)
+}
+
+// OrCond mocks base method.
+func (m *MockCondition) OrCond(other query.Condition) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OrCond", other)
+}
+
+// OrCond indicates an expected call of OrCond.
+func (mr *MockConditionMockRecorder) OrCond(other interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OrCond", reflect.TypeOf((*MockCondition)(nil).OrCond), other)
+}
+
+// Query mocks base method.
+func (m *MockCondition) Query() (string, []any, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Query")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].([]any)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Query indicates an expected call of Query.
+func (mr *MockConditionMockRecorder) Query() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockCondition)(nil).Query))
 }
