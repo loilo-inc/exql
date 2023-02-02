@@ -190,7 +190,7 @@ func Cols(cols ...string) Query {
 		return errQuery(fmt.Errorf("empty columns"))
 	}
 	return &query{
-		query: backQuoteAndJoin(cols...),
+		query: QuoteColumns(cols...),
 	}
 }
 
