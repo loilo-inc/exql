@@ -75,7 +75,8 @@ func Placeholders(repeat int) string {
 	return strings.Join(res, ",")
 }
 
-func backQuoteAndJoin(str ...string) string {
+// QuoteColumns quotes each string and joins them by comma(,).
+func QuoteColumns(str ...string) string {
 	var result []string
 	for _, v := range str {
 		result = append(result, QuoteColumn(v))

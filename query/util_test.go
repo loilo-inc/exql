@@ -40,3 +40,7 @@ func TestCuoteColumn(t *testing.T) {
 	assert.Equal(t, "`users`.*", QuoteColumn("users.*"))
 	assert.Equal(t, "`users`.", QuoteColumn("users."))
 }
+
+func TestQuoteColumns(t *testing.T) {
+	assert.Equal(t, "`a`,`b`", QuoteColumns("a", "b"))
+}

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	q "github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v2/query"
 )
 
 type Tx interface {
@@ -33,71 +33,71 @@ func (t *tx) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, err
 	return t.s.InsertContext(ctx, modelPtr)
 }
 
-func (t *tx) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) Update(table string, set map[string]interface{}, where query.Condition) (sql.Result, error) {
 	return t.s.Update(table, set, where)
 }
 
-func (t *tx) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModel(ptr ModelUpdate, where query.Condition) (sql.Result, error) {
 	return t.s.UpdateModel(ptr, where)
 }
 
-func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where query.Condition) (sql.Result, error) {
 	return t.s.UpdateContext(ctx, table, set, where)
 }
 
-func (t *tx) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
+func (t *tx) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where query.Condition) (sql.Result, error) {
 	return t.s.UpdateModelContext(ctx, ptr, where)
 }
 
-func (t *tx) Delete(table string, where q.Condition) (sql.Result, error) {
+func (t *tx) Delete(table string, where query.Condition) (sql.Result, error) {
 	return t.s.Delete(table, where)
 }
 
-func (t *tx) DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error) {
+func (t *tx) DeleteContext(ctx context.Context, table string, where query.Condition) (sql.Result, error) {
 	return t.s.DeleteContext(ctx, table, where)
 }
 
-func (d *tx) Exec(query q.Query) (sql.Result, error) {
+func (d *tx) Exec(query query.Query) (sql.Result, error) {
 	return d.s.Exec(query)
 }
 
-func (d *tx) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
+func (d *tx) ExecContext(ctx context.Context, query query.Query) (sql.Result, error) {
 	return d.s.ExecContext(ctx, query)
 }
 
-func (d *tx) Query(query q.Query) (*sql.Rows, error) {
+func (d *tx) Query(query query.Query) (*sql.Rows, error) {
 	return d.s.Query(query)
 }
 
-func (d *tx) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
+func (d *tx) QueryContext(ctx context.Context, query query.Query) (*sql.Rows, error) {
 	return d.s.QueryContext(ctx, query)
 }
 
-func (d *tx) QueryRow(query q.Query) (*sql.Row, error) {
+func (d *tx) QueryRow(query query.Query) (*sql.Row, error) {
 	return d.s.QueryRow(query)
 }
 
-func (d *tx) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
+func (d *tx) QueryRowContext(ctx context.Context, query query.Query) (*sql.Row, error) {
 	return d.s.QueryRowContext(ctx, query)
 }
 
 // Find implements DB
-func (t *tx) Find(q q.Query, destPtrOfStruct any) error {
+func (t *tx) Find(q query.Query, destPtrOfStruct any) error {
 	return t.f.Find(q, destPtrOfStruct)
 }
 
 // FindContext implements DB
-func (t *tx) FindContext(ctx context.Context, q q.Query, destPtrOfStruct any) error {
+func (t *tx) FindContext(ctx context.Context, q query.Query, destPtrOfStruct any) error {
 	return t.f.FindContext(ctx, q, destPtrOfStruct)
 }
 
 // FindMany implements DB
-func (t *tx) FindMany(q q.Query, destSlicePtrOfStruct any) error {
+func (t *tx) FindMany(q query.Query, destSlicePtrOfStruct any) error {
 	return t.f.FindMany(q, destSlicePtrOfStruct)
 }
 
 // FindManyContext implements DB
-func (t *tx) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
+func (t *tx) FindManyContext(ctx context.Context, q query.Query, destSlicePtrOfStruct any) error {
 	return t.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
 }
 

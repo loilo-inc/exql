@@ -14,6 +14,8 @@ type Executor interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	Prepare(stmt string) (*sql.Stmt, error)
+	PrepareContext(ctx context.Context, stmt string) (*sql.Stmt, error)
 }
 
 type Model interface {
