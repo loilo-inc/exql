@@ -50,14 +50,21 @@ func (e *stmtExecutor) QueryRowContext(ctx context.Context, query string, args .
 	return e.ex.QueryRowContext(ctx, query, args...)
 }
 
-// StmtExecutor is the Executor that caches same queries as *sql.Stmt,
-// and uses it again for the next time. They will be holded utnil Close() is called.
-// This is useful for the case that execute the same query repeatedly in the for-loop.
-// It prevents the error caused by the db's connection pool.
+// StmtExecutor is the Executor that caches queries as *sql.Stmt.
+// It uses the cached Stmt for the next execution if query is identical.
+// They are held until Close() is called. This is useful for the case
+// of executing the same query repeatedly in the for-loop.
+// It may prevent errors caused by the db's connection pool.
+//
+// Example:
+//
+//	stmtExecer := exql.NewStmtExecutor(tx.Tx())
+//	defer stmtExecer.Close()
+//	stmtSaver := exql.NewSaver(stmtExecer)
 type StmtExecutor interface {
 	Executor
-	// Close calls all retained *sql.Stmt structs and clears the buffer.
-	// DONT'T forget to call this on the use.
+	// Close calls all retained *sql.Stmt and clears the buffer.
+	// DON'T forget to call this on the manual use.
 	Close() error
 }
 
