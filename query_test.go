@@ -33,6 +33,22 @@ func TestQueryForInsert(t *testing.T) {
 	})
 }
 
+func TestQueryForInsertIgnore(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		user := model.Users{
+			Name: "go", Age: 10,
+		}
+		s, f, err := exql.QueryForInsertIgnore(&user)
+		assert.NoError(t, err)
+		assert.NotNil(t, f)
+		exp := "INSERT IGNORE INTO `users` (`age`,`name`) VALUES (?,?)"
+		stmt, args, err := s.Query()
+		assert.NoError(t, err)
+		assert.Equal(t, exp, stmt)
+		assert.ElementsMatch(t, args, []any{user.Age, user.Name})
+	})
+}
+
 func TestQueryForBulkInsert(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		q, err := exql.QueryForBulkInsert(
@@ -49,6 +65,20 @@ func TestQueryForBulkInsert(t *testing.T) {
 		q, err := exql.QueryForBulkInsert[*model.Users]()
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty list")
+	})
+}
+
+func TestQueryForBulkInsertIgnore(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		q, err := exql.QueryForBulkInsertIgnore(
+			&model.Users{Age: 1, Name: "one"},
+			&model.Users{Age: 2, Name: "two"},
+		)
+		assert.NoError(t, err)
+		stmt, args, err := q.Query()
+		assert.NoError(t, err)
+		assert.Equal(t, "INSERT IGNORE INTO `users` (`age`,`name`) VALUES (?,?),(?,?)", stmt)
+		assert.ElementsMatch(t, []any{int64(1), "one", int64(2), "two"}, args)
 	})
 }
 

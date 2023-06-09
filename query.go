@@ -21,6 +21,14 @@ type ModelMetadata struct {
 }
 
 func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
+	return queryForInsert("INSERT", modelPtr)
+}
+
+func QueryForInsertIgnore(modelPtr Model) (q.Query, *reflect.Value, error) {
+	return queryForInsert("INSERT IGNORE", modelPtr)
+}
+
+func queryForInsert(insertType string, modelPtr Model) (q.Query, *reflect.Value, error) {
 	m, err := AggregateModelMetadata(modelPtr)
 	if err != nil {
 		return nil, nil, err
@@ -28,12 +36,20 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	b := q.NewBuilder()
 	cols := q.Cols(m.Values.Keys()...)
 	vals := q.Vals(m.Values.Values())
-	b.Sprintf("INSERT INTO `%s`", modelPtr.TableName())
+	b.Sprintf("%s INTO `%s`", insertType, modelPtr.TableName())
 	b.Query("(:?) VALUES (:?)", cols, vals)
 	return b.Build(), m.AutoIncrementField, nil
 }
 
 func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
+	return queryForBulkInsert("INSERT", modelPtrs...)
+}
+
+func QueryForBulkInsertIgnore[T Model](modelPtrs ...T) (q.Query, error) {
+	return queryForBulkInsert("INSERT IGNORE", modelPtrs...)
+}
+
+func queryForBulkInsert[T Model](insertType string, modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
 		return nil, errors.New("empty list")
 	}
@@ -50,7 +66,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 			vals.Query("(:?)", q.Vals(data.Values.Values()))
 		}
 	}
-	b.Sprintf("INSERT INTO `%s`", head.TableName)
+	b.Sprintf("%s INTO `%s`", insertType, head.TableName)
 	b.Query("(:?) VALUES :?", q.Cols(head.Values.Keys()...), vals.Join(","))
 	return b.Build(), nil
 }
