@@ -2,7 +2,7 @@
 package model
 
 type UserGroups struct {
-	Id   int64  `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	Id   int64  `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
 	Name string `exql:"column:name;type:varchar(255);not null" json:"name"`
 }
 
@@ -11,7 +11,7 @@ func (u *UserGroups) TableName() string {
 }
 
 type UpdateUserGroups struct {
-	Id   *int64  `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	Id   *int64  `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
 	Name *string `exql:"column:name;type:varchar(255);not null" json:"name"`
 }
 

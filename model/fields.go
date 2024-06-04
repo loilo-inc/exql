@@ -6,27 +6,27 @@ import "time"
 import "github.com/volatiletech/null"
 
 type Fields struct {
-	Id                             int64           `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-	TinyintField                   int64           `exql:"column:tinyint_field;type:tinyint(4);not null" json:"tinyint_field"`
-	TinyintUnsignedField           int64           `exql:"column:tinyint_unsigned_field;type:tinyint(4) unsigned;not null" json:"tinyint_unsigned_field"`
-	TinyintNullableField           null.Int64      `exql:"column:tinyint_nullable_field;type:tinyint(4)" json:"tinyint_nullable_field"`
-	TinyintUnsignedNullableField   null.Int64      `exql:"column:tinyint_unsigned_nullable_field;type:tinyint(4) unsigned" json:"tinyint_unsigned_nullable_field"`
-	SmallintField                  int64           `exql:"column:smallint_field;type:smallint(6);not null" json:"smallint_field"`
-	SmallintUnsignedField          int64           `exql:"column:smallint_unsigned_field;type:smallint(6) unsigned;not null" json:"smallint_unsigned_field"`
-	SmallintNullableField          null.Int64      `exql:"column:smallint_nullable_field;type:smallint(6)" json:"smallint_nullable_field"`
-	SmallintUnsignedNullableField  null.Int64      `exql:"column:smallint_unsigned_nullable_field;type:smallint(6) unsigned" json:"smallint_unsigned_nullable_field"`
-	MediumintField                 int64           `exql:"column:mediumint_field;type:mediumint(6);not null" json:"mediumint_field"`
-	MediumintUnsignedField         int64           `exql:"column:mediumint_unsigned_field;type:mediumint(6) unsigned;not null" json:"mediumint_unsigned_field"`
-	MediumintNullableField         null.Int64      `exql:"column:mediumint_nullable_field;type:mediumint(6)" json:"mediumint_nullable_field"`
-	MediumintUnsignedNullableField null.Int64      `exql:"column:mediumint_unsigned_nullable_field;type:mediumint(6) unsigned" json:"mediumint_unsigned_nullable_field"`
-	IntField                       int64           `exql:"column:int_field;type:int(11);not null" json:"int_field"`
-	IntUnsignedField               int64           `exql:"column:int_unsigned_field;type:int(11) unsigned;not null" json:"int_unsigned_field"`
-	IntNullableField               null.Int64      `exql:"column:int_nullable_field;type:int(11)" json:"int_nullable_field"`
-	IntUnsignedNullableField       null.Int64      `exql:"column:int_unsigned_nullable_field;type:int(11) unsigned" json:"int_unsigned_nullable_field"`
-	BigintField                    int64           `exql:"column:bigint_field;type:bigint(20);not null" json:"bigint_field"`
-	BigintUnsignedField            uint64          `exql:"column:bigint_unsigned_field;type:bigint(20) unsigned;not null" json:"bigint_unsigned_field"`
-	BigintNullableField            null.Int64      `exql:"column:bigint_nullable_field;type:bigint(20)" json:"bigint_nullable_field"`
-	BigintUnsignedNullableField    null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint(20) unsigned" json:"bigint_unsigned_nullable_field"`
+	Id                             int64           `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
+	TinyintField                   int64           `exql:"column:tinyint_field;type:tinyint;not null" json:"tinyint_field"`
+	TinyintUnsignedField           int64           `exql:"column:tinyint_unsigned_field;type:tinyint unsigned;not null" json:"tinyint_unsigned_field"`
+	TinyintNullableField           null.Int64      `exql:"column:tinyint_nullable_field;type:tinyint" json:"tinyint_nullable_field"`
+	TinyintUnsignedNullableField   null.Int64      `exql:"column:tinyint_unsigned_nullable_field;type:tinyint unsigned" json:"tinyint_unsigned_nullable_field"`
+	SmallintField                  int64           `exql:"column:smallint_field;type:smallint;not null" json:"smallint_field"`
+	SmallintUnsignedField          int64           `exql:"column:smallint_unsigned_field;type:smallint unsigned;not null" json:"smallint_unsigned_field"`
+	SmallintNullableField          null.Int64      `exql:"column:smallint_nullable_field;type:smallint" json:"smallint_nullable_field"`
+	SmallintUnsignedNullableField  null.Int64      `exql:"column:smallint_unsigned_nullable_field;type:smallint unsigned" json:"smallint_unsigned_nullable_field"`
+	MediumintField                 int64           `exql:"column:mediumint_field;type:mediumint;not null" json:"mediumint_field"`
+	MediumintUnsignedField         int64           `exql:"column:mediumint_unsigned_field;type:mediumint unsigned;not null" json:"mediumint_unsigned_field"`
+	MediumintNullableField         null.Int64      `exql:"column:mediumint_nullable_field;type:mediumint" json:"mediumint_nullable_field"`
+	MediumintUnsignedNullableField null.Int64      `exql:"column:mediumint_unsigned_nullable_field;type:mediumint unsigned" json:"mediumint_unsigned_nullable_field"`
+	IntField                       int64           `exql:"column:int_field;type:int;not null" json:"int_field"`
+	IntUnsignedField               int64           `exql:"column:int_unsigned_field;type:int unsigned;not null" json:"int_unsigned_field"`
+	IntNullableField               null.Int64      `exql:"column:int_nullable_field;type:int" json:"int_nullable_field"`
+	IntUnsignedNullableField       null.Int64      `exql:"column:int_unsigned_nullable_field;type:int unsigned" json:"int_unsigned_nullable_field"`
+	BigintField                    int64           `exql:"column:bigint_field;type:bigint;not null" json:"bigint_field"`
+	BigintUnsignedField            uint64          `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
+	BigintNullableField            null.Int64      `exql:"column:bigint_nullable_field;type:bigint" json:"bigint_nullable_field"`
+	BigintUnsignedNullableField    null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
 	FloatField                     float32         `exql:"column:float_field;type:float;not null" json:"float_field"`
 	FloatNullField                 null.Float32    `exql:"column:float_null_field;type:float" json:"float_null_field"`
 	DoubleField                    float64         `exql:"column:double_field;type:double;not null" json:"double_field"`
@@ -49,7 +49,7 @@ type Fields struct {
 	DatetimeNullField              null.Time       `exql:"column:datetime_null_field;type:datetime" json:"datetime_null_field"`
 	TimeField                      string          `exql:"column:time_field;type:time;not null" json:"time_field"`
 	TimeNullField                  null.String     `exql:"column:time_null_field;type:time" json:"time_null_field"`
-	TimestampField                 time.Time       `exql:"column:timestamp_field;type:timestamp;not null;on;update;CURRENT_TIMESTAMP" json:"timestamp_field"`
+	TimestampField                 time.Time       `exql:"column:timestamp_field;type:timestamp;not null" json:"timestamp_field"`
 	TimestampNullField             null.Time       `exql:"column:timestamp_null_field;type:timestamp" json:"timestamp_null_field"`
 	TinyblobField                  []byte          `exql:"column:tinyblob_field;type:tinyblob;not null" json:"tinyblob_field"`
 	TinyblobNullField              null.Bytes      `exql:"column:tinyblob_null_field;type:tinyblob" json:"tinyblob_null_field"`
@@ -68,27 +68,27 @@ func (f *Fields) TableName() string {
 }
 
 type UpdateFields struct {
-	Id                             *int64           `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-	TinyintField                   *int64           `exql:"column:tinyint_field;type:tinyint(4);not null" json:"tinyint_field"`
-	TinyintUnsignedField           *int64           `exql:"column:tinyint_unsigned_field;type:tinyint(4) unsigned;not null" json:"tinyint_unsigned_field"`
-	TinyintNullableField           *null.Int64      `exql:"column:tinyint_nullable_field;type:tinyint(4)" json:"tinyint_nullable_field"`
-	TinyintUnsignedNullableField   *null.Int64      `exql:"column:tinyint_unsigned_nullable_field;type:tinyint(4) unsigned" json:"tinyint_unsigned_nullable_field"`
-	SmallintField                  *int64           `exql:"column:smallint_field;type:smallint(6);not null" json:"smallint_field"`
-	SmallintUnsignedField          *int64           `exql:"column:smallint_unsigned_field;type:smallint(6) unsigned;not null" json:"smallint_unsigned_field"`
-	SmallintNullableField          *null.Int64      `exql:"column:smallint_nullable_field;type:smallint(6)" json:"smallint_nullable_field"`
-	SmallintUnsignedNullableField  *null.Int64      `exql:"column:smallint_unsigned_nullable_field;type:smallint(6) unsigned" json:"smallint_unsigned_nullable_field"`
-	MediumintField                 *int64           `exql:"column:mediumint_field;type:mediumint(6);not null" json:"mediumint_field"`
-	MediumintUnsignedField         *int64           `exql:"column:mediumint_unsigned_field;type:mediumint(6) unsigned;not null" json:"mediumint_unsigned_field"`
-	MediumintNullableField         *null.Int64      `exql:"column:mediumint_nullable_field;type:mediumint(6)" json:"mediumint_nullable_field"`
-	MediumintUnsignedNullableField *null.Int64      `exql:"column:mediumint_unsigned_nullable_field;type:mediumint(6) unsigned" json:"mediumint_unsigned_nullable_field"`
-	IntField                       *int64           `exql:"column:int_field;type:int(11);not null" json:"int_field"`
-	IntUnsignedField               *int64           `exql:"column:int_unsigned_field;type:int(11) unsigned;not null" json:"int_unsigned_field"`
-	IntNullableField               *null.Int64      `exql:"column:int_nullable_field;type:int(11)" json:"int_nullable_field"`
-	IntUnsignedNullableField       *null.Int64      `exql:"column:int_unsigned_nullable_field;type:int(11) unsigned" json:"int_unsigned_nullable_field"`
-	BigintField                    *int64           `exql:"column:bigint_field;type:bigint(20);not null" json:"bigint_field"`
-	BigintUnsignedField            *uint64          `exql:"column:bigint_unsigned_field;type:bigint(20) unsigned;not null" json:"bigint_unsigned_field"`
-	BigintNullableField            *null.Int64      `exql:"column:bigint_nullable_field;type:bigint(20)" json:"bigint_nullable_field"`
-	BigintUnsignedNullableField    *null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint(20) unsigned" json:"bigint_unsigned_nullable_field"`
+	Id                             *int64           `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
+	TinyintField                   *int64           `exql:"column:tinyint_field;type:tinyint;not null" json:"tinyint_field"`
+	TinyintUnsignedField           *int64           `exql:"column:tinyint_unsigned_field;type:tinyint unsigned;not null" json:"tinyint_unsigned_field"`
+	TinyintNullableField           *null.Int64      `exql:"column:tinyint_nullable_field;type:tinyint" json:"tinyint_nullable_field"`
+	TinyintUnsignedNullableField   *null.Int64      `exql:"column:tinyint_unsigned_nullable_field;type:tinyint unsigned" json:"tinyint_unsigned_nullable_field"`
+	SmallintField                  *int64           `exql:"column:smallint_field;type:smallint;not null" json:"smallint_field"`
+	SmallintUnsignedField          *int64           `exql:"column:smallint_unsigned_field;type:smallint unsigned;not null" json:"smallint_unsigned_field"`
+	SmallintNullableField          *null.Int64      `exql:"column:smallint_nullable_field;type:smallint" json:"smallint_nullable_field"`
+	SmallintUnsignedNullableField  *null.Int64      `exql:"column:smallint_unsigned_nullable_field;type:smallint unsigned" json:"smallint_unsigned_nullable_field"`
+	MediumintField                 *int64           `exql:"column:mediumint_field;type:mediumint;not null" json:"mediumint_field"`
+	MediumintUnsignedField         *int64           `exql:"column:mediumint_unsigned_field;type:mediumint unsigned;not null" json:"mediumint_unsigned_field"`
+	MediumintNullableField         *null.Int64      `exql:"column:mediumint_nullable_field;type:mediumint" json:"mediumint_nullable_field"`
+	MediumintUnsignedNullableField *null.Int64      `exql:"column:mediumint_unsigned_nullable_field;type:mediumint unsigned" json:"mediumint_unsigned_nullable_field"`
+	IntField                       *int64           `exql:"column:int_field;type:int;not null" json:"int_field"`
+	IntUnsignedField               *int64           `exql:"column:int_unsigned_field;type:int unsigned;not null" json:"int_unsigned_field"`
+	IntNullableField               *null.Int64      `exql:"column:int_nullable_field;type:int" json:"int_nullable_field"`
+	IntUnsignedNullableField       *null.Int64      `exql:"column:int_unsigned_nullable_field;type:int unsigned" json:"int_unsigned_nullable_field"`
+	BigintField                    *int64           `exql:"column:bigint_field;type:bigint;not null" json:"bigint_field"`
+	BigintUnsignedField            *uint64          `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
+	BigintNullableField            *null.Int64      `exql:"column:bigint_nullable_field;type:bigint" json:"bigint_nullable_field"`
+	BigintUnsignedNullableField    *null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
 	FloatField                     *float32         `exql:"column:float_field;type:float;not null" json:"float_field"`
 	FloatNullField                 *null.Float32    `exql:"column:float_null_field;type:float" json:"float_null_field"`
 	DoubleField                    *float64         `exql:"column:double_field;type:double;not null" json:"double_field"`
@@ -111,7 +111,7 @@ type UpdateFields struct {
 	DatetimeNullField              *null.Time       `exql:"column:datetime_null_field;type:datetime" json:"datetime_null_field"`
 	TimeField                      *string          `exql:"column:time_field;type:time;not null" json:"time_field"`
 	TimeNullField                  *null.String     `exql:"column:time_null_field;type:time" json:"time_null_field"`
-	TimestampField                 *time.Time       `exql:"column:timestamp_field;type:timestamp;not null;on;update;CURRENT_TIMESTAMP" json:"timestamp_field"`
+	TimestampField                 *time.Time       `exql:"column:timestamp_field;type:timestamp;not null" json:"timestamp_field"`
 	TimestampNullField             *null.Time       `exql:"column:timestamp_null_field;type:timestamp" json:"timestamp_null_field"`
 	TinyblobField                  *[]byte          `exql:"column:tinyblob_field;type:tinyblob;not null" json:"tinyblob_field"`
 	TinyblobNullField              *null.Bytes      `exql:"column:tinyblob_null_field;type:tinyblob" json:"tinyblob_null_field"`

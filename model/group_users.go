@@ -2,9 +2,9 @@
 package model
 
 type GroupUsers struct {
-	Id      int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-	UserId  int64 `exql:"column:user_id;type:int(11);not null" json:"user_id"`
-	GroupId int64 `exql:"column:group_id;type:int(11);not null" json:"group_id"`
+	Id      int64 `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
+	UserId  int64 `exql:"column:user_id;type:int;not null" json:"user_id"`
+	GroupId int64 `exql:"column:group_id;type:int;not null" json:"group_id"`
 }
 
 func (g *GroupUsers) TableName() string {
@@ -12,9 +12,9 @@ func (g *GroupUsers) TableName() string {
 }
 
 type UpdateGroupUsers struct {
-	Id      *int64 `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
-	UserId  *int64 `exql:"column:user_id;type:int(11);not null" json:"user_id"`
-	GroupId *int64 `exql:"column:group_id;type:int(11);not null" json:"group_id"`
+	Id      *int64 `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
+	UserId  *int64 `exql:"column:user_id;type:int;not null" json:"user_id"`
+	GroupId *int64 `exql:"column:group_id;type:int;not null" json:"group_id"`
 }
 
 func (g *UpdateGroupUsers) UpdateTableName() string {
