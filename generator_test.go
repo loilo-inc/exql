@@ -13,8 +13,7 @@ import (
 
 func TestGenerator_Generate(t *testing.T) {
 	for version, db := range map[string]exql.DB{
-		"mysql5.7": testDb(),
-		"mysql8":   testDbMySQL8(),
+		"mysql8": testDb(),
 	} {
 		t.Run(version, func(t *testing.T) {
 			g := exql.NewGenerator(db.DB())
