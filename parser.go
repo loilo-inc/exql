@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iancoleman/strcase"
+	"golang.org/x/xerrors"
 )
 
 type parser struct{}
@@ -249,5 +250,5 @@ func ParseType(t string, nullable bool) (string, error) {
 		}
 		return jsonType, nil
 	}
-	return "", fmt.Errorf("unknown type: %s", t)
+	return "", xerrors.Errorf("unknown type: %s", t)
 }
