@@ -1,7 +1,7 @@
-up:down
-	docker-compose -f docker-compose.db.yml up -d
-down:
-	docker-compose -f docker-compose.db.yml down
+up: down
+	docker compose up -d
+down: compose.yml
+	docker compose down
 fmt:
 	go fmt github.com/loilo-inc/exql/...
 test:
@@ -12,3 +12,5 @@ README.md: template/README.md tool/**/*.go example/*.go
 mocks:
 	rm -rf mocks/
 	go generate ./...
+compose.yml: tool/composegen/*
+	go run tool/composegen/main.go
