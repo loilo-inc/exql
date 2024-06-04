@@ -133,9 +133,9 @@ And results are mostly like this:
 package model
 
 type Users struct {
-	Id   int64  `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	Id   int64  `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
 	Name string `exql:"column:name;type:varchar(255);not null" json:"name"`
-	Age  int64  `exql:"column:age;type:int(11);not null" json:"age"`
+	Age  int64  `exql:"column:age;type:int;not null" json:"age"`
 }
 
 func (u *Users) TableName() string {
@@ -143,9 +143,9 @@ func (u *Users) TableName() string {
 }
 
 type UpdateUsers struct {
-	Id   *int64  `exql:"column:id;type:int(11);primary;not null;auto_increment" json:"id"`
+	Id   *int64  `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
 	Name *string `exql:"column:name;type:varchar(255);not null" json:"name"`
-	Age  *int64  `exql:"column:age;type:int(11);not null" json:"age"`
+	Age  *int64  `exql:"column:age;type:int;not null" json:"age"`
 }
 
 func (u *UpdateUsers) UpdateTableName() string {
