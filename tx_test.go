@@ -41,12 +41,12 @@ func TestTx_Transaction(t *testing.T) {
 			assert.Equal(t, lid, user.Id)
 			return fmt.Errorf("err")
 		})
-		assert.Error(t, err, "err")
+		assert.EqualError(t, err, "err")
 		var dest model.Users
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.NoError(t, err)
 		err = exql.MapRow(rows, &dest)
-		assert.Error(t, err, exql.ErrRecordNotFound.Error())
+		assert.ErrorIs(t, err, exql.ErrRecordNotFound)
 	})
 	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
 		var user *model.Users
