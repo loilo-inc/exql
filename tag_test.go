@@ -27,7 +27,7 @@ func TestParseTags(t *testing.T) {
 	assertInvalid := func(s string, e string) {
 		tags, err := exql.ParseTags(s)
 		assert.Nil(t, tags)
-		assert.Errorf(t, err, "invalid tag format")
+		assert.EqualError(t, err, e)
 	}
 	t.Run("should return error for duplicate tag", func(t *testing.T) {
 		assertInvalid("a:1;a:2", "duplicated tag: a")
