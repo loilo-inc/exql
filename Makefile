@@ -1,7 +1,7 @@
 up: down
-	docker-compose -f docker-compose.db.yml up -d
+	docker compose up -d
 down: compose.yml
-	docker-compose -f docker-compose.db.yml down
+	docker compose down
 fmt:
 	go fmt github.com/loilo-inc/exql/...
 test:
