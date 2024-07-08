@@ -1,5 +1,4 @@
 .idea
 dist
 coverage.out
-.vscode
 compose.yml

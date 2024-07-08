@@ -9,6 +9,7 @@ import (
 	"log"
 
 	q "github.com/loilo-inc/exql/v2/query"
+	"golang.org/x/xerrors"
 )
 
 type DB interface {
@@ -37,29 +38,43 @@ type db struct {
 	mutex sync.Mutex
 }
 
+// OpenFunc is an abstraction of sql.Open function.
+type OpenFunc func(driverName string, url string) (*sql.DB, error)
+
 type OpenOptions struct {
-	// @default "mysql"
-	DriverName string
+	// @required
 	// DSN format for database connection.
 	Url string
+	// @default "mysql"
+	DriverName string
 	// @default 5
 	MaxRetryCount int
 	// @default 5s
 	RetryInterval time.Duration
+	// Custom opener function.
+	OpenFunc OpenFunc
 }
 
 // Open opens the connection to the database and makes exql.DB interface.
+func Open(opts *OpenOptions) (DB, error) {
+	return OpenContext(context.Background(), opts)
+}
+
+// OpenContext opens the connection to the database and makes exql.DB interface.
 // If something failed, it retries automatically until given retry strategies satisfied
 // or aborts handshaking.
 //
 // Example:
 //
-//	db, err := exql.Open(&exql.OpenOptions{
+//	db, err := exql.Open(context.Background(), &exql.OpenOptions{
 //		Url: "user:pass@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local",
 //		MaxRetryCount: 3,
 //		RetryInterval: 10, //sec
 //	})
-func Open(opts *OpenOptions) (DB, error) {
+func OpenContext(ctx context.Context, opts *OpenOptions) (DB, error) {
+	if opts.Url == "" {
+		return nil, xerrors.New("opts.Url is required")
+	}
 	driverName := "mysql"
 	if opts.DriverName != "" {
 		driverName = opts.DriverName
@@ -74,12 +89,16 @@ func Open(opts *OpenOptions) (DB, error) {
 	}
 	var d *sql.DB
 	var err error
+	var openFunc OpenFunc = sql.Open
+	if opts.OpenFunc != nil {
+		openFunc = opts.OpenFunc
+	}
 	retryCnt := 0
 	for retryCnt < maxRetryCount {
-		d, err = sql.Open(driverName, opts.Url)
+		d, err = openFunc(driverName, opts.Url)
 		if err != nil {
 			goto retry
-		} else if err = d.Ping(); err != nil {
+		} else if err = d.PingContext(ctx); err != nil {
 			goto retry
 		} else {
 			goto success
