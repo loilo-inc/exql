@@ -8,7 +8,7 @@ import (
 
 	"log"
 
-	q "github.com/loilo-inc/exql/v2/query"
+	"golang.org/x/xerrors"
 )
 
 type DB interface {
@@ -31,35 +31,50 @@ type DB interface {
 }
 
 type db struct {
+	*saver
+	*finder
+	*mapper
 	db    *sql.DB
-	s     *saver
-	f     *finder
 	mutex sync.Mutex
 }
 
+// OpenFunc is an abstraction of sql.Open function.
+type OpenFunc func(driverName string, url string) (*sql.DB, error)
+
 type OpenOptions struct {
-	// @default "mysql"
-	DriverName string
+	// @required
 	// DSN format for database connection.
 	Url string
+	// @default "mysql"
+	DriverName string
 	// @default 5
 	MaxRetryCount int
 	// @default 5s
 	RetryInterval time.Duration
+	// Custom opener function.
+	OpenFunc OpenFunc
 }
 
 // Open opens the connection to the database and makes exql.DB interface.
+func Open(opts *OpenOptions) (DB, error) {
+	return OpenContext(context.Background(), opts)
+}
+
+// OpenContext opens the connection to the database and makes exql.DB interface.
 // If something failed, it retries automatically until given retry strategies satisfied
 // or aborts handshaking.
 //
 // Example:
 //
-//	db, err := exql.Open(&exql.OpenOptions{
+//	db, err := exql.Open(context.Background(), &exql.OpenOptions{
 //		Url: "user:pass@tcp(127.0.0.1:3306)/database?charset=utf8mb4&parseTime=True&loc=Local",
 //		MaxRetryCount: 3,
 //		RetryInterval: 10, //sec
 //	})
-func Open(opts *OpenOptions) (DB, error) {
+func OpenContext(ctx context.Context, opts *OpenOptions) (DB, error) {
+	if opts.Url == "" {
+		return nil, xerrors.New("opts.Url is required")
+	}
 	driverName := "mysql"
 	if opts.DriverName != "" {
 		driverName = opts.DriverName
@@ -74,12 +89,16 @@ func Open(opts *OpenOptions) (DB, error) {
 	}
 	var d *sql.DB
 	var err error
+	var openFunc OpenFunc = sql.Open
+	if opts.OpenFunc != nil {
+		openFunc = opts.OpenFunc
+	}
 	retryCnt := 0
 	for retryCnt < maxRetryCount {
-		d, err = sql.Open(driverName, opts.Url)
+		d, err = openFunc(driverName, opts.Url)
 		if err != nil {
 			goto retry
-		} else if err = d.Ping(); err != nil {
+		} else if err = d.PingContext(ctx); err != nil {
 			goto retry
 		} else {
 			goto success
@@ -98,71 +117,14 @@ success:
 
 func NewDB(d *sql.DB) DB {
 	return &db{
-		db: d,
-		s:  &saver{ex: d},
-		f:  newFinder(d),
+		saver:  newSaver(d),
+		finder: newFinder(d),
+		mapper: &mapper{},
+		db:     d,
 	}
 }
 
-func (d *db) Insert(modelPtr Model) (sql.Result, error) {
-	return d.s.Insert(modelPtr)
-}
-
-func (d *db) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
-	return d.s.InsertContext(ctx, modelPtr)
-}
-
-func (d *db) Update(table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
-	return d.s.Update(table, set, where)
-}
-
-func (d *db) UpdateModel(ptr ModelUpdate, where q.Condition) (sql.Result, error) {
-	return d.s.UpdateModel(ptr, where)
-}
-
-func (d *db) UpdateContext(ctx context.Context, table string, set map[string]interface{}, where q.Condition) (sql.Result, error) {
-	return d.s.UpdateContext(ctx, table, set, where)
-}
-
-func (d *db) UpdateModelContext(ctx context.Context, ptr ModelUpdate, where q.Condition) (sql.Result, error) {
-	return d.s.UpdateModelContext(ctx, ptr, where)
-}
-
-func (d *db) Delete(table string, where q.Condition) (sql.Result, error) {
-	return d.s.Delete(table, where)
-}
-
-func (d *db) DeleteContext(ctx context.Context, table string, where q.Condition) (sql.Result, error) {
-	return d.s.DeleteContext(ctx, table, where)
-}
-
-func (d *db) Exec(query q.Query) (sql.Result, error) {
-	return d.s.Exec(query)
-}
-
-func (d *db) ExecContext(ctx context.Context, query q.Query) (sql.Result, error) {
-	return d.s.ExecContext(ctx, query)
-}
-
-func (d *db) Query(query q.Query) (*sql.Rows, error) {
-	return d.s.Query(query)
-}
-
-func (d *db) QueryContext(ctx context.Context, query q.Query) (*sql.Rows, error) {
-	return d.s.QueryContext(ctx, query)
-}
-
-func (d *db) QueryRow(query q.Query) (*sql.Row, error) {
-	return d.s.QueryRow(query)
-}
-
-func (d *db) QueryRowContext(ctx context.Context, query q.Query) (*sql.Row, error) {
-	return d.s.QueryRowContext(ctx, query)
-}
-
 func (d *db) Close() error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
 	return d.db.Close()
 }
 
@@ -174,7 +136,7 @@ func (d *db) SetDB(db *sql.DB) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.db = db
-	d.s.ex = db
+	d.saver.ex = db
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
@@ -183,34 +145,4 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	return Transaction(d.db, ctx, opts, callback)
-}
-
-// Find implements DB
-func (d *db) Find(q q.Query, destPtrOfStruct any) error {
-	return d.f.Find(q, destPtrOfStruct)
-}
-
-// FindContext implements DB
-func (d *db) FindContext(ctx context.Context, q q.Query, destPtrOfStruct any) error {
-	return d.f.FindContext(ctx, q, destPtrOfStruct)
-}
-
-// FindMany implements DB
-func (d *db) FindMany(q q.Query, destSlicePtrOfStruct any) error {
-	return d.f.FindMany(q, destSlicePtrOfStruct)
-}
-
-// FindManyContext implements DB
-func (d *db) FindManyContext(ctx context.Context, q q.Query, destSlicePtrOfStruct any) error {
-	return d.f.FindManyContext(ctx, q, destSlicePtrOfStruct)
-}
-
-// Deprecated: Use Find or MapRow. It will be removed in next version.
-func (d *db) Map(rows *sql.Rows, destPtr any) error {
-	return MapRow(rows, destPtr)
-}
-
-// Deprecated: Use FindContext or MapRows. It will be removed in next version.
-func (d *db) MapMany(rows *sql.Rows, destSlicePtr any) error {
-	return MapRows(rows, destSlicePtr)
 }

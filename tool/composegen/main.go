@@ -20,7 +20,6 @@ func main() {
 		log.Fatalf("unsupported arch: %s", arch)
 	}
 	yml := fmt.Sprintf(`
-version: "3.7"
 services:
   mysql:
     container_name: exql_mysql8

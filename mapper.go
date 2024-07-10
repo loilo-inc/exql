@@ -19,6 +19,18 @@ type Mapper interface {
 	MapMany(rows *sql.Rows, destSlicePtr any) error
 }
 
+type mapper struct{}
+
+// Map reads data from single row and maps those columns into destination struct.
+func (m *mapper) Map(rows *sql.Rows, destPtr any) error {
+	return MapRow(rows, destPtr)
+}
+
+// MapMany reads all data from rows and maps those columns for each destination struct.
+func (m *mapper) MapMany(rows *sql.Rows, destSlicePtr any) error {
+	return MapRows(rows, destSlicePtr)
+}
+
 type ColumnSplitter func(i int) string
 
 // SerialMapper is an interface for mapping a joined row into one or more destinations serially.
