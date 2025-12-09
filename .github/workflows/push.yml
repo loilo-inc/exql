@@ -9,10 +9,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25"
       - run: make up
       - name: Check generated codes
         run: |
@@ -22,7 +22,7 @@ jobs:
           make fmt
           git diff --exit-code
       - run: make test
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: coverage.out
