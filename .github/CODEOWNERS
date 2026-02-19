@@ -1,0 +1,7 @@
+# CODEOWNERS file for exql repository
+# These owners will be the default owners for everything in the repo.
+# They will be requested for review when someone opens a pull request.
+
+# Go module dependencies
+/go.mod @loilo-inc/oss-maintainer-js
+/go.sum @loilo-inc/oss-maintainer-js
