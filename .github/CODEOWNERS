@@ -3,5 +3,5 @@
 # They will be requested for review when someone opens a pull request.
 
 # Go module dependencies
-/go.mod @loilo-inc/oss-maintainer-js
-/go.sum @loilo-inc/oss-maintainer-js
+/go.mod @loilo-inc/oss-maintainer-go
+/go.sum @loilo-inc/oss-maintainer-go
