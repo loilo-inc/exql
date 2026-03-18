@@ -11,8 +11,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v2/null"
 	"github.com/stretchr/testify/assert"
-	"github.com/volatiletech/null"
 )
 
 type partialUser struct {
