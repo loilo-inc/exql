@@ -50,58 +50,58 @@ func setupFields(t *testing.T, db exql.DB) *model.Fields {
 	field := model.Fields{
 		TinyintField:                   2,
 		TinyintUnsignedField:           3,
-		TinyintNullableField:           null.Int64From(4),
-		TinyintUnsignedNullableField:   null.Int64From(5),
+		TinyintNullableField:           null.New[int64](4),
+		TinyintUnsignedNullableField:   null.New[int64](5),
 		SmallintField:                  6,
 		SmallintUnsignedField:          7,
-		SmallintNullableField:          null.Int64From(8),
-		SmallintUnsignedNullableField:  null.Int64From(9),
+		SmallintNullableField:          null.New[int64](8),
+		SmallintUnsignedNullableField:  null.New[int64](9),
 		MediumintField:                 10,
 		MediumintUnsignedField:         11,
-		MediumintNullableField:         null.Int64From(12),
-		MediumintUnsignedNullableField: null.Int64From(13),
+		MediumintNullableField:         null.New[int64](12),
+		MediumintUnsignedNullableField: null.New[int64](13),
 		IntField:                       14,
 		IntUnsignedField:               15,
-		IntNullableField:               null.Int64From(16),
-		IntUnsignedNullableField:       null.Int64From(17),
+		IntNullableField:               null.New[int64](16),
+		IntUnsignedNullableField:       null.New[int64](17),
 		BigintField:                    18,
 		BigintUnsignedField:            19,
-		BigintNullableField:            null.Int64From(20),
-		BigintUnsignedNullableField:    null.Uint64From(21),
+		BigintNullableField:            null.New[int64](20),
+		BigintUnsignedNullableField:    null.New[uint64](21),
 		FloatField:                     21,
-		FloatNullField:                 null.Float32From(22),
+		FloatNullField:                 null.New[float32](22),
 		DoubleField:                    23,
-		DoubleNullField:                null.Float64From(24),
+		DoubleNullField:                null.New[float64](24),
 		TinytextField:                  "tinytext",
-		TinytextNullField:              null.StringFrom("tinytext"),
+		TinytextNullField:              null.New("tinytext"),
 		MediumtextField:                "mediumtext",
-		MediumtextNullField:            null.StringFrom("mediumtext"),
+		MediumtextNullField:            null.New("mediumtext"),
 		TextField:                      "text",
-		TextNullField:                  null.StringFrom("text"),
+		TextNullField:                  null.New("text"),
 		LongtextField:                  "longtext",
-		LongtextNullField:              null.StringFrom("longtext"),
+		LongtextNullField:              null.New("longtext"),
 		VarcharFiledField:              "varchar",
-		VarcharNullField:               null.StringFrom("varchar"),
+		VarcharNullField:               null.New("varchar"),
 		CharFiledField:                 "char",
-		CharFiledNullField:             null.StringFrom("char"),
+		CharFiledNullField:             null.New("char"),
 		DateField:                      now,
 		DateNullField:                  null.Time{},
 		DatetimeField:                  now,
 		DatetimeNullField:              null.Time{},
 		TimeField:                      "12:34:56",
-		TimeNullField:                  null.StringFrom("12:34:56"),
+		TimeNullField:                  null.New("12:34:56"),
 		TimestampField:                 now,
 		TimestampNullField:             null.Time{},
 		TinyblobField:                  tinyBlob,
-		TinyblobNullField:              null.BytesFrom(tinyBlob),
+		TinyblobNullField:              null.New(tinyBlob),
 		MediumblobField:                mediumBlob,
-		MediumblobNullField:            null.BytesFrom(mediumBlob),
+		MediumblobNullField:            null.New(mediumBlob),
 		BlobField:                      blob,
-		BlobNullField:                  null.BytesFrom(blob),
+		BlobNullField:                  null.New(blob),
 		LongblobField:                  longblob,
-		LongblobNullField:              null.BytesFrom(longblob),
+		LongblobNullField:              null.New(longblob),
 		JsonField:                      rawJson,
-		JsonNullField:                  null.JSONFrom(rawJson),
+		JsonNullField:                  null.New(rawJson),
 	}
 	_, err := db.Insert(&field)
 	assert.False(t, field.Id == 0)
@@ -114,58 +114,58 @@ func setupFields(t *testing.T, db exql.DB) *model.Fields {
 func assertFields(t *testing.T, dest *model.Fields, field *model.Fields) {
 	assert.Equal(t, dest.TinyintField, field.TinyintField)
 	assert.Equal(t, dest.TinyintUnsignedField, field.TinyintUnsignedField)
-	assert.Equal(t, dest.TinyintNullableField.Int64, field.TinyintNullableField.Int64)
-	assert.Equal(t, dest.TinyintUnsignedNullableField.Int64, field.TinyintUnsignedNullableField.Int64)
+	assert.Equal(t, dest.TinyintNullableField.V, field.TinyintNullableField.V)
+	assert.Equal(t, dest.TinyintUnsignedNullableField.V, field.TinyintUnsignedNullableField.V)
 	assert.Equal(t, dest.SmallintField, field.SmallintField)
 	assert.Equal(t, dest.SmallintUnsignedField, field.SmallintUnsignedField)
-	assert.Equal(t, dest.SmallintNullableField.Int64, field.SmallintNullableField.Int64)
-	assert.Equal(t, dest.SmallintUnsignedNullableField.Int64, field.SmallintUnsignedNullableField.Int64)
+	assert.Equal(t, dest.SmallintNullableField.V, field.SmallintNullableField.V)
+	assert.Equal(t, dest.SmallintUnsignedNullableField.V, field.SmallintUnsignedNullableField.V)
 	assert.Equal(t, dest.MediumintField, field.MediumintField)
 	assert.Equal(t, dest.MediumintUnsignedField, field.MediumintUnsignedField)
-	assert.Equal(t, dest.MediumintNullableField.Int64, field.MediumintNullableField.Int64)
-	assert.Equal(t, dest.MediumintUnsignedNullableField.Int64, field.MediumintUnsignedNullableField.Int64)
+	assert.Equal(t, dest.MediumintNullableField.V, field.MediumintNullableField.V)
+	assert.Equal(t, dest.MediumintUnsignedNullableField.V, field.MediumintUnsignedNullableField.V)
 	assert.Equal(t, dest.IntField, field.IntField)
 	assert.Equal(t, dest.IntUnsignedField, field.IntUnsignedField)
-	assert.Equal(t, dest.IntNullableField.Int64, field.IntNullableField.Int64)
-	assert.Equal(t, dest.IntUnsignedNullableField.Int64, field.IntUnsignedNullableField.Int64)
+	assert.Equal(t, dest.IntNullableField.V, field.IntNullableField.V)
+	assert.Equal(t, dest.IntUnsignedNullableField.V, field.IntUnsignedNullableField.V)
 	assert.Equal(t, dest.BigintField, field.BigintField)
 	assert.Equal(t, dest.BigintUnsignedField, field.BigintUnsignedField)
-	assert.Equal(t, dest.BigintNullableField.Int64, field.BigintNullableField.Int64)
-	assert.Equal(t, dest.BigintUnsignedNullableField.Uint64, field.BigintUnsignedNullableField.Uint64)
+	assert.Equal(t, dest.BigintNullableField.V, field.BigintNullableField.V)
+	assert.Equal(t, dest.BigintUnsignedNullableField.V, field.BigintUnsignedNullableField.V)
 	assert.Equal(t, dest.FloatField, field.FloatField)
-	assert.Equal(t, dest.FloatNullField.Float32, field.FloatNullField.Float32)
+	assert.Equal(t, dest.FloatNullField.V, field.FloatNullField.V)
 	assert.Equal(t, dest.DoubleField, field.DoubleField)
-	assert.Equal(t, dest.DoubleNullField.Float64, field.DoubleNullField.Float64)
+	assert.Equal(t, dest.DoubleNullField.V, field.DoubleNullField.V)
 	assert.Equal(t, dest.TinytextField, field.TinytextField)
-	assert.Equal(t, dest.TinytextNullField.String, field.TinytextNullField.String)
+	assert.Equal(t, dest.TinytextNullField.V, field.TinytextNullField.V)
 	assert.Equal(t, dest.MediumtextField, field.MediumtextField)
-	assert.Equal(t, dest.MediumtextNullField.String, field.MediumtextNullField.String)
+	assert.Equal(t, dest.MediumtextNullField.V, field.MediumtextNullField.V)
 	assert.Equal(t, dest.TextField, field.TextField)
-	assert.Equal(t, dest.TextNullField.String, field.TextNullField.String)
+	assert.Equal(t, dest.TextNullField.V, field.TextNullField.V)
 	assert.Equal(t, dest.LongtextField, field.LongtextField)
-	assert.Equal(t, dest.LongtextNullField.String, field.LongtextNullField.String)
+	assert.Equal(t, dest.LongtextNullField.V, field.LongtextNullField.V)
 	assert.Equal(t, dest.VarcharFiledField, field.VarcharFiledField)
-	assert.Equal(t, dest.VarcharNullField.String, field.VarcharNullField.String)
+	assert.Equal(t, dest.VarcharNullField.V, field.VarcharNullField.V)
 	assert.Equal(t, dest.CharFiledField, field.CharFiledField)
-	assert.Equal(t, dest.CharFiledNullField.String, field.CharFiledNullField.String)
+	assert.Equal(t, dest.CharFiledNullField.V, field.CharFiledNullField.V)
 	assert.Equal(t, dest.DateField.Format("2006-01-02"), field.DateField.Format("2006-01-02"))
-	assert.Equal(t, dest.DateNullField.Time.Unix(), field.DateNullField.Time.Unix())
+	assert.Equal(t, dest.DateNullField.V, field.DateNullField.V)
 	assert.Equal(t, dest.DatetimeField.Unix(), field.DatetimeField.Unix())
-	assert.Equal(t, dest.DatetimeNullField.Time.Unix(), field.DatetimeNullField.Time.Unix())
+	assert.Equal(t, dest.DatetimeNullField.V, field.DatetimeNullField.V)
 	assert.Equal(t, dest.TimeField, field.TimeField)
-	assert.Equal(t, dest.TimeNullField.String, field.TimeNullField.String)
+	assert.Equal(t, dest.TimeNullField.V, field.TimeNullField.V)
 	assert.Equal(t, dest.TimestampField.Unix(), field.TimestampField.Unix())
-	assert.Equal(t, dest.TimestampNullField.Time.Unix(), field.TimestampNullField.Time.Unix())
+	assert.Equal(t, dest.TimestampNullField.V, field.TimestampNullField.V)
 	assert.ElementsMatch(t, dest.TinyblobField, field.TinyblobField)
-	assert.ElementsMatch(t, dest.TinyblobNullField.Bytes, field.TinyblobNullField.Bytes)
+	assert.ElementsMatch(t, dest.TinyblobNullField.V, field.TinyblobNullField.V)
 	assert.ElementsMatch(t, dest.MediumblobField, field.MediumblobField)
-	assert.ElementsMatch(t, dest.MediumblobNullField.Bytes, field.MediumblobNullField.Bytes)
+	assert.ElementsMatch(t, dest.MediumblobNullField.V, field.MediumblobNullField.V)
 	assert.ElementsMatch(t, dest.BlobField, field.BlobField)
-	assert.ElementsMatch(t, dest.BlobNullField.Bytes, field.BlobNullField.Bytes)
+	assert.ElementsMatch(t, dest.BlobNullField.V, field.BlobNullField.V)
 	assert.ElementsMatch(t, dest.LongblobField, field.LongblobField)
-	assert.ElementsMatch(t, dest.LongblobNullField.Bytes, field.LongblobNullField.Bytes)
+	assert.ElementsMatch(t, dest.LongblobNullField.V, field.LongblobNullField.V)
 	assert.JSONEq(t, string(dest.JsonField), string(field.JsonField))
-	assert.JSONEq(t, string(dest.JsonNullField.JSON), string(field.JsonNullField.JSON))
+	assert.JSONEq(t, string(dest.JsonNullField.V), string(field.JsonNullField.V))
 }
 func TestMapper_MapRows(t *testing.T) {
 	db := testDb()
