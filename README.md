@@ -427,7 +427,6 @@ func MapSerial(db exql.DB) {
 		// + --------- + ------------------------ + ------------- +
 		if err := serialMapper.Map(rows, &user, &groupUsers, &userGroup); err != nil {
 			log.Fatal(err.Error())
-			return
 		}
 		users = append(users, &user)
 	}
