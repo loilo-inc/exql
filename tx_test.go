@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/query"
 	"github.com/stretchr/testify/assert"
 )
 

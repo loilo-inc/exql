@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 func Transaction(db exql.DB) {

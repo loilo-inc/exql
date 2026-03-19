@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 func Delete(db exql.DB) {

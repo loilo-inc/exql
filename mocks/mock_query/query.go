@@ -12,7 +12,7 @@ package mock_query
 import (
 	reflect "reflect"
 
-	query "github.com/loilo-inc/exql/v2/query"
+	query "github.com/loilo-inc/exql/v3/query"
 	gomock "go.uber.org/mock/gomock"
 )
 

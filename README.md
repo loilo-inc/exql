@@ -59,7 +59,7 @@ import (
 
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 func OpenDB() exql.DB {
@@ -103,7 +103,7 @@ import (
 	"log"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 func GenerateModels() {
@@ -174,8 +174,8 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 func Insert(db exql.DB) {
@@ -223,8 +223,8 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 // Using designated update struct
@@ -264,7 +264,7 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 func Delete(db exql.DB) {
@@ -288,7 +288,7 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 // To execute other kind of queries, unwrap sql.DB.
@@ -314,8 +314,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 func Transaction(db exql.DB) {
@@ -349,9 +349,9 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/query"
 )
 
 func Find(db exql.DB) {
@@ -388,8 +388,8 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 /*
@@ -443,8 +443,8 @@ package main
 import (
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
 )
 
 func MapSerialOuterJoin(db exql.DB) {
@@ -489,8 +489,8 @@ func MapSerialOuterJoin(db exql.DB) {
 package main
 
 import (
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/query"
 )
 
 func Query(db exql.DB) {

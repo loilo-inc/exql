@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/mocks/mock_exql"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/mocks/mock_exql"
+	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/query"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

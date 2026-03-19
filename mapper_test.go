@@ -9,9 +9,9 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v2/null"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/null"
 	"github.com/stretchr/testify/assert"
 )
 

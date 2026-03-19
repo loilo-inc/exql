@@ -14,8 +14,8 @@ import (
 	sql "database/sql"
 	reflect "reflect"
 
-	v2 "github.com/loilo-inc/exql/v2"
-	query "github.com/loilo-inc/exql/v2/query"
+	v3 "github.com/loilo-inc/exql/v3"
+	query "github.com/loilo-inc/exql/v3/query"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -104,7 +104,7 @@ func (mr *MockSaverMockRecorder) ExecContext(ctx, arg1 any) *gomock.Call {
 }
 
 // Insert mocks base method.
-func (m *MockSaver) Insert(structPtr v2.Model) (sql.Result, error) {
+func (m *MockSaver) Insert(structPtr v3.Model) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Insert", structPtr)
 	ret0, _ := ret[0].(sql.Result)
@@ -119,7 +119,7 @@ func (mr *MockSaverMockRecorder) Insert(structPtr any) *gomock.Call {
 }
 
 // InsertContext mocks base method.
-func (m *MockSaver) InsertContext(ctx context.Context, structPtr v2.Model) (sql.Result, error) {
+func (m *MockSaver) InsertContext(ctx context.Context, structPtr v3.Model) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InsertContext", ctx, structPtr)
 	ret0, _ := ret[0].(sql.Result)
@@ -224,7 +224,7 @@ func (mr *MockSaverMockRecorder) UpdateContext(ctx, table, set, where any) *gomo
 }
 
 // UpdateModel mocks base method.
-func (m *MockSaver) UpdateModel(updaterStructPtr v2.ModelUpdate, where query.Condition) (sql.Result, error) {
+func (m *MockSaver) UpdateModel(updaterStructPtr v3.ModelUpdate, where query.Condition) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModel", updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)
@@ -239,7 +239,7 @@ func (mr *MockSaverMockRecorder) UpdateModel(updaterStructPtr, where any) *gomoc
 }
 
 // UpdateModelContext mocks base method.
-func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr v2.ModelUpdate, where query.Condition) (sql.Result, error) {
+func (m *MockSaver) UpdateModelContext(ctx context.Context, updaterStructPtr v3.ModelUpdate, where query.Condition) (sql.Result, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateModelContext", ctx, updaterStructPtr, where)
 	ret0, _ := ret[0].(sql.Result)

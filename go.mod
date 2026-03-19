@@ -1,4 +1,4 @@
-module github.com/loilo-inc/exql/v2
+module github.com/loilo-inc/exql/v3
 
 go 1.25
 
