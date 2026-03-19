@@ -35,7 +35,7 @@ func FromPtr[T any](v *T) Null[T] {
 var _ Nuller = (*Null[any])(nil)
 
 // MarshalJSON implements json.Marshaler.
-func (n *Null[T]) MarshalJSON() ([]byte, error) {
+func (n Null[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return []byte("null"), nil
 	}
