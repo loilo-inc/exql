@@ -618,3 +618,7 @@ WHERE users.id = ?
 		})
 	})
 }
+func TestErrRecordNotFound_Error(t *testing.T) {
+	err := exql.ErrRecordNotFound{}
+	assert.Equal(t, "record not found", err.Error())
+}
