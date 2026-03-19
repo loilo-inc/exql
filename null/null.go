@@ -46,7 +46,7 @@ var nullBytes = []byte("null")
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (n *Null[T]) UnmarshalJSON(data []byte) error {
-	if bytes.Equal(data, nullBytes) {
+	if bytes.Equal(bytes.TrimSpace(data), nullBytes) {
 		n.V = *new(T)
 		n.Valid = false
 		return nil

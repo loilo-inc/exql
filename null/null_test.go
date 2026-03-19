@@ -70,6 +70,14 @@ func TestNullUnmarshalJSON(t *testing.T) {
 		assert.True(t, n.V.IsZero())
 	})
 
+	t.Run("time null with whitespace", func(t *testing.T) {
+		n := New(time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC))
+		err := n.UnmarshalJSON([]byte(" \n\t null\r\n "))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.True(t, n.V.IsZero())
+	})
+
 	t.Run("bytes valid value", func(t *testing.T) {
 		var n Bytes
 		err := n.UnmarshalJSON([]byte(`"aGVsbG8="`))
