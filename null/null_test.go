@@ -3,57 +3,107 @@ package null
 import (
 	"database/sql"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewNull(t *testing.T) {
 	n := New(42)
-	if !n.Valid || n.V != 42 {
-		t.Errorf("New(42) = %v, want valid=true V=42", n)
-	}
+	assert.True(t, n.Valid)
+	assert.Equal(t, 42, n.V)
 }
 
 func TestNullMarshalJSONValid(t *testing.T) {
 	n := New("hello")
 	data, err := n.MarshalJSON()
-	if err != nil {
-		t.Fatalf("MarshalJSON() error = %v", err)
-	}
-	if string(data) != `"hello"` {
-		t.Errorf("MarshalJSON() = %s, want \"hello\"", data)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, `"hello"`, string(data))
 }
 
 func TestNullMarshalJSONInvalid(t *testing.T) {
 	n := Null[string]{sql.Null[string]{Valid: false}}
 	data, err := n.MarshalJSON()
-	if err != nil {
-		t.Fatalf("MarshalJSON() error = %v", err)
-	}
-	if string(data) != "null" {
-		t.Errorf("MarshalJSON() = %s, want null", data)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "null", string(data))
+}
+
+func TestNullUnmarshalJSON(t *testing.T) {
+	t.Run("valid value", func(t *testing.T) {
+		var n Null[string]
+		err := n.UnmarshalJSON([]byte(`"hello"`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "hello", n.V)
+	})
+
+	t.Run("null", func(t *testing.T) {
+		n := New("hello")
+		err := n.UnmarshalJSON([]byte(`null`))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.Equal(t, "", n.V)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		n := New("before")
+		err := n.UnmarshalJSON([]byte(`invalid`))
+		assert.Error(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "before", n.V)
+	})
+
+	t.Run("time valid value", func(t *testing.T) {
+		var n Time
+		want := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+		err := n.UnmarshalJSON([]byte(`"2024-01-02T03:04:05Z"`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.True(t, n.V.Equal(want))
+	})
+
+	t.Run("time null", func(t *testing.T) {
+		n := New(time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC))
+		err := n.UnmarshalJSON([]byte(`null`))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.True(t, n.V.IsZero())
+	})
+
+	t.Run("bytes valid value", func(t *testing.T) {
+		var n Bytes
+		err := n.UnmarshalJSON([]byte(`"aGVsbG8="`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, []byte("hello"), n.V)
+	})
+
+	t.Run("bytes null", func(t *testing.T) {
+		n := New([]byte("hello"))
+		err := n.UnmarshalJSON([]byte(`null`))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.Nil(t, n.V)
+	})
 }
 
 func TestNewTypedNull(t *testing.T) {
 	t.Run("int64", func(t *testing.T) {
 		n := New[int64](123)
-		if !n.Valid || n.V != 123 {
-			t.Errorf("New[int64](123) = %v, want valid=true V=123", n)
-		}
+		assert.True(t, n.Valid)
+		assert.EqualValues(t, 123, n.V)
 	})
 
 	t.Run("string", func(t *testing.T) {
 		n := New("test")
-		if !n.Valid || n.V != "test" {
-			t.Errorf("New(\"test\") = %v, want valid=true V=test", n)
-		}
+		assert.True(t, n.Valid)
+		assert.Equal(t, "test", n.V)
 	})
 
 	t.Run("float64", func(t *testing.T) {
 		n := New(3.14)
-		if !n.Valid || n.V != 3.14 {
-			t.Errorf("New(3.14) = %v, want valid=true V=3.14", n)
-		}
+		assert.True(t, n.Valid)
+		assert.Equal(t, 3.14, n.V)
 	})
 }
 
@@ -61,32 +111,27 @@ func TestFromPtr(t *testing.T) {
 	t.Run("int64", func(t *testing.T) {
 		v := int64(123)
 		n := FromPtr(&v)
-		if !n.Valid || n.V != 123 {
-			t.Errorf("FromPtr(&%v) = %v, want valid=true V=123", v, n)
-		}
+		assert.True(t, n.Valid)
+		assert.EqualValues(t, 123, n.V)
 	})
 
 	t.Run("string", func(t *testing.T) {
 		v := "test"
 		n := FromPtr(&v)
-		if !n.Valid || n.V != "test" {
-			t.Errorf("FromPtr(&%q) = %v, want valid=true V=test", v, n)
-		}
+		assert.True(t, n.Valid)
+		assert.Equal(t, "test", n.V)
 	})
 
 	t.Run("float64", func(t *testing.T) {
 		v := 3.14
 		n := FromPtr(&v)
-		if !n.Valid || n.V != 3.14 {
-			t.Errorf("FromPtr(&%v) = %v, want valid=true V=3.14", v, n)
-		}
+		assert.True(t, n.Valid)
+		assert.Equal(t, 3.14, n.V)
 	})
 
 	t.Run("nil", func(t *testing.T) {
 		n := FromPtr[int](nil)
-		if n.Valid {
-			t.Errorf("FromPtr(nil) = %v, want valid=false", n)
-		}
+		assert.False(t, n.Valid)
 	})
 }
 
@@ -94,29 +139,24 @@ func TestNullPtr(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		n := New(42)
 		ptr := n.Ptr()
-		if ptr == nil || *ptr != 42 {
-			t.Errorf("Ptr() = %v, want pointer to 42", ptr)
-		}
+		assert.NotNil(t, ptr)
+		assert.Equal(t, 42, *ptr)
 	})
 	t.Run("invalid", func(t *testing.T) {
 		n := Null[int]{}
 		ptr := n.Ptr()
-		if ptr != nil {
-			t.Errorf("Ptr() on invalid Null = %v, want nil", ptr)
-		}
+		assert.Nil(t, ptr)
 	})
 	t.Run("string", func(t *testing.T) {
 		n := New("test")
 		ptr := n.Ptr()
-		if ptr == nil || *ptr != "test" {
-			t.Errorf("Ptr() = %v, want pointer to \"test\"", ptr)
-		}
+		assert.NotNil(t, ptr)
+		assert.Equal(t, "test", *ptr)
 	})
 	t.Run("float64", func(t *testing.T) {
 		n := New(2.71)
 		ptr := n.Ptr()
-		if ptr == nil || *ptr != 2.71 {
-			t.Errorf("Ptr() = %v, want pointer to 2.71", ptr)
-		}
+		assert.NotNil(t, ptr)
+		assert.Equal(t, 2.71, *ptr)
 	})
 }

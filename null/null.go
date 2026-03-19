@@ -1,6 +1,7 @@
 package null
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
@@ -11,6 +12,7 @@ type Nuller interface {
 	sql.Scanner
 	driver.Valuer
 	json.Marshaler
+	json.Unmarshaler
 }
 
 type Null[T any] struct {
@@ -33,14 +35,32 @@ func FromPtr[T any](v *T) Null[T] {
 var _ Nuller = (*Null[any])(nil)
 
 // MarshalJSON implements json.Marshaler.
-func (n Null[T]) MarshalJSON() ([]byte, error) {
+func (n *Null[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return []byte("null"), nil
 	}
 	return json.Marshal(n.V)
 }
 
-func (n Null[T]) Ptr() *T {
+var nullBytes = []byte("null")
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (n *Null[T]) UnmarshalJSON(data []byte) error {
+	if bytes.Equal(data, nullBytes) {
+		n.V = *new(T)
+		n.Valid = false
+		return nil
+	}
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	n.V = v
+	n.Valid = true
+	return nil
+}
+
+func (n *Null[T]) Ptr() *T {
 	if !n.Valid {
 		return nil
 	}
