@@ -122,18 +122,18 @@ func TestNullUnmarshalJSON(t *testing.T) {
 func TestNullUnmarshalText(t *testing.T) {
 	t.Run("valid value", func(t *testing.T) {
 		var n Null[string]
-		err := n.UnmarshalText([]byte(`"hello"`))
+		err := n.UnmarshalText([]byte(`hello`))
 		assert.NoError(t, err)
 		assert.True(t, n.Valid)
 		assert.Equal(t, "hello", n.V)
 	})
 
-	t.Run("empty text", func(t *testing.T) {
-		n := New("hello")
-		err := n.UnmarshalText([]byte(``))
+	t.Run("valid JSON-encoded value", func(t *testing.T) {
+		var n Null[string]
+		err := n.UnmarshalText([]byte(`"hello"`))
 		assert.NoError(t, err)
-		assert.False(t, n.Valid)
-		assert.Equal(t, "", n.V)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "hello", n.V)
 	})
 
 	t.Run("integer", func(t *testing.T) {
@@ -169,6 +169,15 @@ func TestNullUnmarshalText(t *testing.T) {
 	})
 
 	t.Run("time valid value", func(t *testing.T) {
+		var n Time
+		want := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+		err := n.UnmarshalText([]byte(`2024-01-02T03:04:05Z`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.True(t, n.V.Equal(want))
+	})
+
+	t.Run("time valid JSON-encoded value", func(t *testing.T) {
 		var n Time
 		want := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
 		err := n.UnmarshalText([]byte(`"2024-01-02T03:04:05Z"`))
