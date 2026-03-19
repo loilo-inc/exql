@@ -60,7 +60,7 @@ func (n *Null[T]) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (n *Null[T]) Ptr() *T {
+func (n Null[T]) Ptr() *T {
 	if !n.Valid {
 		return nil
 	}
