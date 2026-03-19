@@ -176,6 +176,14 @@ func TestNullUnmarshalText(t *testing.T) {
 		assert.True(t, n.Valid)
 		assert.True(t, n.V.Equal(want))
 	})
+
+	t.Run("time unquoted value", func(t *testing.T) {
+		var n Time
+		err := n.UnmarshalText([]byte("2024-01-02T03:04:05Z"))
+		assert.Error(t, err)
+		assert.False(t, n.Valid)
+		assert.True(t, n.V.IsZero())
+	})
 }
 
 func TestNewTypedNull(t *testing.T) {
