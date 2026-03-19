@@ -23,6 +23,13 @@ func New[T any](v T) Null[T] {
 	}
 }
 
+func FromPtr[T any](v *T) Null[T] {
+	if v == nil {
+		return Null[T]{}
+	}
+	return New(*v)
+}
+
 var _ Nuller = (*Null[any])(nil)
 
 // MarshalJSON implements json.Marshaler.
@@ -33,8 +40,16 @@ func (n Null[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(n.V)
 }
 
+func (n Null[T]) Ptr() *T {
+	if !n.Valid {
+		return nil
+	}
+	return &n.V
+}
+
 type Uint64 = Null[uint64]
 type Int64 = Null[int64]
+type Bool = Null[bool]
 type Float64 = Null[float64]
 type Float32 = Null[float32]
 type Time = Null[time.Time]
