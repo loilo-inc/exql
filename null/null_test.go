@@ -34,23 +34,89 @@ func TestNullMarshalJSONInvalid(t *testing.T) {
 	}
 }
 
-func TestNullInt64(t *testing.T) {
-	n := New[int64](123)
-	if !n.Valid || n.V != 123 {
-		t.Errorf("Int64 type = %v, want valid=true V=123", n)
-	}
+func TestNewTypedNull(t *testing.T) {
+	t.Run("int64", func(t *testing.T) {
+		n := New[int64](123)
+		if !n.Valid || n.V != 123 {
+			t.Errorf("New[int64](123) = %v, want valid=true V=123", n)
+		}
+	})
+
+	t.Run("string", func(t *testing.T) {
+		n := New("test")
+		if !n.Valid || n.V != "test" {
+			t.Errorf("New(\"test\") = %v, want valid=true V=test", n)
+		}
+	})
+
+	t.Run("float64", func(t *testing.T) {
+		n := New(3.14)
+		if !n.Valid || n.V != 3.14 {
+			t.Errorf("New(3.14) = %v, want valid=true V=3.14", n)
+		}
+	})
 }
 
-func TestNullString(t *testing.T) {
-	n := New("test")
-	if !n.Valid || n.V != "test" {
-		t.Errorf("String type = %v, want valid=true V=test", n)
-	}
+func TestFromPtr(t *testing.T) {
+	t.Run("int64", func(t *testing.T) {
+		v := int64(123)
+		n := FromPtr(&v)
+		if !n.Valid || n.V != 123 {
+			t.Errorf("FromPtr(&%v) = %v, want valid=true V=123", v, n)
+		}
+	})
+
+	t.Run("string", func(t *testing.T) {
+		v := "test"
+		n := FromPtr(&v)
+		if !n.Valid || n.V != "test" {
+			t.Errorf("FromPtr(&%q) = %v, want valid=true V=test", v, n)
+		}
+	})
+
+	t.Run("float64", func(t *testing.T) {
+		v := 3.14
+		n := FromPtr(&v)
+		if !n.Valid || n.V != 3.14 {
+			t.Errorf("FromPtr(&%v) = %v, want valid=true V=3.14", v, n)
+		}
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		n := FromPtr[int](nil)
+		if n.Valid {
+			t.Errorf("FromPtr(nil) = %v, want valid=false", n)
+		}
+	})
 }
 
-func TestNullFloat64(t *testing.T) {
-	n := New(3.14)
-	if !n.Valid || n.V != 3.14 {
-		t.Errorf("Float64 type = %v, want valid=true V=3.14", n)
-	}
+func TestNullPtr(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		n := New(42)
+		ptr := n.Ptr()
+		if ptr == nil || *ptr != 42 {
+			t.Errorf("Ptr() = %v, want pointer to 42", ptr)
+		}
+	})
+	t.Run("invalid", func(t *testing.T) {
+		n := Null[int]{}
+		ptr := n.Ptr()
+		if ptr != nil {
+			t.Errorf("Ptr() on invalid Null = %v, want nil", ptr)
+		}
+	})
+	t.Run("string", func(t *testing.T) {
+		n := New("test")
+		ptr := n.Ptr()
+		if ptr == nil || *ptr != "test" {
+			t.Errorf("Ptr() = %v, want pointer to \"test\"", ptr)
+		}
+	})
+	t.Run("float64", func(t *testing.T) {
+		n := New(2.71)
+		ptr := n.Ptr()
+		if ptr == nil || *ptr != 2.71 {
+			t.Errorf("Ptr() = %v, want pointer to 2.71", ptr)
+		}
+	})
 }
