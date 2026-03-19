@@ -22,6 +22,6 @@ func GenerateModels() {
 		},
 	})
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err.Error())
 	}
 }

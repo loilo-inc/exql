@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/golang/mock/gomock"
 	"github.com/loilo-inc/exql/v2"
 	"github.com/loilo-inc/exql/v2/mocks/mock_exql"
 	"github.com/loilo-inc/exql/v2/model"
 	"github.com/loilo-inc/exql/v2/query"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestPreparedExecutor(t *testing.T) {

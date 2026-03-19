@@ -3,7 +3,7 @@ package model
 
 import "encoding/json"
 import "time"
-import "github.com/volatiletech/null"
+import "github.com/loilo-inc/exql/v2/null"
 
 type Fields struct {
 	Id                             int64           `exql:"column:id;type:int;primary;not null;auto_increment" json:"id"`
