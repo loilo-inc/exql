@@ -102,7 +102,7 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		imports = append(imports, `import "time"`)
 	}
 	if table.HasNullField() {
-		imports = append(imports, `import "github.com/loilo-inc/exql/v2/null"`)
+		imports = append(imports, `import "github.com/loilo-inc/exql/v3/null"`)
 	}
 	fields := strings.Builder{}
 	updateFields := strings.Builder{}

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/test"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/test"
 	"github.com/stretchr/testify/assert"
 )
 

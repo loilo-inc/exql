@@ -3,7 +3,7 @@ package query_test
 import (
 	"testing"
 
-	q "github.com/loilo-inc/exql/v2/query"
+	q "github.com/loilo-inc/exql/v3/query"
 )
 
 func TestQuery(t *testing.T) {

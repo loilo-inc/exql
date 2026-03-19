@@ -3,7 +3,7 @@ package exql
 import (
 	"context"
 
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3/query"
 )
 
 // Finder is an interface to execute select query and map rows into the destination.

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/query"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/query"
 )
 
 func Query(db exql.DB) {

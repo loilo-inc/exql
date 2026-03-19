@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	q "github.com/loilo-inc/exql/v2/query"
+	q "github.com/loilo-inc/exql/v3/query"
 	"golang.org/x/xerrors"
 )
 

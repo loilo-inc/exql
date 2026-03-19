@@ -5,7 +5,7 @@ import (
 
 	"log"
 
-	"github.com/loilo-inc/exql/v2"
+	"github.com/loilo-inc/exql/v3"
 )
 
 func OpenDB() exql.DB {

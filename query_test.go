@@ -3,9 +3,9 @@ package exql_test
 import (
 	"testing"
 
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v2/model/testmodel"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/model/testmodel"
 	"github.com/stretchr/testify/assert"
 )
 

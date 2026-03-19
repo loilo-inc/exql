@@ -4,8 +4,8 @@ import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql/v2"
-	"github.com/loilo-inc/exql/v2/test"
+	"github.com/loilo-inc/exql/v3"
+	"github.com/loilo-inc/exql/v3/test"
 )
 
 func testDb() exql.DB {
