@@ -2,14 +2,17 @@ package exql
 
 import (
 	"database/sql"
-	"errors"
 	"reflect"
 
 	"golang.org/x/xerrors"
 )
 
 // Error returned when record not found
-var ErrRecordNotFound = errors.New("record not found")
+type ErrRecordNotFound struct{}
+
+func (e ErrRecordNotFound) Error() string {
+	return "record not found"
+}
 
 // Deprecated: Use Finder It will be removed in next version.
 type Mapper interface {
@@ -95,7 +98,7 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	if err != nil {
 		return err
 	}
-	return ErrRecordNotFound
+	return ErrRecordNotFound{}
 }
 
 var errMapManyDestination = xerrors.Errorf("destination must be a pointer of slice of struct")
@@ -152,7 +155,7 @@ func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 		return err
 	}
 	if cnt == 0 {
-		return ErrRecordNotFound
+		return ErrRecordNotFound{}
 	}
 	return nil
 }

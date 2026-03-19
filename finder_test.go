@@ -46,7 +46,7 @@ func TestFinder(t *testing.T) {
 		t.Run("should error if mapping failed", func(t *testing.T) {
 			var dest model.Users
 			err := f.Find(query.Q(`select * from users where id = -1`), &dest)
-			assert.ErrorIs(t, err, exql.ErrRecordNotFound)
+			assert.ErrorIs(t, err, exql.ErrRecordNotFound{})
 		})
 	})
 	t.Run("FindManyContext", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestFinder(t *testing.T) {
 		t.Run("should error if mapping failed", func(t *testing.T) {
 			var dest []*model.Users
 			err := f.FindMany(query.Q(`select * from users where id = -1`), &dest)
-			assert.ErrorIs(t, err, exql.ErrRecordNotFound)
+			assert.ErrorIs(t, err, exql.ErrRecordNotFound{})
 		})
 	})
 }

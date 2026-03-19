@@ -228,7 +228,7 @@ func TestMapper_MapRows(t *testing.T) {
 		assert.NoError(t, err)
 		var dest []*model.Users
 		err = exql.MapRows(rows, &dest)
-		assert.Equal(t, exql.ErrRecordNotFound, err)
+		assert.Equal(t, exql.ErrRecordNotFound{}, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -317,7 +317,7 @@ func TestMapper_Map(t *testing.T) {
 		assert.NoError(t, err)
 		var dest model.Users
 		err = exql.MapRow(rows, &dest)
-		assert.Equal(t, exql.ErrRecordNotFound, err)
+		assert.Equal(t, exql.ErrRecordNotFound{}, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -617,4 +617,8 @@ WHERE users.id = ?
 			doTest(&user)
 		})
 	})
+}
+func TestErrRecordNotFound_Error(t *testing.T) {
+	err := exql.ErrRecordNotFound{}
+	assert.Equal(t, "record not found", err.Error())
 }
