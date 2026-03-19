@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"database/sql/driver"
+	"encoding"
 	"encoding/json"
 	"time"
 )
@@ -13,6 +14,7 @@ type Nuller interface {
 	driver.Valuer
 	json.Marshaler
 	json.Unmarshaler
+	encoding.TextUnmarshaler
 }
 
 type Null[T any] struct {
@@ -51,6 +53,20 @@ func (n *Null[T]) UnmarshalJSON(data []byte) error {
 		n.Valid = false
 		return nil
 	}
+	return n.unmarshalAsJSON(data)
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (n *Null[T]) UnmarshalText(text []byte) error {
+	if len(bytes.TrimSpace(text)) == 0 {
+		n.V = *new(T)
+		n.Valid = false
+		return nil
+	}
+	return n.unmarshalAsJSON(text)
+}
+
+func (n *Null[T]) unmarshalAsJSON(data []byte) error {
 	var v T
 	if err := json.Unmarshal(data, &v); err != nil {
 		return err

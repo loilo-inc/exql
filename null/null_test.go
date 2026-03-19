@@ -37,6 +37,30 @@ func TestNullUnmarshalJSON(t *testing.T) {
 		assert.Equal(t, "hello", n.V)
 	})
 
+	t.Run("int", func(t *testing.T) {
+		var n Null[int]
+		err := n.UnmarshalJSON([]byte(`123`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, 123, n.V)
+	})
+
+	t.Run("int64", func(t *testing.T) {
+		var n Null[int64]
+		err := n.UnmarshalJSON([]byte(`1234567890123`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.EqualValues(t, 1234567890123, n.V)
+	})
+
+	t.Run("float", func(t *testing.T) {
+		var n Null[float64]
+		err := n.UnmarshalJSON([]byte(`3.14`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, 3.14, n.V)
+	})
+
 	t.Run("null", func(t *testing.T) {
 		n := New("hello")
 		err := n.UnmarshalJSON([]byte(`null`))
@@ -92,6 +116,65 @@ func TestNullUnmarshalJSON(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, n.Valid)
 		assert.Nil(t, n.V)
+	})
+}
+
+func TestNullUnmarshalText(t *testing.T) {
+	t.Run("valid value", func(t *testing.T) {
+		var n Null[string]
+		err := n.UnmarshalText([]byte(`"hello"`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "hello", n.V)
+	})
+
+	t.Run("empty text", func(t *testing.T) {
+		n := New("hello")
+		err := n.UnmarshalText([]byte(``))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.Equal(t, "", n.V)
+	})
+
+	t.Run("integer", func(t *testing.T) {
+		var n Null[int]
+		err := n.UnmarshalText([]byte(`123`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, 123, n.V)
+	})
+
+	t.Run("float", func(t *testing.T) {
+		var n Null[float64]
+		err := n.UnmarshalText([]byte(`3.14`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, 3.14, n.V)
+	})
+
+	t.Run("whitespace text", func(t *testing.T) {
+		n := New(time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC))
+		err := n.UnmarshalText([]byte(" \n\t "))
+		assert.NoError(t, err)
+		assert.False(t, n.Valid)
+		assert.True(t, n.V.IsZero())
+	})
+
+	t.Run("invalid text", func(t *testing.T) {
+		n := New("before")
+		err := n.UnmarshalText([]byte(`invalid`))
+		assert.Error(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "before", n.V)
+	})
+
+	t.Run("time valid value", func(t *testing.T) {
+		var n Time
+		want := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
+		err := n.UnmarshalText([]byte(`"2024-01-02T03:04:05Z"`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.True(t, n.V.Equal(want))
 	})
 }
 
