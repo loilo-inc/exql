@@ -84,13 +84,13 @@ func (n *Null[T]) UnmarshalText(text []byte) error {
 		n.Valid = true
 		return nil
 	}
-	if reflect.TypeFor[T]().Kind() == reflect.String {
+	if textTypeInfoFor[T]().isString {
 		reflect.ValueOf(&n.V).Elem().SetString(string(text))
 		n.Valid = true
 		return nil
 	}
-	if json.Valid(text) {
-		return n.unmarshalAsJSON(text)
+	if err := n.unmarshalAsJSON(text); err == nil {
+		return nil
 	}
 	return errUnsupportedType
 }
