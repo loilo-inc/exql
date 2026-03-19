@@ -46,7 +46,7 @@ func TestTx_Transaction(t *testing.T) {
 		rows, err := db.DB().Query(`select * from users where id = ?`, user.Id)
 		assert.NoError(t, err)
 		err = exql.MapRow(rows, &dest)
-		assert.ErrorIs(t, err, exql.ErrRecordNotFound)
+		assert.ErrorIs(t, err, exql.ErrRecordNotFound{})
 	})
 	t.Run("should rollback if panic happened during transaction", func(t *testing.T) {
 		var user *model.Users
@@ -59,7 +59,7 @@ func TestTx_Transaction(t *testing.T) {
 		assert.EqualError(t, err, "recovered: panic")
 		var dest model.Users
 		err = db.Find(query.Q(`select * from users where id = ?`, user.Id), &dest)
-		assert.Equal(t, exql.ErrRecordNotFound, err)
+		assert.Equal(t, exql.ErrRecordNotFound{}, err)
 	})
 }
 func TestTx_Map(t *testing.T) {
