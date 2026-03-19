@@ -6,6 +6,8 @@ import (
 	"database/sql/driver"
 	"encoding"
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -41,10 +43,14 @@ func (n Null[T]) MarshalJSON() ([]byte, error) {
 	if !n.Valid {
 		return []byte("null"), nil
 	}
+	if iface, ok := any(n.V).(json.Marshaler); ok {
+		return iface.MarshalJSON()
+	}
 	return json.Marshal(n.V)
 }
 
 var nullBytes = []byte("null")
+var errUnsupportedType = fmt.Errorf("unsupported type for Null")
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (n *Null[T]) UnmarshalJSON(data []byte) error {
@@ -53,17 +59,40 @@ func (n *Null[T]) UnmarshalJSON(data []byte) error {
 		n.Valid = false
 		return nil
 	}
+	if iface, ok := any(&n.V).(json.Unmarshaler); ok {
+		if err := iface.UnmarshalJSON(data); err != nil {
+			return err
+		}
+		n.Valid = true
+		return nil
+	}
 	return n.unmarshalAsJSON(data)
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (n *Null[T]) UnmarshalText(text []byte) error {
-	if len(bytes.TrimSpace(text)) == 0 {
+	// If the text is empty, treat it as null.
+	if len(text) == 0 {
 		n.V = *new(T)
 		n.Valid = false
 		return nil
 	}
-	return n.unmarshalAsJSON(text)
+	if iface, ok := any(&n.V).(encoding.TextUnmarshaler); ok {
+		if err := iface.UnmarshalText(text); err != nil {
+			return err
+		}
+		n.Valid = true
+		return nil
+	}
+	if reflect.TypeFor[T]().Kind() == reflect.String {
+		reflect.ValueOf(&n.V).Elem().SetString(string(text))
+		n.Valid = true
+		return nil
+	}
+	if json.Valid(text) {
+		return n.unmarshalAsJSON(text)
+	}
+	return errUnsupportedType
 }
 
 func (n *Null[T]) unmarshalAsJSON(data []byte) error {

@@ -8,6 +8,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type unsupportedTextValue struct {
+	Name string
+}
+
+type namedString string
+type namedInt int
+
+type textJSONPayload struct {
+	A int `json:"a"`
+}
+
 func TestNewNull(t *testing.T) {
 	n := New(42)
 	assert.True(t, n.Valid)
@@ -128,12 +139,12 @@ func TestNullUnmarshalText(t *testing.T) {
 		assert.Equal(t, "hello", n.V)
 	})
 
-	t.Run("valid JSON-encoded value", func(t *testing.T) {
+	t.Run("quoted text is preserved", func(t *testing.T) {
 		var n Null[string]
 		err := n.UnmarshalText([]byte(`"hello"`))
 		assert.NoError(t, err)
 		assert.True(t, n.Valid)
-		assert.Equal(t, "hello", n.V)
+		assert.Equal(t, `"hello"`, n.V)
 	})
 
 	t.Run("integer", func(t *testing.T) {
@@ -144,6 +155,22 @@ func TestNullUnmarshalText(t *testing.T) {
 		assert.Equal(t, 123, n.V)
 	})
 
+	t.Run("named string", func(t *testing.T) {
+		var n Null[namedString]
+		err := n.UnmarshalText([]byte(`hello`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, namedString("hello"), n.V)
+	})
+
+	t.Run("named integer", func(t *testing.T) {
+		var n Null[namedInt]
+		err := n.UnmarshalText([]byte(`123`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, namedInt(123), n.V)
+	})
+
 	t.Run("float", func(t *testing.T) {
 		var n Null[float64]
 		err := n.UnmarshalText([]byte(`3.14`))
@@ -152,20 +179,27 @@ func TestNullUnmarshalText(t *testing.T) {
 		assert.Equal(t, 3.14, n.V)
 	})
 
-	t.Run("whitespace text", func(t *testing.T) {
+	t.Run("empty text", func(t *testing.T) {
 		n := New(time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC))
-		err := n.UnmarshalText([]byte(" \n\t "))
+		err := n.UnmarshalText([]byte(""))
 		assert.NoError(t, err)
 		assert.False(t, n.Valid)
 		assert.True(t, n.V.IsZero())
 	})
 
-	t.Run("invalid text", func(t *testing.T) {
-		n := New("before")
-		err := n.UnmarshalText([]byte(`invalid`))
+	t.Run("whitespace text", func(t *testing.T) {
+		n := New(time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC))
+		err := n.UnmarshalText([]byte(" \n\t "))
 		assert.Error(t, err)
 		assert.True(t, n.Valid)
-		assert.Equal(t, "before", n.V)
+	})
+
+	t.Run("plain string text is accepted", func(t *testing.T) {
+		n := New("before")
+		err := n.UnmarshalText([]byte(`invalid`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, "invalid", n.V)
 	})
 
 	t.Run("time valid value", func(t *testing.T) {
@@ -179,19 +213,26 @@ func TestNullUnmarshalText(t *testing.T) {
 
 	t.Run("time valid JSON-encoded value", func(t *testing.T) {
 		var n Time
-		want := time.Date(2024, time.January, 2, 3, 4, 5, 0, time.UTC)
 		err := n.UnmarshalText([]byte(`"2024-01-02T03:04:05Z"`))
-		assert.NoError(t, err)
-		assert.True(t, n.Valid)
-		assert.True(t, n.V.Equal(want))
-	})
-
-	t.Run("time unquoted value", func(t *testing.T) {
-		var n Time
-		err := n.UnmarshalText([]byte("2024-01-02T03:04:05Z"))
 		assert.Error(t, err)
 		assert.False(t, n.Valid)
 		assert.True(t, n.V.IsZero())
+	})
+
+	t.Run("struct valid JSON value", func(t *testing.T) {
+		var n Null[textJSONPayload]
+		err := n.UnmarshalText([]byte(`{"a":1}`))
+		assert.NoError(t, err)
+		assert.True(t, n.Valid)
+		assert.Equal(t, textJSONPayload{A: 1}, n.V)
+	})
+
+	t.Run("unsupported type", func(t *testing.T) {
+		n := New(unsupportedTextValue{Name: "before"})
+		err := n.UnmarshalText([]byte(`anything`))
+		assert.ErrorIs(t, err, errUnsupportedType)
+		assert.True(t, n.Valid)
+		assert.Equal(t, unsupportedTextValue{Name: "before"}, n.V)
 	})
 }
 
