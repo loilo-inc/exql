@@ -3,12 +3,11 @@ package exql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"time"
 
 	"log"
-
-	"golang.org/x/xerrors"
 )
 
 type DB interface {
@@ -73,7 +72,7 @@ func Open(opts *OpenOptions) (DB, error) {
 //	})
 func OpenContext(ctx context.Context, opts *OpenOptions) (DB, error) {
 	if opts.Url == "" {
-		return nil, xerrors.New("opts.Url is required")
+		return nil, fmt.Errorf("opts.Url is required")
 	}
 	driverName := "mysql"
 	if opts.DriverName != "" {

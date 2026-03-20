@@ -1,9 +1,8 @@
 package exql
 
 import (
+	"fmt"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 func ParseTags(tag string) (map[string]string, error) {
@@ -14,7 +13,7 @@ func ParseTags(tag string) (map[string]string, error) {
 			return nil
 		}
 		if _, ok := ret[k]; ok {
-			return xerrors.Errorf("duplicated tag: %s", k)
+			return fmt.Errorf("duplicated tag: %s", k)
 		}
 		ret[k] = v
 		return nil
@@ -30,11 +29,11 @@ func ParseTags(tag string) (map[string]string, error) {
 				return nil, err
 			}
 		} else {
-			return nil, xerrors.Errorf("invalid tag format")
+			return nil, fmt.Errorf("invalid tag format")
 		}
 	}
 	if len(ret) == 0 {
-		return nil, xerrors.Errorf("invalid tag format")
+		return nil, fmt.Errorf("invalid tag format")
 	}
 	return ret, nil
 }
