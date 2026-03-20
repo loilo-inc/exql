@@ -6,7 +6,7 @@ import (
 	"database/sql/driver"
 	"encoding"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"reflect"
 	"time"
 )
@@ -50,7 +50,7 @@ func (n Null[T]) MarshalJSON() ([]byte, error) {
 }
 
 var nullBytes = []byte("null")
-var errUnsupportedType = fmt.Errorf("unsupported type for Null")
+var errUnmarshalText = errors.New("unsupported type for UnmarshalText")
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (n *Null[T]) UnmarshalJSON(data []byte) error {
@@ -84,7 +84,7 @@ func (n *Null[T]) UnmarshalText(text []byte) error {
 		n.Valid = true
 		return nil
 	}
-	if textTypeInfoFor[T]().isString {
+	if reflect.TypeOf(n.V).Kind() == reflect.String {
 		reflect.ValueOf(&n.V).Elem().SetString(string(text))
 		n.Valid = true
 		return nil
@@ -92,7 +92,7 @@ func (n *Null[T]) UnmarshalText(text []byte) error {
 	if err := n.unmarshalAsJSON(text); err == nil {
 		return nil
 	}
-	return errUnsupportedType
+	return errUnmarshalText
 }
 
 func (n *Null[T]) unmarshalAsJSON(data []byte) error {

@@ -230,7 +230,7 @@ func TestNullUnmarshalText(t *testing.T) {
 	t.Run("unsupported type", func(t *testing.T) {
 		n := New(unsupportedTextValue{Name: "before"})
 		err := n.UnmarshalText([]byte(`anything`))
-		assert.ErrorIs(t, err, errUnsupportedType)
+		assert.ErrorIs(t, err, errUnmarshalText)
 		assert.True(t, n.Valid)
 		assert.Equal(t, unsupportedTextValue{Name: "before"}, n.V)
 	})
