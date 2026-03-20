@@ -15,10 +15,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
+      - run: go vet ./...
       - run: make up
       - name: Check generated codes
         run: |
-          go install
+          go mod tidy
           go run tool/modelgen/main.go
           go run tool/rdmegen/main.go
           make fmt
