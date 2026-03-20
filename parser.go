@@ -78,7 +78,7 @@ func (c *Column) ParseExtra() []string {
 	comps := strings.Split(c.Extra.String, " ")
 	empty := regexp.MustCompile(`^\s*$`)
 	var ret []string
-	for i := 0; i < len(comps); i++ {
+	for i := range comps {
 		v := strings.Trim(comps[i], " ")
 		if empty.MatchString(v) {
 			continue

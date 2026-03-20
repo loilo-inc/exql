@@ -35,7 +35,7 @@ func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 		return err
 	}
 	tx := newTx(sqlTx)
-	var p interface{}
+	var p any
 	txErr := func() error {
 		defer func() {
 			p = recover()

@@ -70,7 +70,7 @@ var errMapDestination = xerrors.Errorf("destination must be a pointer of struct"
 //
 //	var user User
 //	err := exql.MapRow(rows, &user)
-func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
+func MapRow(row *sql.Rows, pointerOfStruct any) error {
 	defer func() {
 		if row != nil {
 			row.Close()
@@ -81,7 +81,7 @@ func MapRow(row *sql.Rows, pointerOfStruct interface{}) error {
 	}
 	destValue := reflect.ValueOf(pointerOfStruct)
 	destType := destValue.Type()
-	if destType.Kind() != reflect.Ptr {
+	if destType.Kind() != reflect.Pointer {
 		return errMapDestination
 	}
 	destValue = destValue.Elem()
@@ -111,7 +111,7 @@ var errMapManyDestination = xerrors.Errorf("destination must be a pointer of sli
 //
 //	var users []*Users
 //	err := exql.MapRows(rows, &users)
-func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
+func MapRows(rows *sql.Rows, structPtrOrSlicePtr any) error {
 	defer func() {
 		if rows != nil {
 			rows.Close()
@@ -122,7 +122,7 @@ func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	}
 	destValue := reflect.ValueOf(structPtrOrSlicePtr)
 	destType := destValue.Type()
-	if destType.Kind() != reflect.Ptr {
+	if destType.Kind() != reflect.Pointer {
 		return errMapManyDestination
 	}
 	destType = destType.Elem()
@@ -131,7 +131,7 @@ func MapRows(rows *sql.Rows, structPtrOrSlicePtr interface{}) error {
 	}
 	// []*Model -> *Model
 	sliceType := destType.Elem()
-	if sliceType.Kind() != reflect.Ptr {
+	if sliceType.Kind() != reflect.Pointer {
 		return errMapManyDestination
 	}
 	// *Model -> Model
@@ -172,7 +172,7 @@ func mapRow(
 	if err != nil {
 		return err
 	}
-	destVals := make([]interface{}, len(cols))
+	destVals := make([]any, len(cols))
 	for j, col := range cols {
 		if fIndex, ok := fields[col.Name()]; ok {
 			f := dest.Field(fIndex)
@@ -188,7 +188,7 @@ func mapRow(
 func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 	// *Model || **Model
 	destType := dest.Type()
-	if dest.Kind() == reflect.Ptr {
+	if dest.Kind() == reflect.Pointer {
 		destType = destType.Elem()
 	}
 	fields := make(map[string]int)
@@ -196,7 +196,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 		f := destType.Field(i)
 		tag := f.Tag.Get("exql")
 		if tag != "" {
-			if f.Type.Kind() == reflect.Ptr {
+			if f.Type.Kind() == reflect.Pointer {
 				return nil, xerrors.Errorf("struct field must not be a pointer: %s %s", f.Type.Name(), f.Type.Kind())
 			}
 			tags, err := ParseTags(tag)
@@ -212,7 +212,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 
 var errMapRowSerialDestination = xerrors.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
-func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
+func (s *serialMapper) Map(rows *sql.Rows, dest ...any) error {
 	var values []*reflect.Value
 
 	if len(dest) == 0 {
@@ -221,13 +221,13 @@ func (s *serialMapper) Map(rows *sql.Rows, dest ...interface{}) error {
 
 	for _, model := range dest {
 		v := reflect.ValueOf(model)
-		if v.Kind() != reflect.Ptr {
+		if v.Kind() != reflect.Pointer {
 			return errMapRowSerialDestination
 		}
 		v = v.Elem()
 		if v.Kind() == reflect.Struct {
 			values = append(values, &v)
-		} else if v.Kind() != reflect.Ptr {
+		} else if v.Kind() != reflect.Pointer {
 			return errMapRowSerialDestination
 		} else if !v.IsNil() || v.Type().Elem().Kind() != reflect.Struct {
 			return errMapRowSerialDestination
@@ -259,7 +259,7 @@ func mapRowSerial(
 	if err != nil {
 		return err
 	}
-	destVals := make([]interface{}, len(cols))
+	destVals := make([]any, len(cols))
 	colIndex := 0
 	columnCounts := map[int]int{}
 	for destIndex, dest := range destList {
@@ -275,7 +275,7 @@ func mapRowSerial(
 		start := colIndex
 		ns := &noopScanner{}
 		model := dest
-		if destTypes[destIndex].Kind() == reflect.Ptr {
+		if destTypes[destIndex].Kind() == reflect.Pointer {
 			m := reflect.New(destTypes[destIndex].Elem()).Elem() // Model
 			model = &m
 		}
@@ -338,7 +338,7 @@ func mapRowSerial(
 type noopScanner struct {
 }
 
-func (n *noopScanner) Scan(_ interface{}) error {
+func (n *noopScanner) Scan(_ any) error {
 	// noop
 	return nil
 }
