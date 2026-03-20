@@ -115,7 +115,7 @@ func (n Null[T]) Ptr() *T {
 	return &n.V
 }
 
-type Uint64 = Null[uint64]
+type Int = Null[int]
 type Int64 = Null[int64]
 type Bool = Null[bool]
 type Float64 = Null[float64]

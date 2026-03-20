@@ -56,13 +56,7 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, 
 		if err != nil {
 			return nil, err
 		}
-		kind := autoIncrField.Kind()
-		switch kind {
-		case reflect.Int64:
-			autoIncrField.Set(reflect.ValueOf(lid))
-		case reflect.Uint64:
-			autoIncrField.Set(reflect.ValueOf(uint64(lid)))
-		}
+		autoIncrField.Set(reflect.ValueOf(lid))
 	}
 	return result, nil
 }

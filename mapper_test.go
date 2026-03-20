@@ -67,7 +67,7 @@ func setupFields(t *testing.T, db exql.DB) *model.Fields {
 		BigintField:                    18,
 		BigintUnsignedField:            19,
 		BigintNullableField:            null.New[int64](20),
-		BigintUnsignedNullableField:    null.New[uint64](21),
+		BigintUnsignedNullableField:    null.New[int64](21),
 		FloatField:                     21,
 		FloatNullField:                 null.New[float32](22),
 		DoubleField:                    23,
