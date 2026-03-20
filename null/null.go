@@ -46,6 +46,9 @@ func (n Null[T]) MarshalJSON() ([]byte, error) {
 	if iface, ok := any(n.V).(json.Marshaler); ok {
 		return iface.MarshalJSON()
 	}
+	if iface, ok := any(&n.V).(json.Marshaler); ok {
+		return iface.MarshalJSON()
+	}
 	return json.Marshal(n.V)
 }
 
@@ -84,7 +87,7 @@ func (n *Null[T]) UnmarshalText(text []byte) error {
 		n.Valid = true
 		return nil
 	}
-	if reflect.TypeOf(n.V).Kind() == reflect.String {
+	if reflect.TypeFor[T]().Kind() == reflect.String {
 		reflect.ValueOf(&n.V).Elem().SetString(string(text))
 		n.Valid = true
 		return nil

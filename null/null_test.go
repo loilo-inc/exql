@@ -19,6 +19,14 @@ type textJSONPayload struct {
 	A int `json:"a"`
 }
 
+type pointerOnlyMarshaler struct {
+	Value string
+}
+
+func (p *pointerOnlyMarshaler) MarshalJSON() ([]byte, error) {
+	return []byte(`"pointer:` + p.Value + `"`), nil
+}
+
 func TestNewNull(t *testing.T) {
 	n := New(42)
 	assert.True(t, n.Valid)
@@ -30,6 +38,13 @@ func TestNullMarshalJSONValid(t *testing.T) {
 	data, err := n.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, `"hello"`, string(data))
+}
+
+func TestNullMarshalJSONUsesPointerReceiverMarshaler(t *testing.T) {
+	n := New(pointerOnlyMarshaler{Value: "hello"})
+	data, err := n.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, `"pointer:hello"`, string(data))
 }
 
 func TestNullMarshalJSONInvalid(t *testing.T) {
