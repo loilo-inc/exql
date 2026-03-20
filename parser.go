@@ -171,9 +171,7 @@ var (
 )
 
 const (
-	nullUint64Type  = "null.Uint64"
 	nullInt64Type   = "null.Int64"
-	uint64Type      = "uint64"
 	int64Type       = "int64"
 	nullFloat64Type = "null.Float64"
 	float64Type     = "float64"
@@ -191,28 +189,10 @@ const (
 
 func ParseType(t string, nullable bool) (string, error) {
 	if intPat.MatchString(t) {
-		m := intPat.FindStringSubmatch(t)
-		unsigned := strings.Contains(t, "unsigned")
-		is64 := false
-		if len(m) > 2 {
-			switch m[1] {
-			case "big":
-				is64 = true
-			default:
-			}
-		}
 		if nullable {
-			if unsigned && is64 {
-				return nullUint64Type, nil
-			} else {
-				return nullInt64Type, nil
-			}
+			return nullInt64Type, nil
 		} else {
-			if unsigned && is64 {
-				return uint64Type, nil
-			} else {
-				return int64Type, nil
-			}
+			return int64Type, nil
 		}
 	} else if datePat.MatchString(t) {
 		if nullable {
