@@ -69,7 +69,7 @@ func (k *keyIterator[T]) Map() map[string]T {
 //	Placeholder(2) // ?,?
 func Placeholders(repeat int) string {
 	res := make([]string, repeat)
-	for i := 0; i < repeat; i++ {
+	for i := range repeat {
 		res[i] = "?"
 	}
 	return strings.Join(res, ",")
@@ -102,7 +102,7 @@ func QuoteColumn(col string) string {
 	var sb strings.Builder
 	var start = 0
 	var end = len(col)
-	for i := 0; i < end; i++ {
+	for i := range end {
 		char := col[i]
 		if char == '.' || char == '*' || char == '`' {
 			if start != i {

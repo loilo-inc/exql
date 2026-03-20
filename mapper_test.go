@@ -197,7 +197,7 @@ func TestMapper_MapRows(t *testing.T) {
 		})
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
-		doTest := func(i interface{}) {
+		doTest := func(i any) {
 			assert.ErrorIs(t, exql.MapRows(nil, i), exql.ErrMapManyDestination)
 		}
 		t.Run("int", func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestMapper_Map(t *testing.T) {
 		})
 	})
 	t.Run("should return error if destination is not pointer of struct", func(t *testing.T) {
-		doTest := func(i interface{}) {
+		doTest := func(i any) {
 			assert.ErrorIs(t, exql.MapRow(nil, i), exql.ErrMapDestination)
 		}
 		t.Run("int", func(t *testing.T) {
@@ -586,7 +586,7 @@ WHERE users.id = ?
 		assert.EqualError(t, err, "empty dest list")
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
-		doTest := func(i ...interface{}) {
+		doTest := func(i ...any) {
 			assert.Equal(t, exql.ErrMapRowSerialDestination, m.Map(nil, i...))
 		}
 		t.Run("int", func(t *testing.T) {

@@ -30,13 +30,13 @@ func TestParser_ParseTable(t *testing.T) {
 }
 
 func TestParser_ParseType(t *testing.T) {
-	assertType := func(s string, nullable bool, tp interface{}) {
+	assertType := func(s string, nullable bool, tp any) {
 		ret, err := exql.ParseType(s, nullable)
 		assert.NoError(t, err)
 		assert.Equal(t, ret, tp)
 	}
 	t.Run("int", func(t *testing.T) {
-		list := [][]interface{}{
+		list := [][]any{
 			{"int", "int64", "int64", "null.Int64", "null.Int64"},
 			{"tinyint", "int64", "int64", "null.Int64", "null.Int64"},
 			{"smallint", "int64", "int64", "null.Int64", "null.Int64"},
@@ -62,7 +62,7 @@ func TestParser_ParseType(t *testing.T) {
 		assertType("double", true, "null.Float64")
 	})
 	t.Run("date", func(t *testing.T) {
-		list := [][]interface{}{
+		list := [][]any{
 			{"date", "time.Time", "null.Time"},
 			{"datetime", "time.Time", "null.Time"},
 			{"datetime(6)", "time.Time", "null.Time"},
@@ -78,7 +78,7 @@ func TestParser_ParseType(t *testing.T) {
 		}
 	})
 	t.Run("string", func(t *testing.T) {
-		list := [][]interface{}{
+		list := [][]any{
 			{"text", "string", "null.String"},
 			{"tinytext", "string", "null.String"},
 			{"mediumtext", "string", "null.String"},
@@ -93,7 +93,7 @@ func TestParser_ParseType(t *testing.T) {
 		}
 	})
 	t.Run("blob", func(t *testing.T) {
-		list := [][]interface{}{
+		list := [][]any{
 			{"blob", "[]byte", "null.Bytes"},
 			{"tinyblob", "[]byte", "null.Bytes"},
 			{"mediumblob", "[]byte", "null.Bytes"},

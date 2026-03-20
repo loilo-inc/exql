@@ -208,7 +208,7 @@ func TestSaver_Update(t *testing.T) {
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, lid)
 		}()
-		result, err = s.Update("users", map[string]interface{}{
+		result, err = s.Update("users", map[string]any{
 			"name": "lang",
 			"age":  int64(20),
 		}, exql.Where(`id = ?`, lid))
@@ -230,17 +230,17 @@ func TestSaver_Update(t *testing.T) {
 		assert.EqualError(t, err, "empty table name for update query")
 	})
 	t.Run("should error if where clause is nil", func(t *testing.T) {
-		q, err := s.Update("users", make(map[string]interface{}), nil)
+		q, err := s.Update("users", make(map[string]any), nil)
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "nil condition for update query")
 	})
 	t.Run("should error if map is empty", func(t *testing.T) {
-		q, err := s.Update("users", make(map[string]interface{}), exql.Where("id = 1"))
+		q, err := s.Update("users", make(map[string]any), exql.Where("id = 1"))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty values for set clause")
 	})
 	t.Run("should error if where clause is empty", func(t *testing.T) {
-		q, err := s.Update("users", map[string]interface{}{"first_name": "go"}, exql.Where(""))
+		q, err := s.Update("users", map[string]any{"first_name": "go"}, exql.Where(""))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "DANGER: empty query")
 	})
@@ -307,7 +307,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		defer func() {
 			d.DB().Exec(`DELETE FROM users WHERE id = ?`, lid)
 		}()
-		result, err = s.UpdateContext(context.Background(), "users", map[string]interface{}{
+		result, err = s.UpdateContext(context.Background(), "users", map[string]any{
 			"age":  int64(20),
 			"name": "lang",
 		}, exql.Where(`id = ?`, lid))

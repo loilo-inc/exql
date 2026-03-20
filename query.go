@@ -61,7 +61,7 @@ func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
 	}
 	objValue := reflect.ValueOf(modelPtr)
 	objType := objValue.Type()
-	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
+	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
 		return nil, xerrors.Errorf("object must be pointer of struct")
 	}
 	data := map[string]any{}
@@ -127,7 +127,7 @@ func QueryForUpdateModel(
 	}
 	objValue := reflect.ValueOf(updateStructPtr)
 	objType := objValue.Type()
-	if objType.Kind() != reflect.Ptr || objType.Elem().Kind() != reflect.Struct {
+	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
 		return nil, xerrors.Errorf("must be pointer of struct")
 	}
 	objType = objType.Elem()
@@ -150,7 +150,7 @@ func QueryForUpdateModel(
 		} else {
 			colName = col
 		}
-		if f.Type.Kind() != reflect.Ptr {
+		if f.Type.Kind() != reflect.Pointer {
 			return nil, xerrors.Errorf("field must be pointer")
 		}
 		fieldValue := objValue.Elem().Field(i)
