@@ -20,7 +20,7 @@ func Insert(db exql.DB) {
 	} else {
 		insertedId, _ := result.LastInsertId()
 		// Inserted id is assigned into the auto-increment field after the insertion,
-		// if these field is integer-like type
+		// if these field is　int64
 		if insertedId != user.Id {
 			log.Fatal("never happens")
 		}

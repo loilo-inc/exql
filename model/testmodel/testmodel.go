@@ -57,3 +57,12 @@ type NoAutoIncrementKey struct {
 func (s *NoAutoIncrementKey) TableName() string {
 	return "sampleNoAutoIncrementKey"
 }
+
+type PrimaryUint64 struct {
+	Id   uint64 `exql:"column:id;primary;auto_increment"`
+	Name string `exql:"column:name"`
+}
+
+func (s *PrimaryUint64) TableName() string {
+	return "samplePrimaryUint64"
+}
