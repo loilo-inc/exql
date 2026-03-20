@@ -10,7 +10,8 @@ import (
 )
 
 func Transaction(db exql.DB) {
-	timeout, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	err := db.TransactionWithContext(timeout, &sql.TxOptions{
 		Isolation: sql.LevelDefault,
 		ReadOnly:  false,
