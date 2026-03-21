@@ -24,17 +24,17 @@ type Mapper interface {
 }
 
 type mapper struct {
-	refl reflector
+	refl Reflector
 }
 
 // Map reads data from single row and maps those columns into destination struct.
 func (m *mapper) Map(rows *sql.Rows, destPtr any) error {
-	return mapRow(&m.refl, rows, destPtr)
+	return mapRow(m.refl, rows, destPtr)
 }
 
 // MapMany reads all data from rows and maps those columns for each destination struct.
 func (m *mapper) MapMany(rows *sql.Rows, destSlicePtr any) error {
-	return mapRows(&m.refl, rows, destSlicePtr)
+	return mapRows(m.refl, rows, destSlicePtr)
 }
 
 // ColumnSplitter is a function type for providing head column name for each destination struct in SerialMapper.
@@ -79,7 +79,7 @@ func MapRow(
 	row *sql.Rows,
 	pointerOfStruct any,
 ) error {
-	return mapRow(defaultReflector, row, pointerOfStruct)
+	return mapRow(defaultReflector(), row, pointerOfStruct)
 }
 
 func mapRow(
@@ -95,26 +95,34 @@ func mapRow(
 	if pointerOfStruct == nil {
 		return errMapDestination
 	}
-	destValue := reflect.ValueOf(pointerOfStruct)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return errMapDestination
-	}
-	destValue = destValue.Elem()
-	if destValue.Kind() != reflect.Struct {
-		return errMapDestination
+	destValue, err := resolveDestination(pointerOfStruct)
+	if err != nil {
+		return err
 	}
 	if row.Next() {
-		return scanRow(r, row, &destValue)
+		return scanRow(r, row, destValue)
 	}
 	if err := row.Err(); err != nil {
 		return err
 	}
-	err := row.Close()
+	err = row.Close()
 	if err != nil {
 		return err
 	}
 	return ErrRecordNotFound{}
+}
+
+func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
+	destValue := reflect.ValueOf(pointerOfStruct)
+	destType := destValue.Type()
+	if destType.Kind() != reflect.Pointer {
+		return nil, errMapDestination
+	}
+	destValue = destValue.Elem()
+	if destValue.Kind() != reflect.Struct {
+		return nil, errMapDestination
+	}
+	return &destValue, nil
 }
 
 var errMapManyDestination = xerrors.Errorf("destination must be a pointer of slice of struct")
@@ -129,40 +137,25 @@ var errMapManyDestination = xerrors.Errorf("destination must be a pointer of sli
 //	err := exql.MapRows(rows, &users)
 func MapRows(
 	rows *sql.Rows,
-	structPtrOrSlicePtr any,
+	ptrOfSliceOfModelPtr any,
 ) error {
-	return mapRows(defaultReflector, rows, structPtrOrSlicePtr)
+	return mapRows(defaultReflector(), rows, ptrOfSliceOfModelPtr)
 }
 
 func mapRows(
 	r Reflector,
 	rows *sql.Rows,
-	structPtrOrSlicePtr any,
+	ptrOfSliceOfModelPtr any,
 ) error {
 	defer func() {
 		if rows != nil {
 			rows.Close()
 		}
 	}()
-	if structPtrOrSlicePtr == nil {
-		return errMapManyDestination
+	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
+	if err != nil {
+		return err
 	}
-	destValue := reflect.ValueOf(structPtrOrSlicePtr)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return errMapManyDestination
-	}
-	destType = destType.Elem()
-	if destType.Kind() != reflect.Slice {
-		return errMapManyDestination
-	}
-	// []*Model -> *Model
-	sliceType := destType.Elem()
-	if sliceType.Kind() != reflect.Pointer {
-		return errMapManyDestination
-	}
-	// *Model -> Model
-	sliceType = sliceType.Elem()
 	cnt := 0
 	for rows.Next() {
 		// modelValue := SliceType{}
@@ -177,7 +170,7 @@ func mapRows(
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	err := rows.Close()
+	err = rows.Close()
 	if err != nil {
 		return err
 	}
@@ -185,6 +178,29 @@ func mapRows(
 		return ErrRecordNotFound{}
 	}
 	return nil
+}
+
+func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Value, error) {
+	if ptrOfSliceOfModelPtr == nil {
+		return nil, nil, errMapManyDestination
+	}
+	destValue := reflect.ValueOf(ptrOfSliceOfModelPtr)
+	destType := destValue.Type()
+	if destType.Kind() != reflect.Pointer {
+		return nil, nil, errMapManyDestination
+	}
+	destType = destType.Elem()
+	if destType.Kind() != reflect.Slice {
+		return nil, nil, errMapManyDestination
+	}
+	// []*Model -> *Model
+	sliceType := destType.Elem()
+	if sliceType.Kind() != reflect.Pointer {
+		return nil, nil, errMapManyDestination
+	}
+	// *Model -> Model
+	sliceType = sliceType.Elem()
+	return sliceType, &destValue, nil
 }
 
 func scanRow(
@@ -196,13 +212,13 @@ func scanRow(
 	if err != nil {
 		return err
 	}
-	fields, err := refl.GetFields(dest)
+	md, err := refl.GetSchemaFromValue(dest)
 	if err != nil {
 		return err
 	}
 	destVals := make([]any, len(cols))
 	for j, col := range cols {
-		if fIndex, ok := fields.Load(col.Name()); ok {
+		if fIndex, ok := md.fields.Load(col.Name()); ok {
 			f := dest.Field(fIndex)
 			destVals[j] = f.Addr().Interface()
 		} else {
@@ -251,11 +267,11 @@ func (r *reflector) mapRowSerial(
 	var destFields []*util.SyncMap[string, int]
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		fields, err := r.GetFields(dest)
+		md, err := r.GetSchemaFromValue(dest)
 		if err != nil {
 			return err
 		}
-		destFields = append(destFields, fields)
+		destFields = append(destFields, md.fields)
 		destTypes[destIndex] = dest.Type() // Model || *Model
 	}
 	cols, err := row.ColumnTypes()

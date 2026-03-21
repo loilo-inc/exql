@@ -5,35 +5,46 @@ import (
 	"reflect"
 
 	"github.com/loilo-inc/exql/v3/util"
-	"golang.org/x/xerrors"
 )
 
-var errModelTypeNil = fmt.Errorf("model type is nil")
+var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
-	fields util.SyncMap[string, *util.SyncMap[string, int]]
+	metadata util.SyncMap[string, *modelSchema]
 }
 
 type Reflector interface {
-	GetFields(destValue *reflect.Value) (*util.SyncMap[string, int], error)
+	GetSchema(modelPtr any) (*modelSchema, error)
+	GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error)
 }
 
 var _ Reflector = (*reflector)(nil)
 
-func (r *reflector) GetFields(destValue *reflect.Value) (*util.SyncMap[string, int], error) {
+func (r *reflector) GetSchema(modelPtr any) (*modelSchema, error) {
+	if modelPtr == nil {
+		return nil, errModelNil
+	}
+	value, err := resolveDestination(modelPtr)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetSchemaFromValue(value)
+}
+
+func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error) {
 	destType, err := resolveDestType(destValue)
 	if err != nil {
 		return nil, err
 	}
 	key := typeKey(destType)
-	if v, ok := r.fields.Load(key); ok {
+	if v, ok := r.metadata.Load(key); ok {
 		return v, nil
 	}
 	f, err := aggregateFields(destType)
 	if err != nil {
 		return nil, err
 	}
-	r.fields.Store(key, f)
+	r.metadata.Store(key, f)
 	return f, nil
 }
 
@@ -44,9 +55,23 @@ func typeKey(t reflect.Type) string {
 type noCacheReflector struct{}
 
 var _ Reflector = (*noCacheReflector)(nil)
-var defaultReflector = &noCacheReflector{}
 
-func (r *noCacheReflector) GetFields(destValue *reflect.Value) (*util.SyncMap[string, int], error) {
+func defaultReflector() Reflector {
+	return &noCacheReflector{}
+}
+
+func (r *noCacheReflector) GetSchema(modelPtr any) (*modelSchema, error) {
+	if modelPtr == nil {
+		return nil, errModelNil
+	}
+	value, err := resolveDestination(modelPtr)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetSchemaFromValue(value)
+}
+
+func (r *noCacheReflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error) {
 	destType, err := resolveDestType(destValue)
 	if err != nil {
 		return nil, err
@@ -61,27 +86,7 @@ func resolveDestType(destValue *reflect.Value) (reflect.Type, error) {
 		destType = destType.Elem()
 	}
 	if destType == nil {
-		return nil, errModelTypeNil
+		return nil, errModelNil
 	}
 	return destType, nil
-}
-
-func aggregateFields(t reflect.Type) (*util.SyncMap[string, int], error) {
-	fields := &util.SyncMap[string, int]{}
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		tag := f.Tag.Get("exql")
-		if tag != "" {
-			if f.Type.Kind() == reflect.Pointer {
-				return nil, xerrors.Errorf("struct field must not be a pointer: %s %s", f.Type.Name(), f.Type.Kind())
-			}
-			tags, err := ParseTags(tag)
-			if err != nil {
-				return nil, err
-			}
-			col := tags["column"]
-			fields.Store(col, i)
-		}
-	}
-	return fields, nil
 }

@@ -27,15 +27,16 @@ type Saver interface {
 }
 
 type saver struct {
-	ex Executor
+	ex       Executor
+	reflctor Reflector
 }
 
 func NewSaver(ex Executor) Saver {
-	return &saver{ex: ex}
+	return &saver{ex: ex, reflctor: defaultReflector()}
 }
 
-func newSaver(ex Executor) *saver {
-	return &saver{ex: ex}
+func newSaver(ex Executor, refl Reflector) *saver {
+	return &saver{ex: ex, reflctor: refl}
 }
 
 func (s *saver) Insert(modelPtr Model) (sql.Result, error) {
@@ -43,7 +44,7 @@ func (s *saver) Insert(modelPtr Model) (sql.Result, error) {
 }
 
 func (s *saver) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, error) {
-	q, autoIncrField, err := QueryForInsert(modelPtr)
+	q, autoIncrField, err := QueryForInsert(s.reflctor, modelPtr)
 	if err != nil {
 		return nil, err
 	}

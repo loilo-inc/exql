@@ -289,7 +289,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 		db, _, _ := sqlmock.New()
 		s := exql.NewSaver(db)
 		_, err := s.UpdateModelContext(context.Background(), nil, exql.Where("id = ?", 1))
-		assert.EqualError(t, err, "pointer is nil")
+		assert.EqualError(t, err, "model is nil")
 	})
 }
 
@@ -352,45 +352,6 @@ func TestSaver_Delete(t *testing.T) {
 		assert.EqualError(t, err, "nil condition for delete query")
 		assert.Nil(t, res)
 	})
-}
-
-type upSampleInvalidTag struct {
-	Id *int `exql:"column::"`
-}
-
-func (upSampleInvalidTag) UpdateTableName() string {
-	return ""
-}
-
-type upSampleNotPtr struct {
-	Id int `exql:"column:id"`
-}
-
-func (upSampleNotPtr) UpdateTableName() string {
-	return ""
-}
-
-type upSample struct {
-	Id *int `exql:"column:id"`
-}
-
-func (upSample) UpdateTableName() string {
-	return ""
-}
-
-type upSampleNoFields struct {
-}
-
-func (upSampleNoFields) UpdateTableName() string {
-	return ""
-}
-
-type upSampleNoColumn struct {
-	Id *int `exql:"row:id"`
-}
-
-func (upSampleNoColumn) UpdateTableName() string {
-	return "table"
 }
 
 func TestSaver_QueryExtra(t *testing.T) {

@@ -12,110 +12,47 @@ func Where(str string, args ...any) q.Condition {
 	return q.Cond(str, args...)
 }
 
-type ModelMetadata struct {
-	TableName          string
-	AutoIncrementField *reflect.Value
-	PrimaryKeyColumns  []string
-	PrimaryKeyValues   []any
-	Values             q.KeyIterator[any]
-}
-
-func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
-	m, err := AggregateModelMetadata(modelPtr)
+func QueryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, error) {
+	ms, err := refl.GetSchema(modelPtr)
+	if err != nil {
+		return nil, nil, err
+	}
+	v, err := ms.aggregateModelValue(modelPtr)
 	if err != nil {
 		return nil, nil, err
 	}
 	b := q.NewBuilder()
-	cols := q.Cols(m.Values.Keys()...)
-	vals := q.Vals(m.Values.Values())
-	b.Sprintf("INSERT INTO `%s`", modelPtr.TableName())
+	cols := q.Cols(v.values.Keys()...)
+	vals := q.Vals(v.values.Values())
+	b.Sprintf("INSERT INTO `%s`", v.tableName)
 	b.Query("(:?) VALUES (:?)", cols, vals)
-	return b.Build(), m.AutoIncrementField, nil
+	return b.Build(), v.autoIncrementField, nil
 }
 
-func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
+func QueryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
 		return nil, errors.New("empty list")
 	}
-	var head *ModelMetadata
+	var head *modelValue
 	b := q.NewBuilder()
 	vals := q.NewBuilder()
 	for _, v := range modelPtrs {
-		if data, err := AggregateModelMetadata(v); err != nil {
+		ms, err := refl.GetSchema(v)
+		if err != nil {
+			return nil, err
+		}
+		if data, err := ms.aggregateModelValue(v); err != nil {
 			return nil, err
 		} else {
 			if head == nil {
 				head = data
 			}
-			vals.Query("(:?)", q.Vals(data.Values.Values()))
+			vals.Query("(:?)", q.Vals(data.values.Values()))
 		}
 	}
-	b.Sprintf("INSERT INTO `%s`", head.TableName)
-	b.Query("(:?) VALUES :?", q.Cols(head.Values.Keys()...), vals.Join(","))
+	b.Sprintf("INSERT INTO `%s`", head.tableName)
+	b.Query("(:?) VALUES :?", q.Cols(head.values.Keys()...), vals.Join(","))
 	return b.Build(), nil
-}
-
-func AggregateModelMetadata(modelPtr Model) (*ModelMetadata, error) {
-	if modelPtr == nil {
-		return nil, xerrors.Errorf("pointer is nil")
-	}
-	objValue := reflect.ValueOf(modelPtr)
-	objType := objValue.Type()
-	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
-		return nil, xerrors.Errorf("object must be pointer of struct")
-	}
-	data := map[string]any{}
-	// *User -> User
-	objType = objType.Elem()
-	exqlTagCount := 0
-	var primaryKeyColumns []string
-	var primaryKeyValues []any
-	var autoIncrementField *reflect.Value
-	for i := 0; i < objType.NumField(); i++ {
-		f := objType.Field(i)
-		if t, ok := f.Tag.Lookup("exql"); ok {
-			tags, err := ParseTags(t)
-			if err != nil {
-				return nil, err
-			}
-			colName, ok := tags["column"]
-			if !ok || colName == "" {
-				return nil, xerrors.Errorf("column tag is not set")
-			}
-			exqlTagCount++
-			if _, primary := tags["primary"]; primary {
-				primaryKeyField := objValue.Elem().Field(i)
-				primaryKeyColumns = append(primaryKeyColumns, colName)
-				primaryKeyValues = append(primaryKeyValues, primaryKeyField.Interface())
-			}
-			if _, autoIncrement := tags["auto_increment"]; autoIncrement {
-				field := objValue.Elem().Field(i)
-				autoIncrementField = &field
-				// Not include auto_increment field in insert query
-				continue
-			}
-			data[colName] = objValue.Elem().Field(i).Interface()
-		}
-	}
-	if exqlTagCount == 0 {
-		return nil, xerrors.Errorf("obj doesn't have exql tags in any fields")
-	}
-
-	if len(primaryKeyColumns) == 0 {
-		return nil, xerrors.Errorf("table has no primary key")
-	}
-
-	tableName := modelPtr.TableName()
-	if tableName == "" {
-		return nil, xerrors.Errorf("empty table name")
-	}
-	return &ModelMetadata{
-		TableName:          tableName,
-		AutoIncrementField: autoIncrementField,
-		PrimaryKeyColumns:  primaryKeyColumns,
-		PrimaryKeyValues:   primaryKeyValues,
-		Values:             q.NewKeyIterator(data),
-	}, nil
 }
 
 func QueryForUpdateModel(
@@ -123,7 +60,7 @@ func QueryForUpdateModel(
 	where q.Condition,
 ) (q.Query, error) {
 	if updateStructPtr == nil {
-		return nil, xerrors.Errorf("pointer is nil")
+		return nil, errModelNil
 	}
 	objValue := reflect.ValueOf(updateStructPtr)
 	objType := objValue.Type()

@@ -66,3 +66,42 @@ type PrimaryUint64 struct {
 func (s *PrimaryUint64) TableName() string {
 	return "samplePrimaryUint64"
 }
+
+type UpdateSampleInvalidTag struct {
+	Id *int `exql:"column::"`
+}
+
+func (UpdateSampleInvalidTag) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSampleNotPtr struct {
+	Id int `exql:"column:id"`
+}
+
+func (UpdateSampleNotPtr) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSample struct {
+	Id *int `exql:"column:id"`
+}
+
+func (UpdateSample) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSampleNoFields struct {
+}
+
+func (UpdateSampleNoFields) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSampleNoColumn struct {
+	Id *int `exql:"row:id"`
+}
+
+func (UpdateSampleNoColumn) UpdateTableName() string {
+	return "table"
+}

@@ -21,10 +21,10 @@ type tx struct {
 	tx *sql.Tx
 }
 
-func newTx(t *sql.Tx) *tx {
-	mapper := &mapper{}
+func newTx(t *sql.Tx, reflector Reflector) *tx {
+	mapper := &mapper{refl: reflector}
 	return &tx{
-		saver:  newSaver(t),
+		saver:  newSaver(t, reflector),
 		finder: newFinder(t, mapper),
 		mapper: mapper,
 		tx:     t,
@@ -36,11 +36,15 @@ func (t *tx) Tx() *sql.Tx {
 }
 
 func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
+	return transaction(defaultReflector(), db, ctx, opts, callback)
+}
+
+func transaction(reflector Reflector, db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	sqlTx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return err
 	}
-	tx := newTx(sqlTx)
+	tx := newTx(sqlTx, reflector)
 	var p any
 	txErr := func() error {
 		defer func() {

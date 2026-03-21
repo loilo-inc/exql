@@ -15,6 +15,7 @@ type DB interface {
 	Saver
 	Mapper
 	Finder
+	Reflector
 	// DB returns *sql.DB object.
 	DB() *sql.DB
 	// SetDB sets *sql.DB object.
@@ -34,6 +35,7 @@ type db struct {
 	*saver
 	*finder
 	*mapper
+	*reflector
 	db    *sql.DB
 	mutex sync.Mutex
 }
@@ -118,12 +120,14 @@ success:
 }
 
 func NewDB(d *sql.DB) DB {
-	mapper := &mapper{}
+	reflecter := &reflector{}
+	mapper := &mapper{refl: reflecter}
 	return &db{
-		saver:  newSaver(d),
-		finder: newFinder(d, mapper),
-		mapper: mapper,
-		db:     d,
+		saver:     newSaver(d, reflecter),
+		finder:    newFinder(d, mapper),
+		mapper:    mapper,
+		reflector: reflecter,
+		db:        d,
 	}
 }
 

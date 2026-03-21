@@ -9,3 +9,5 @@ type Adb = db
 func NewFinder(ex Executor, m Mapper) *finder {
 	return newFinder(ex, m)
 }
+
+var DefaultReflector = defaultReflector
