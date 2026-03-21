@@ -22,7 +22,13 @@ type tx struct {
 }
 
 func newTx(t *sql.Tx) *tx {
-	return &tx{saver: newSaver(t), finder: newFinder(t), mapper: &mapper{}, tx: t}
+	mapper := &mapper{}
+	return &tx{
+		saver:  newSaver(t),
+		finder: newFinder(t, mapper),
+		mapper: mapper,
+		tx:     t,
+	}
 }
 
 func (t *tx) Tx() *sql.Tx {

@@ -25,7 +25,7 @@ func TestFinder(t *testing.T) {
 			query.Cond("id in (?,?)", user1.Id, user2.Id),
 		)
 	})
-	f := exql.NewFinder(db.DB())
+	f := exql.NewFinder(db.DB(), db)
 	t.Run("FindContext", func(t *testing.T) {
 		t.Run("basic", func(t *testing.T) {
 			var dest model.Users

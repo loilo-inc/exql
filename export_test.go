@@ -6,6 +6,6 @@ var ErrMapManyDestination = errMapManyDestination
 
 type Adb = db
 
-func NewFinder(ex Executor) *finder {
-	return newFinder(ex)
+func NewFinder(ex Executor, m Mapper) *finder {
+	return newFinder(ex, m)
 }

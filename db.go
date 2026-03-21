@@ -38,6 +38,8 @@ type db struct {
 	mutex sync.Mutex
 }
 
+var _ DB = (*db)(nil)
+
 // OpenFunc is an abstraction of sql.Open function.
 type OpenFunc func(driverName string, url string) (*sql.DB, error)
 
@@ -116,10 +118,11 @@ success:
 }
 
 func NewDB(d *sql.DB) DB {
+	mapper := &mapper{}
 	return &db{
 		saver:  newSaver(d),
-		finder: newFinder(d),
-		mapper: &mapper{},
+		finder: newFinder(d, mapper),
+		mapper: mapper,
 		db:     d,
 	}
 }
@@ -137,6 +140,7 @@ func (d *db) SetDB(db *sql.DB) {
 	defer d.mutex.Unlock()
 	d.db = db
 	d.saver.ex = db
+	d.finder.ex = db
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
