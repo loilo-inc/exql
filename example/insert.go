@@ -32,7 +32,8 @@ func BulkInsert(db exql.DB) {
 	user2 := model.Users{Name: "Lang"}
 	// INSERT INTO users (name) VALUES (?),(?)
 	// ["Go", "Lang"]
-	if q, err := exql.QueryForBulkInsert(db, &user1, &user2); err != nil {
+	reflector := exql.NoCacheReflector()
+	if q, err := exql.QueryForBulkInsert(reflector, &user1, &user2); err != nil {
 		log.Fatal(err)
 	} else if _, err := db.Exec(q); err != nil {
 		log.Fatal(err)

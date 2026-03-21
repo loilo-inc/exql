@@ -15,8 +15,8 @@ type Finder interface {
 }
 
 type finder struct {
-	ex Executor
-	m  Mapper
+	ex   Executor
+	refl Reflector
 }
 
 // Find implements Finder
@@ -30,7 +30,7 @@ func (f *finder) FindContext(ctx context.Context, q query.Query, destPtrOfStruct
 		return err
 	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
 		return err
-	} else if err := f.m.Map(rows, destPtrOfStruct); err != nil {
+	} else if err := mapRow(f.refl, rows, destPtrOfStruct); err != nil {
 		return err
 	}
 	return nil
@@ -47,12 +47,17 @@ func (f *finder) FindManyContext(ctx context.Context, q query.Query, destSlicePt
 		return err
 	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
 		return err
-	} else if err := f.m.MapMany(rows, destSlicePtrOfStruct); err != nil {
+	} else if err := mapRows(f.refl, rows, destSlicePtrOfStruct); err != nil {
 		return err
 	}
 	return nil
 }
 
-func newFinder(ex Executor, m Mapper) *finder {
-	return &finder{ex: ex, m: m}
+// NewFinder creates a new Finder with the given Executor and Reflecter.
+func NewFinder(ex Executor, refl Reflector) Finder {
+	return newFinder(ex, refl)
+}
+
+func newFinder(ex Executor, refl Reflector) *finder {
+	return &finder{ex: ex, refl: refl}
 }

@@ -3,6 +3,7 @@ package exql
 import (
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/loilo-inc/exql/v3/util"
 )
@@ -10,20 +11,24 @@ import (
 var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
+	noCache  bool
 	metadata util.SyncMap[string, *modelSchema]
+	mux      sync.Mutex
 }
 
+// Reflector is an interface to manage model metadata used for query generation and mapping.
 type Reflector interface {
+	// GetSchema returns the model schema for the given model pointer.
 	GetSchema(modelPtr any) (*modelSchema, error)
+	// GetSchemaFromValue returns the model schema for the given reflect.Value of the destination struct.
 	GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error)
+	// ClearSchemaCache clears the cached model schemas.
+	ClearSchemaCache()
 }
 
 var _ Reflector = (*reflector)(nil)
 
 func (r *reflector) GetSchema(modelPtr any) (*modelSchema, error) {
-	if modelPtr == nil {
-		return nil, errModelNil
-	}
 	value, err := resolveDestination(modelPtr)
 	if err != nil {
 		return nil, err
@@ -37,46 +42,41 @@ func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, 
 		return nil, err
 	}
 	key := typeKey(destType)
-	if v, ok := r.metadata.Load(key); ok {
-		return v, nil
+	if !r.noCache {
+		if v, ok := r.metadata.Load(key); ok {
+			return v, nil
+		}
 	}
 	f, err := aggregateFields(destType)
 	if err != nil {
 		return nil, err
 	}
-	r.metadata.Store(key, f)
+	if !r.noCache {
+		r.metadata.Store(key, f)
+	}
 	return f, nil
+}
+
+func (r *reflector) ClearSchemaCache() {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+	r.metadata = util.SyncMap[string, *modelSchema]{}
 }
 
 func typeKey(t reflect.Type) string {
 	return t.PkgPath() + "." + t.Name()
 }
 
-type noCacheReflector struct{}
-
-var _ Reflector = (*noCacheReflector)(nil)
-
-func defaultReflector() Reflector {
-	return &noCacheReflector{}
+func DefaultReflector() Reflector {
+	return &reflector{}
 }
 
-func (r *noCacheReflector) GetSchema(modelPtr any) (*modelSchema, error) {
-	if modelPtr == nil {
-		return nil, errModelNil
-	}
-	value, err := resolveDestination(modelPtr)
-	if err != nil {
-		return nil, err
-	}
-	return r.GetSchemaFromValue(value)
+func NoCacheReflector() Reflector {
+	return noCacheReflector()
 }
 
-func (r *noCacheReflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error) {
-	destType, err := resolveDestType(destValue)
-	if err != nil {
-		return nil, err
-	}
-	return aggregateFields(destType)
+func noCacheReflector() *reflector {
+	return &reflector{noCache: true}
 }
 
 func resolveDestType(destValue *reflect.Value) (reflect.Type, error) {

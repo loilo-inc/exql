@@ -31,8 +31,8 @@ type saver struct {
 	reflctor Reflector
 }
 
-func NewSaver(ex Executor) Saver {
-	return &saver{ex: ex, reflctor: defaultReflector()}
+func NewSaver(ex Executor, refl Reflector) Saver {
+	return &saver{ex: ex, reflctor: refl}
 }
 
 func newSaver(ex Executor, refl Reflector) *saver {

@@ -28,7 +28,7 @@ func TestPreparedExecutor(t *testing.T) {
 		user2 := model.Users{Name: "lang"}
 		err := db.Transaction(func(tx exql.Tx) error {
 			pex := setup(t, tx.Tx())
-			saver := exql.NewSaver(pex)
+			saver := exql.NewSaver(pex, tx)
 			for _, user := range []*model.Users{&user1, &user2} {
 				if _, err := saver.Insert(user); err != nil {
 					return err

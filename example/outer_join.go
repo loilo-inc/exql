@@ -7,7 +7,7 @@ import (
 	"github.com/loilo-inc/exql/v3/model"
 )
 
-func MapSerialOuterJoin(db exql.DB) {
+func MapJoinedRowsOuterJoin(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	LEFT JOIN group_users ON group_users.user_id = users.id
@@ -19,17 +19,17 @@ func MapSerialOuterJoin(db exql.DB) {
 		return
 	}
 	defer rows.Close()
-	serialMapper := exql.NewSerialMapper(func(i int) string {
+	splitter := func(i int) string {
 		// Each column's separator is `id`
 		return "id"
-	})
+	}
 	var users []*model.Users
 	var groups []*model.UserGroups
 	for rows.Next() {
 		var user model.Users
 		var groupUser *model.GroupUsers // Use *GroupUsers/*Group for outer join so that it can be nil
 		var group *model.UserGroups     // when the values of outer joined columns are NULL.
-		if err := serialMapper.Map(rows, &user, &groupUser, &group); err != nil {
+		if err := exql.MapJoinedRows(db, splitter, rows, &user, &groupUser, &group); err != nil {
 			log.Fatal(err.Error())
 			return
 		}

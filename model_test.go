@@ -98,7 +98,7 @@ func TestAggregateFields(t *testing.T) {
 func TestAggregateModelValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{Name: "go", Age: 10}
-		schema, _ := defaultReflector().GetSchema(user)
+		schema, _ := NoCacheReflector().GetSchema(user)
 		m, err := schema.aggregateModelValue(user)
 		assert.NoError(t, err)
 		assert.NotNil(t, m.autoIncrementField)
@@ -111,7 +111,7 @@ func TestAggregateModelValue(t *testing.T) {
 			Pk2:   "val2",
 			Other: 1,
 		}
-		schema, _ := defaultReflector().GetSchema(data)
+		schema, _ := NoCacheReflector().GetSchema(data)
 		v, err := schema.aggregateModelValue(data)
 		assert.NoError(t, err)
 		assert.Nil(t, v.autoIncrementField)
@@ -119,13 +119,13 @@ func TestAggregateModelValue(t *testing.T) {
 		assert.ElementsMatch(t, []any{"val1", "val2", 1}, v.values.Values())
 	})
 	assertInvalid := func(t *testing.T, m Model, e string) {
-		s, f, err := QueryForInsert(defaultReflector(), m)
+		s, f, err := QueryForInsert(NoCacheReflector(), m)
 		assert.Nil(t, s)
 		assert.Nil(t, f)
 		assert.EqualError(t, err, e)
 	}
 	t.Run("should error if dest is nil", func(t *testing.T) {
-		assertInvalid(t, nil, "model is nil")
+		assertInvalid(t, nil, errMapDestination.Error())
 	})
 	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
 		assertInvalid(t, &testmodel.NoColumnTag{}, "column tag is not set")
