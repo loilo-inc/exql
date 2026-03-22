@@ -58,7 +58,7 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, 
 			return nil, err
 		}
 		if !autoIncrField.CanSet() || autoIncrField.Kind() != reflect.Int64 {
-			return nil, errors.New("unsupported auto-increment field type (must be settable int64)")
+			return nil, fmt.Errorf("unsupported auto-increment field type (must be settable int64)")
 		}
 		autoIncrField.Set(reflect.ValueOf(lid))
 	}
