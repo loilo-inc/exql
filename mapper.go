@@ -89,22 +89,6 @@ func mapRow(
 	return ErrRecordNotFound{}
 }
 
-func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
-	if pointerOfStruct == nil {
-		return nil, errMapDestination
-	}
-	destValue := reflect.ValueOf(pointerOfStruct)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return nil, errMapDestination
-	}
-	destValue = destValue.Elem()
-	if destValue.Kind() != reflect.Struct {
-		return nil, errMapDestination
-	}
-	return &destValue, nil
-}
-
 var errMapManyDestination = xerrors.Errorf("destination must be a pointer of slice of struct")
 
 // MapRows reads all data from rows and maps those columns for each destination struct.
@@ -160,29 +144,6 @@ func mapRows(
 	return nil
 }
 
-func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Value, error) {
-	if ptrOfSliceOfModelPtr == nil {
-		return nil, nil, errMapManyDestination
-	}
-	destValue := reflect.ValueOf(ptrOfSliceOfModelPtr)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return nil, nil, errMapManyDestination
-	}
-	destType = destType.Elem()
-	if destType.Kind() != reflect.Slice {
-		return nil, nil, errMapManyDestination
-	}
-	// []*Model -> *Model
-	sliceType := destType.Elem()
-	if sliceType.Kind() != reflect.Pointer {
-		return nil, nil, errMapManyDestination
-	}
-	// *Model -> Model
-	sliceType = sliceType.Elem()
-	return sliceType, &destValue, nil
-}
-
 func scanRow(
 	refl Reflector,
 	row *sql.Rows,
@@ -222,20 +183,11 @@ func (m *serialMapper) Map(
 	}
 
 	for _, model := range dest {
-		v := reflect.ValueOf(model)
-		if v.Kind() != reflect.Pointer {
-			return errMapRowSerialDestination
+		destValue, err := resolveNullableDestination(model)
+		if err != nil {
+			return err
 		}
-		v = v.Elem()
-		if v.Kind() == reflect.Struct {
-			values = append(values, &v)
-		} else if v.Kind() != reflect.Pointer {
-			return errMapRowSerialDestination
-		} else if !v.IsNil() || v.Type().Elem().Kind() != reflect.Struct {
-			return errMapRowSerialDestination
-		} else {
-			values = append(values, &v)
-		}
+		values = append(values, destValue)
 	}
 	return mapJoinedRows(m.refl, rows, values, m.splitter)
 }
