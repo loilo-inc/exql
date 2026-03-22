@@ -2,9 +2,8 @@ package exql
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
-
-	"golang.org/x/xerrors"
 )
 
 // Error returned when record not found
@@ -60,7 +59,7 @@ func NewSerialMapper(s ColumnSplitter) SerialMapper {
 	return &serialMapper{splitter: s}
 }
 
-var errMapDestination = xerrors.Errorf("destination must be a pointer of struct")
+var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 
 // MapRow reads data from single row and maps those columns into destination struct.
 // pointerOfStruct MUST BE a pointer of struct.
@@ -101,7 +100,7 @@ func MapRow(row *sql.Rows, pointerOfStruct any) error {
 	return ErrRecordNotFound{}
 }
 
-var errMapManyDestination = xerrors.Errorf("destination must be a pointer of slice of struct")
+var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
 // MapRows reads all data from rows and maps those columns for each destination struct.
 // pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
@@ -197,7 +196,7 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 		tag := f.Tag.Get("exql")
 		if tag != "" {
 			if f.Type.Kind() == reflect.Pointer {
-				return nil, xerrors.Errorf("struct field must not be a pointer: %s %s", f.Type.Name(), f.Type.Kind())
+				return nil, fmt.Errorf("struct field must not be a pointer")
 			}
 			tags, err := ParseTags(tag)
 			if err != nil {
@@ -210,13 +209,13 @@ func aggregateFields(dest *reflect.Value) (map[string]int, error) {
 	return fields, nil
 }
 
-var errMapRowSerialDestination = xerrors.Errorf("destination must be either *(struct) or *((*struct)(nil))")
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
 func (s *serialMapper) Map(rows *sql.Rows, dest ...any) error {
 	var values []*reflect.Value
 
 	if len(dest) == 0 {
-		return xerrors.Errorf("empty dest list")
+		return fmt.Errorf("empty dest list")
 	}
 
 	for _, model := range dest {
@@ -267,7 +266,7 @@ func mapRowSerial(
 		headCol := cols[colIndex]
 		expectedHeadCol := headColProvider(destIndex)
 		if headCol.Name() != expectedHeadCol {
-			return xerrors.Errorf(
+			return fmt.Errorf(
 				"head col mismatch: expected=%s, actual=%s",
 				expectedHeadCol, headCol.Name(),
 			)
