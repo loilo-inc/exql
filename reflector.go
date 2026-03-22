@@ -3,13 +3,21 @@ package exql
 import (
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
 	noCache bool
-	schemas syncMap[string, *modelSchema]
+	schemas map[string]*modelSchema
+	mux     sync.Mutex
+}
+
+func newReflector() *reflector {
+	return &reflector{
+		schemas: make(map[string]*modelSchema),
+	}
 }
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
@@ -17,7 +25,7 @@ type Reflector interface {
 	// GetSchema returns the model schema for the given model pointer.
 	GetSchema(modelPtr any) (*modelSchema, error)
 	// GetSchemaFromValue returns the model schema for the given reflect.Value of the destination struct.
-	GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error)
+	GetSchemaFromValue(destValue *reflect.Value, forUpdate bool) (*modelSchema, error)
 	// ClearSchemaCache clears the cached model schemas.
 	ClearSchemaCache()
 }
@@ -29,32 +37,41 @@ func (r *reflector) GetSchema(modelPtr any) (*modelSchema, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.GetSchemaFromValue(value)
+	_, isModel := modelPtr.(Model)
+	_, isUpdate := modelPtr.(ModelUpdate)
+	if !isModel && !isUpdate {
+		return nil, fmt.Errorf("modelPtr must implement either Model or ModelUpdate interface")
+	}
+	return r.GetSchemaFromValue(value, isUpdate)
 }
 
-func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error) {
+func (r *reflector) GetSchemaFromValue(destValue *reflect.Value, forUpdate bool) (*modelSchema, error) {
 	destType, err := resolveDestType(destValue)
 	if err != nil {
 		return nil, err
 	}
 	key := typeKey(destType)
 	if !r.noCache {
-		if v, ok := r.schemas.Load(key); ok {
+		if v, ok := r.schemas[key]; ok {
 			return v, nil
 		}
 	}
-	f, err := aggregateFields(destType)
+	f, err := aggregateFields(destType, forUpdate)
 	if err != nil {
 		return nil, err
 	}
 	if !r.noCache {
-		r.schemas.Store(key, f)
+		r.mux.Lock()
+		r.schemas[key] = f
+		r.mux.Unlock()
 	}
 	return f, nil
 }
 
 func (r *reflector) ClearSchemaCache() {
-	r.schemas.m.Clear()
+	r.mux.Lock()
+	r.schemas = make(map[string]*modelSchema)
+	r.mux.Unlock()
 }
 
 func typeKey(t reflect.Type) string {

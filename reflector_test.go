@@ -236,7 +236,7 @@ func TestReflectorGetSchemaFromValue(t *testing.T) {
 		v, err := resolveNullableDestination(&user)
 		assert.NoError(t, err)
 
-		schema, err := r.GetSchemaFromValue(v)
+		schema, err := r.GetSchemaFromValue(v, false)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, schema)
@@ -246,7 +246,7 @@ func TestReflectorGetSchemaFromValue(t *testing.T) {
 		r := &reflector{}
 		v := reflect.Value{}
 
-		schema, err := r.GetSchemaFromValue(&v)
+		schema, err := r.GetSchemaFromValue(&v, false)
 
 		assert.Nil(t, schema)
 		assert.ErrorIs(t, err, errModelNil)

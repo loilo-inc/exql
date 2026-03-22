@@ -145,13 +145,13 @@ func scanRow(
 	if err != nil {
 		return err
 	}
-	md, err := refl.GetSchemaFromValue(dest)
+	md, err := refl.GetSchemaFromValue(dest, false)
 	if err != nil {
 		return err
 	}
 	destVals := make([]any, len(cols))
 	for j, col := range cols {
-		if fIndex, ok := md.fields.Load(col.Name()); ok {
+		if fIndex, ok := md.fields[col.Name()]; ok {
 			f := dest.Field(fIndex)
 			destVals[j] = f.Addr().Interface()
 		} else {
@@ -189,10 +189,10 @@ func mapJoinedRows(
 	headColProvider ColumnSplitter,
 ) error {
 	// *Model || **Model
-	var destFields []*syncMap[string, int]
+	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := refl.GetSchemaFromValue(dest)
+		md, err := refl.GetSchemaFromValue(dest, false)
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func mapJoinedRows(
 			} else if destIndex == len(destList)-1 {
 				columnCounts[destIndex]++
 			}
-			if fIndex, ok := fields.Load(col.Name()); ok {
+			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Field(fIndex)
 				if destTypes[destIndex].Kind() == reflect.Struct {
 					destVals[colIndex] = f.Addr().Interface() // *(Model.Field)
@@ -264,7 +264,7 @@ func mapJoinedRows(
 		start := colIndex
 		for ; colIndex < start+columnCounts[destIndex]; colIndex++ {
 			col := cols[colIndex]
-			if fIndex, ok := fields.Load(col.Name()); ok {
+			if fIndex, ok := fields[col.Name()]; ok {
 				f := model.Elem().Field(fIndex)
 				if t := reflect.ValueOf(destVals[colIndex]).Elem(); t.IsNil() {
 					f.Set(reflect.Zero(t.Type().Elem())) // To set (*null.Type)(nil) as null.Type{}

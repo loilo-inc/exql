@@ -66,52 +66,27 @@ func QueryForUpdateModel(
 	updateStructPtr ModelUpdate,
 	where q.Condition,
 ) (q.Query, error) {
+	return queryForUpdateModel(noCacheReflector, updateStructPtr, where)
+}
+
+func queryForUpdateModel(
+	refl Reflector,
+	updateStructPtr ModelUpdate,
+	where q.Condition,
+) (q.Query, error) {
 	if updateStructPtr == nil {
 		return nil, errModelNil
 	}
-	objValue := reflect.ValueOf(updateStructPtr)
-	objType := objValue.Type()
-	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
-		return nil, fmt.Errorf("must be pointer of struct")
+	ms, err := refl.GetSchema(updateStructPtr)
+	if err != nil {
+		return nil, err
 	}
-	objType = objType.Elem()
-	values := make(map[string]any)
-	if objType.NumField() == 0 {
-		return nil, fmt.Errorf("struct has no field")
-	}
-
-	for i := 0; i < objType.NumField(); i++ {
-		f := objType.Field(i)
-		tag, ok := f.Tag.Lookup("exql")
-		if !ok {
-			continue
-		}
-		var colName string
-		if tags, err := ParseTags(tag); err != nil {
-			return nil, err
-		} else if col, ok := tags["column"]; !ok {
-			return nil, fmt.Errorf("tag must include column")
-		} else {
-			colName = col
-		}
-		if f.Type.Kind() != reflect.Pointer {
-			return nil, fmt.Errorf("field must be pointer")
-		}
-		fieldValue := objValue.Elem().Field(i)
-		if !fieldValue.IsNil() {
-			values[colName] = fieldValue.Elem().Interface()
-		}
-	}
-	if len(values) == 0 {
-		return nil, fmt.Errorf("no value for update")
-	}
-
-	tableName := updateStructPtr.UpdateTableName()
-	if tableName == "" {
-		return nil, fmt.Errorf("empty table name")
+	v, err := ms.aggregateModelUpdateValue(updateStructPtr)
+	if err != nil {
+		return nil, err
 	}
 	b := q.NewBuilder()
-	b.Sprintf("UPDATE `%s`", tableName)
-	b.Query("SET :? WHERE :?", q.Set(values), where)
+	b.Sprintf("UPDATE `%s`", v.tableName)
+	b.Query("SET :? WHERE :?", q.Set(v.values.Map()), where)
 	return b.Build(), nil
 }

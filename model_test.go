@@ -11,7 +11,7 @@ import (
 
 func TestAggregateFields(t *testing.T) {
 	t.Run("builds model metadata from exql tags", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.PrimaryUint64{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.PrimaryUint64{}), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
@@ -23,24 +23,24 @@ func TestAggregateFields(t *testing.T) {
 		assert.Equal(t, []int{0}, metadata.primaryKeyFields)
 		assert.Equal(t, []int{1}, metadata.updatableFields)
 
-		idIndex, ok := metadata.fields.Load("id")
+		idIndex, ok := metadata.fields["id"]
 		assert.True(t, ok)
 		assert.Equal(t, 0, idIndex)
 
-		nameIndex, ok := metadata.fields.Load("name")
+		nameIndex, ok := metadata.fields["name"]
 		assert.True(t, ok)
 		assert.Equal(t, 1, nameIndex)
 
-		colName, ok := metadata.columns.Load(1)
+		colName, ok := metadata.columns[1]
 		assert.True(t, ok)
 		assert.Equal(t, "name", colName)
 
-		_, ok = metadata.fields.Load("note")
+		_, ok = metadata.fields["note"]
 		assert.False(t, ok)
 	})
 
 	t.Run("supports multiple primary keys", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.MultiplePrimaryKey{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.MultiplePrimaryKey{}), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
@@ -50,45 +50,45 @@ func TestAggregateFields(t *testing.T) {
 		assert.Equal(t, []int{0, 1}, metadata.primaryKeyFields)
 		assert.Equal(t, []int{0, 1, 2}, metadata.updatableFields)
 
-		pk1Index, ok := metadata.fields.Load("pk1")
+		pk1Index, ok := metadata.fields["pk1"]
 		assert.True(t, ok)
 		assert.Equal(t, 0, pk1Index)
 
-		pk2Name, ok := metadata.columns.Load(1)
+		pk2Name, ok := metadata.columns[1]
 		assert.True(t, ok)
 		assert.Equal(t, "pk2", pk2Name)
 	})
 
 	t.Run("returns error when no exql tags are defined", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoTag{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoTag{}), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "obj doesn't have exql tags in any fields")
 	})
 
 	t.Run("returns error when no primary key is defined", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoPrimaryKey{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoPrimaryKey{}), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "table has no primary key")
 	})
 
 	t.Run("returns error when column tag is not set", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoColumnTag{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoColumnTag{}), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "column tag is not set")
 	})
 
 	t.Run("returns error for pointer fields", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.UpdateSample{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.UpdateSample{}), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "struct field must not be a pointer:  ptr")
 	})
 
 	t.Run("returns error for invalid tag format", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.BadTag{}))
+		metadata, err := aggregateFields(reflect.TypeOf(testmodel.BadTag{}), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "duplicated tag: a")

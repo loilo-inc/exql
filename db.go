@@ -116,7 +116,7 @@ success:
 }
 
 func NewDB(d *sql.DB) DB {
-	refl := &reflector{}
+	refl := newReflector()
 	return &db{
 		saver:     newSaver(d, refl),
 		finder:    newFinder(d, refl),

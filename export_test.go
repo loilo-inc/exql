@@ -37,7 +37,7 @@ func (r *errReflector) GetSchema(modelPtr any) (*modelSchema, error) {
 	return nil, fmt.Errorf("error reflector")
 }
 
-func (r *errReflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, error) {
+func (r *errReflector) GetSchemaFromValue(destValue *reflect.Value, _ bool) (*modelSchema, error) {
 	return nil, fmt.Errorf("error reflector")
 }
 
