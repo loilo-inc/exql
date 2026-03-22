@@ -135,3 +135,91 @@ func Test_resolveDestType(t *testing.T) {
 		assert.ErrorIs(t, errModelNil, err)
 	})
 }
+
+func TestReflectorGetSchema(t *testing.T) {
+	t.Run("returns schema for model pointer", func(t *testing.T) {
+		r := &reflector{}
+
+		schema, err := r.GetSchema(&model.Users{})
+
+		assert.NoError(t, err)
+		if !assert.NotNil(t, schema) {
+			return
+		}
+		assert.NotNil(t, schema.autoIncrementField)
+		assert.Equal(t, []int{0}, schema.primaryKeyFields)
+		assert.Equal(t, []int{1, 2}, schema.updatableFields)
+	})
+
+	t.Run("returns validation error for invalid destination", func(t *testing.T) {
+		r := &reflector{}
+
+		schema, err := r.GetSchema(model.Users{})
+
+		assert.Nil(t, schema)
+		assert.ErrorIs(t, err, errMapDestination)
+	})
+
+	t.Run("uses cached schema when cache is enabled", func(t *testing.T) {
+		r := &reflector{}
+
+		s1, err := r.GetSchema(&model.Users{})
+		assert.NoError(t, err)
+
+		s2, err := r.GetSchema(&model.Users{})
+		assert.NoError(t, err)
+		assert.Same(t, s1, s2)
+	})
+
+	t.Run("rebuilds schema when cache is disabled", func(t *testing.T) {
+		r := &reflector{noCache: true}
+
+		s1, err := r.GetSchema(&model.Users{})
+		assert.NoError(t, err)
+
+		s2, err := r.GetSchema(&model.Users{})
+		assert.NoError(t, err)
+		assert.NotSame(t, s1, s2)
+	})
+}
+
+func TestReflectorGetSchemaFromValue(t *testing.T) {
+	t.Run("supports nil struct pointer value", func(t *testing.T) {
+		r := &reflector{}
+		var user *model.Users
+		v, err := resolveNullableDestination(&user)
+		assert.NoError(t, err)
+
+		schema, err := r.GetSchemaFromValue(v)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, schema)
+	})
+
+	t.Run("returns error for invalid value", func(t *testing.T) {
+		r := &reflector{}
+		v := reflect.Value{}
+
+		schema, err := r.GetSchemaFromValue(&v)
+
+		assert.Nil(t, schema)
+		assert.ErrorIs(t, err, errModelNil)
+	})
+}
+
+func TestReflectorClearSchemaCache(t *testing.T) {
+	r := &reflector{}
+
+	s1, err := r.GetSchema(&model.Users{})
+	assert.NoError(t, err)
+
+	r.ClearSchemaCache()
+
+	s2, err := r.GetSchema(&model.Users{})
+	assert.NoError(t, err)
+	assert.NotSame(t, s1, s2)
+}
+
+func Test_typeKey(t *testing.T) {
+	assert.Equal(t, "github.com/loilo-inc/exql/v3/model.Users", typeKey(reflect.TypeFor[model.Users]()))
+}
