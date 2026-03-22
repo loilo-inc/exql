@@ -98,6 +98,6 @@ func TestGenerator_Generate_formatsGeneratedCode(t *testing.T) {
 
 	formatted, err := format.Source(content)
 	assert.NoError(t, err)
-	assert.Equal(t, string(formatted), string(content))
+	assert.Equal(t, string(content), string(formatted))
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
