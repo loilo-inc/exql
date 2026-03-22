@@ -89,8 +89,6 @@ func mapRow(
 	return ErrRecordNotFound{}
 }
 
-var errMapManyDestination = xerrors.Errorf("destination must be a pointer of slice of struct")
-
 // MapRows reads all data from rows and maps those columns for each destination struct.
 // pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
 // It closes rows after mapping regardless error occurred.
@@ -169,8 +167,6 @@ func scanRow(
 	}
 	return row.Scan(destVals...)
 }
-
-var errMapRowSerialDestination = xerrors.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
 func (m *serialMapper) Map(
 	rows *sql.Rows,

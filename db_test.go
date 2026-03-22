@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/loilo-inc/exql/v3/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +23,7 @@ func TestNewDB(t *testing.T) {
 func TestOpen(t *testing.T) {
 	t.Run("should call OpenContext", func(t *testing.T) {
 		d, err := Open(&OpenOptions{
-			Url: test.DbUrl,
+			Url: dbUrl,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -43,7 +42,7 @@ func TestOpenContext(t *testing.T) {
 	t.Run("with custom opener", func(t *testing.T) {
 		var called bool
 		_, err := OpenContext(context.TODO(), &OpenOptions{
-			Url: test.DbUrl,
+			Url: dbUrl,
 			OpenFunc: func(driverName string, url string) (*sql.DB, error) {
 				called = true
 				return sql.Open(driverName, url)

@@ -39,16 +39,16 @@ func Test_resolveDestination(t *testing.T) {
 func Test_resolveNullableDestination(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		_, err := resolveNullableDestination(nil)
-		assert.ErrorIs(t, errMapDestination, err)
+		assert.ErrorIs(t, errMapRowSerialDestination, err)
 	})
 	t.Run("non-pointer", func(t *testing.T) {
 		_, err := resolveNullableDestination(1)
-		assert.ErrorIs(t, errMapDestination, err)
+		assert.ErrorIs(t, errMapRowSerialDestination, err)
 	})
 	t.Run("pointer of non-struct", func(t *testing.T) {
 		var i int
 		_, err := resolveNullableDestination(&i)
-		assert.ErrorIs(t, errMapDestination, err)
+		assert.ErrorIs(t, errMapRowSerialDestination, err)
 	})
 	t.Run("*struct", func(t *testing.T) {
 		u := &model.Users{Id: 1, Name: "alice"}
@@ -68,7 +68,7 @@ func Test_resolveNullableDestination(t *testing.T) {
 	t.Run("**struct(non-nil)", func(t *testing.T) {
 		u := &model.Users{Id: 1, Name: "alice"}
 		_, err := resolveNullableDestination(&u)
-		assert.ErrorIs(t, errMapDestination, err)
+		assert.ErrorIs(t, errMapRowSerialDestination, err)
 	})
 }
 

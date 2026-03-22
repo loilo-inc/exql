@@ -3,6 +3,7 @@ package exql
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -248,6 +249,25 @@ func TestMapRows(t *testing.T) {
 	})
 }
 
+func Test_mapRows(t *testing.T) {
+	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
+		)
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+
+		var dest []*model.Users
+		err = mapRows(&errReflector{}, rows, &dest)
+		assert.EqualError(t, err, "error reflector")
+	})
+}
+
 func TestMapRow(t *testing.T) {
 	db := testDb()
 	t.Run("users", func(t *testing.T) {
@@ -334,6 +354,45 @@ func TestMapRow(t *testing.T) {
 
 		var dest model.Users
 		assert.EqualError(t, MapRow(rows, &dest), "err")
+	})
+}
+
+func Test_mapRow(t *testing.T) {
+	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
+		)
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+
+		var dest model.Users
+		err = mapRow(&errReflector{}, rows, &dest)
+		assert.EqualError(t, err, "error reflector")
+	})
+}
+
+func Test_scanRow(t *testing.T) {
+	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
+		)
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+		assert.True(t, rows.Next())
+
+		dest := reflect.ValueOf(model.Users{})
+		err = scanRow(&errReflector{}, rows, &dest)
+		assert.EqualError(t, err, "error reflector")
 	})
 }
 
@@ -585,38 +644,61 @@ WHERE users.id = ?
 		assert.EqualError(t, err, "empty dest list")
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
-		doTest := func(i ...any) {
-			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, i...))
-		}
 		t.Run("int", func(t *testing.T) {
-			doTest(0, 1, 2)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, 0, 1, 2))
 		})
 		t.Run("*int", func(t *testing.T) {
 			i := 0
-			doTest(&i, &i)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, &i, &i))
 		})
 		t.Run("slice", func(t *testing.T) {
 			var i []*model.Users
-			doTest(&i, &i)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, &i, &i))
 		})
 		t.Run("*slice", func(t *testing.T) {
 			var i []*model.Users
-			doTest(&i, &i)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, &i, &i))
 		})
 		t.Run("nil", func(t *testing.T) {
-			doTest(nil, nil)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, nil, nil))
 		})
 		t.Run("***struct", func(t *testing.T) {
 			var user **model.Users
 			var group **model.GroupUsers
-			doTest(&user, &group)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, &user, &group))
 		})
 		t.Run("non nil **struct", func(t *testing.T) {
 			var user = &model.Users{}
-			doTest(&user)
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, &user))
 		})
 	})
 }
+
+func Test_mapJoinedRows(t *testing.T) {
+	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
+		)
+
+		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
+		assert.NoError(t, err)
+		assert.True(t, rows.Next())
+
+		var user model.Users
+		dest, err := resolveNullableDestination(&user)
+		assert.NoError(t, err)
+
+		err = mapJoinedRows(&errReflector{}, rows, []*reflect.Value{dest}, func(i int) string {
+			return "id"
+		})
+		assert.EqualError(t, err, "error reflector")
+	})
+}
+
 func TestErrRecordNotFound_Error(t *testing.T) {
 	err := ErrRecordNotFound{}
 	assert.Equal(t, "record not found", err.Error())

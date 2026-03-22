@@ -86,15 +86,17 @@ func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
 	return &destValue, nil
 }
 
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
+
 // resolveNullableDestination validates that the input is a pointer to a struct or a pointer to a pointer to a struct and returns the reflect.Value of the struct.
 func resolveNullableDestination(dest any) (*reflect.Value, error) {
 	if dest == nil {
-		return nil, errMapDestination
+		return nil, errMapRowSerialDestination
 	}
 	// any -> (*Model) || (**Model)
 	destValue := reflect.ValueOf(dest)
 	if destValue.Kind() != reflect.Pointer {
-		return nil, errMapDestination
+		return nil, errMapRowSerialDestination
 	}
 	destValue = destValue.Elem()
 	switch destValue.Kind() {
@@ -104,15 +106,17 @@ func resolveNullableDestination(dest any) (*reflect.Value, error) {
 	case reflect.Pointer:
 		// **Model -> *Model (nil only)
 		if destValue.Type().Elem().Kind() != reflect.Struct {
-			return nil, errMapDestination
+			return nil, errMapRowSerialDestination
 		}
 		if !destValue.IsNil() {
-			return nil, errMapDestination
+			return nil, errMapRowSerialDestination
 		}
 		return &destValue, nil
 	}
-	return nil, errMapDestination
+	return nil, errMapRowSerialDestination
 }
+
+var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
 // resolveDestinationMany validates that the input is a pointer to a slice of pointers to struct and returns the reflect.Type of the struct and the reflect.Value of the destination slice.
 func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Value, error) {

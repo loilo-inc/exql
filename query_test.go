@@ -37,6 +37,12 @@ func TestQueryForInsert(t *testing.T) {
 		assert.Nil(t, f)
 		assert.EqualError(t, err, "obj doesn't have exql tags in any fields")
 	})
+	t.Run("should error if injected Reflector returns error", func(t *testing.T) {
+		s, f, err := queryForInsert(&errReflector{}, &model.Users{})
+		assert.Nil(t, s)
+		assert.Nil(t, f)
+		assert.EqualError(t, err, "error reflector")
+	})
 }
 
 func TestQueryForBulkInsert(t *testing.T) {
@@ -55,6 +61,11 @@ func TestQueryForBulkInsert(t *testing.T) {
 		q, err := QueryForBulkInsert[*model.Users]()
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty list")
+	})
+	t.Run("should error if injected Reflector returns error", func(t *testing.T) {
+		q, err := queryForBulkInsert(&errReflector{}, &model.Users{})
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "error reflector")
 	})
 }
 
