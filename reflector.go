@@ -92,8 +92,13 @@ func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
 
 var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
+type nullableDest struct {
+	elemType reflect.Type
+	value    *reflect.Value
+}
+
 // resolveNullableDestination validates that the input is a pointer to a struct or a pointer to a pointer to a struct and returns the reflect.Value of the struct.
-func resolveNullableDestination(dest any) (*reflect.Value, error) {
+func resolveNullableDestination(dest any) (*nullableDest, error) {
 	if dest == nil {
 		return nil, errMapRowSerialDestination
 	}
@@ -106,16 +111,23 @@ func resolveNullableDestination(dest any) (*reflect.Value, error) {
 	switch destValue.Kind() {
 	case reflect.Struct:
 		// *Model -> Model
-		return &destValue, nil
+		return &nullableDest{
+			elemType: destValue.Type(),
+			value:    &destValue,
+		}, nil
 	case reflect.Pointer:
 		// **Model -> *Model (nil only)
-		if destValue.Type().Elem().Kind() != reflect.Struct {
+		elemType := destValue.Type().Elem()
+		if elemType.Kind() != reflect.Struct {
 			return nil, errMapRowSerialDestination
 		}
 		if !destValue.IsNil() {
 			return nil, errMapRowSerialDestination
 		}
-		return &destValue, nil
+		return &nullableDest{
+			elemType: elemType,
+			value:    &destValue,
+		}, nil
 	}
 	return nil, errMapRowSerialDestination
 }

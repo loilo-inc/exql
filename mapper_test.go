@@ -692,7 +692,7 @@ func Test_mapJoinedRows(t *testing.T) {
 		dest, err := resolveNullableDestination(&user)
 		assert.NoError(t, err)
 
-		err = mapJoinedRows(&errReflector{}, rows, []*reflect.Value{dest}, func(i int) string {
+		err = mapJoinedRows(&errReflector{}, rows, []*nullableDest{dest}, func(i int) string {
 			return "id"
 		})
 		assert.EqualError(t, err, "error reflector")

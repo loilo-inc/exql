@@ -55,16 +55,18 @@ func Test_resolveNullableDestination(t *testing.T) {
 		u := &model.Users{Id: 1, Name: "alice"}
 		v, err := resolveNullableDestination(u)
 		assert.NoError(t, err)
-		assert.Equal(t, reflect.Struct, v.Kind())
-		assert.Equal(t, int64(1), v.FieldByName("Id").Int())
-		assert.Equal(t, "alice", v.FieldByName("Name").String())
+		assert.Equal(t, reflect.Struct, v.elemType.Kind())
+		assert.Equal(t, reflect.Struct, v.value.Kind())
+		assert.Equal(t, int64(1), v.value.FieldByName("Id").Int())
+		assert.Equal(t, "alice", v.value.FieldByName("Name").String())
 	})
 	t.Run("**struct(nil)", func(t *testing.T) {
 		var u *model.Users
 		v, err := resolveNullableDestination(&u)
 		assert.NoError(t, err)
-		assert.Equal(t, reflect.Pointer, v.Kind())
-		assert.True(t, v.IsNil())
+		assert.Equal(t, reflect.Struct, v.elemType.Kind())
+		assert.Equal(t, reflect.Pointer, v.value.Kind())
+		assert.True(t, v.value.IsNil())
 	})
 	t.Run("**struct(non-nil)", func(t *testing.T) {
 		u := &model.Users{Id: 1, Name: "alice"}

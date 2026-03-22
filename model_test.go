@@ -125,7 +125,7 @@ func TestAggregateModelValue(t *testing.T) {
 		assert.EqualError(t, err, e)
 	}
 	t.Run("should error if dest is nil", func(t *testing.T) {
-		assertInvalid(t, nil, errMapDestination.Error())
+		assertInvalid(t, nil, errModelNil.Error())
 	})
 	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
 		assertInvalid(t, &testmodel.NoColumnTag{}, "column tag is not set")
@@ -145,7 +145,7 @@ func TestAggregateModelUpdateValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		name := "go"
 		age := int64(20)
-		schema, err := aggregateFields(reflect.TypeOf(&model.UpdateUsers{}), true)
+		schema, err := aggregateFields(reflect.TypeFor[model.UpdateUsers](), true)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, schema) {
 			return

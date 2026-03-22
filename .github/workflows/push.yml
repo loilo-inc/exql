@@ -24,7 +24,7 @@ jobs:
           go run tool/rdmegen/main.go
           make fmt
           git diff --exit-code
-      - run: make test
+      - run: make testci
       - uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

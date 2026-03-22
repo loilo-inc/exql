@@ -163,7 +163,7 @@ func (m *serialMapper) Map(
 	rows *sql.Rows,
 	dest ...any,
 ) error {
-	var values []*reflect.Value
+	var values []*nullableDest
 
 	if len(dest) == 0 {
 		return fmt.Errorf("empty dest list")
@@ -182,19 +182,19 @@ func (m *serialMapper) Map(
 func mapJoinedRows(
 	refl Reflector,
 	row *sql.Rows,
-	destList []*reflect.Value,
+	destList []*nullableDest,
 	headColProvider ColumnSplitter,
 ) error {
 	// *Model || **Model
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := refl.GetSchema(dest.Type(), false)
+		md, err := refl.GetSchema(dest.elemType, false)
 		if err != nil {
 			return err
 		}
 		destFields = append(destFields, md.fields)
-		destTypes[destIndex] = dest.Type() // Model || *Model
+		destTypes[destIndex] = dest.value.Type() // Model || *Model
 	}
 	cols, err := row.ColumnTypes()
 	if err != nil {
@@ -215,7 +215,7 @@ func mapJoinedRows(
 		}
 		start := colIndex
 		ns := &noopScanner{}
-		model := dest
+		model := dest.value
 		if destTypes[destIndex].Kind() == reflect.Pointer {
 			m := reflect.New(destTypes[destIndex].Elem()).Elem() // Model
 			model = &m
@@ -270,7 +270,7 @@ func mapJoinedRows(
 				}
 			}
 		}
-		dest.Set(model) // dest = *Model
+		dest.value.Set(model) // dest = *Model
 	}
 
 	return nil
