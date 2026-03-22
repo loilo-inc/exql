@@ -7,7 +7,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/v3"
-	"github.com/loilo-inc/exql/v3/mocks/mock_exql"
+	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/query"
 	"github.com/loilo-inc/exql/v3/test"
@@ -74,7 +74,7 @@ func TestPreparedExecutor(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		stmt := "stmt"
 		testFunc := func(t *testing.T, body func(ex exql.StmtExecutor) (err error)) {
-			mock := mock_exql.NewMockExecutor(ctrl)
+			mock := mock_iface.NewMockExecutor(ctrl)
 			mock.EXPECT().PrepareContext(gomock.Any(), stmt).Return(nil, fmt.Errorf("err"))
 			ex := exql.NewStmtExecutor(mock)
 			err := body(ex)
@@ -103,7 +103,7 @@ func TestPreparedExecutor(t *testing.T) {
 	})
 	t.Run("QueryRow bypass to the inner executor", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
-		mock := mock_exql.NewMockExecutor(ctrl)
+		mock := mock_iface.NewMockExecutor(ctrl)
 		mock.EXPECT().QueryRowContext(gomock.Any(), "stmt").Return(nil)
 		ex := exql.NewStmtExecutor(mock)
 		row := ex.QueryRow("stmt")

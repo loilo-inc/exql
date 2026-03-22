@@ -8,7 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/loilo-inc/exql/v3"
-	"github.com/loilo-inc/exql/v3/mocks/mock_exql"
+	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/mocks/mock_query"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/model/testmodel"
@@ -360,9 +360,9 @@ func TestSaver_QueryExtra(t *testing.T) {
 	args := []any{1}
 	aErr := fmt.Errorf("err")
 	ctx := context.TODO()
-	setup := func(t *testing.T) (*mock_exql.MockExecutor, exql.Saver) {
+	setup := func(t *testing.T) (*mock_iface.MockExecutor, exql.Saver) {
 		ctrl := gomock.NewController(t)
-		ex := mock_exql.NewMockExecutor(ctrl)
+		ex := mock_iface.NewMockExecutor(ctrl)
 		s := exql.NewSaver(ex)
 		return ex, s
 	}
