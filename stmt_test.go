@@ -10,6 +10,7 @@ import (
 	"github.com/loilo-inc/exql/v3/mocks/mock_exql"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/query"
+	"github.com/loilo-inc/exql/v3/test"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -23,12 +24,12 @@ func TestPreparedExecutor(t *testing.T) {
 		return pex
 	}
 	t.Run("integration", func(t *testing.T) {
-		db := testDb()
+		db := test.Db()
 		user1 := model.Users{Name: "go"}
 		user2 := model.Users{Name: "lang"}
 		err := db.Transaction(func(tx exql.Tx) error {
 			pex := setup(t, tx.Tx())
-			saver := exql.NewSaver(pex, tx)
+			saver := exql.NewSaver(pex)
 			for _, user := range []*model.Users{&user1, &user2} {
 				if _, err := saver.Insert(user); err != nil {
 					return err

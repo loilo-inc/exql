@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/loilo-inc/exql/v3/util"
 	"golang.org/x/xerrors"
 )
 
@@ -17,6 +16,31 @@ func (e ErrRecordNotFound) Error() string {
 
 // ColumnSplitter is a function type for providing head column name for each destination struct in SerialMapper.
 type ColumnSplitter func(i int) string
+
+// SerialMapper is an interface for mapping a joined row into one or more destinations serially.
+type SerialMapper interface {
+	// Map reads joined rows and maps columns for each destination serially.
+	// The second argument, pointerOfStruct, MUST BE a pointer of the struct.
+	//
+	// NOTE: DO NOT FORGET to close rows manually, as it WON'T do it automatically.
+	//
+	// Example:
+	//
+	//	var user User
+	//	var favorite UserFavorite
+	//	defer rows.Close()
+	//	err := m.Map(rows, &user, &favorite)
+	Map(rows *sql.Rows, pointersOfStruct ...any) error
+}
+
+type serialMapper struct {
+	splitter ColumnSplitter
+	refl     Reflector
+}
+
+func NewSerialMapper(s ColumnSplitter) SerialMapper {
+	return &serialMapper{splitter: s, refl: noCacheReflector}
+}
 
 var errMapDestination = xerrors.Errorf("destination must be a pointer of struct")
 
@@ -187,25 +211,7 @@ func scanRow(
 
 var errMapRowSerialDestination = xerrors.Errorf("destination must be either *(struct) or *((*struct)(nil))")
 
-// MapJoinedRows reads data from single row and maps those columns into multiple destination structs.
-// Each destination struct's columns are expected to be grouped together and separated by head column.
-// pointerOfStruct MUST BE a pointer of struct or a pointer of nil pointer of struct.
-//
-// NOTE: DO NOT FORGET to close rows manually, as it WON'T do it automatically.
-//
-// Example:
-//
-//	var user User
-//	var favorite UserFavorite
-//	defer rows.Close()
-//	reflector := exql.DefaultReflector()
-//	splitter := func(i int) string {
-//		return "id"
-//	}
-//	err := exql.MapJoinedRows(reflector, splitter, rows, &user, &favorite)
-func MapJoinedRows(
-	refl Reflector,
-	splitter ColumnSplitter,
+func (m *serialMapper) Map(
 	rows *sql.Rows,
 	dest ...any,
 ) error {
@@ -231,7 +237,7 @@ func MapJoinedRows(
 			values = append(values, &v)
 		}
 	}
-	return mapJoinedRows(refl, rows, values, splitter)
+	return mapJoinedRows(m.refl, rows, values, m.splitter)
 }
 
 func mapJoinedRows(
@@ -241,7 +247,7 @@ func mapJoinedRows(
 	headColProvider ColumnSplitter,
 ) error {
 	// *Model || **Model
-	var destFields []*util.SyncMap[string, int]
+	var destFields []*syncMap[string, int]
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
 		md, err := refl.GetSchemaFromValue(dest)

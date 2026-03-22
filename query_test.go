@@ -23,7 +23,7 @@ func TestQueryForInsert(t *testing.T) {
 		user := model.Users{
 			Name: "go", Age: 10,
 		}
-		s, f, err := exql.QueryForInsert(exql.DefaultReflector(), &user)
+		s, f, err := exql.QueryForInsert(&user)
 		assert.NoError(t, err)
 		assert.NotNil(t, f)
 		exp := "INSERT INTO `users` (`age`,`name`) VALUES (?,?)"
@@ -33,7 +33,7 @@ func TestQueryForInsert(t *testing.T) {
 		assert.ElementsMatch(t, args, []any{user.Age, user.Name})
 	})
 	t.Run("should error if Reflector returns error", func(t *testing.T) {
-		s, f, err := exql.QueryForInsert(exql.DefaultReflector(), &testmodel.NoTag{})
+		s, f, err := exql.QueryForInsert(&testmodel.NoTag{})
 		assert.Nil(t, s)
 		assert.Nil(t, f)
 		assert.EqualError(t, err, "obj doesn't have exql tags in any fields")
@@ -42,7 +42,7 @@ func TestQueryForInsert(t *testing.T) {
 
 func TestQueryForBulkInsert(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		q, err := exql.QueryForBulkInsert(exql.DefaultReflector(),
+		q, err := exql.QueryForBulkInsert(
 			&model.Users{Age: 1, Name: "one"},
 			&model.Users{Age: 2, Name: "two"},
 		)
@@ -53,7 +53,7 @@ func TestQueryForBulkInsert(t *testing.T) {
 		assert.ElementsMatch(t, []any{int64(1), "one", int64(2), "two"}, args)
 	})
 	t.Run("error if args empty", func(t *testing.T) {
-		q, err := exql.QueryForBulkInsert[*model.Users](exql.DefaultReflector())
+		q, err := exql.QueryForBulkInsert[*model.Users]()
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty list")
 	})

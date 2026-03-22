@@ -19,7 +19,7 @@ import (
 
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
-	s := noCacheSaver(d.DB())
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			Name: "go", Age: 10,
@@ -53,7 +53,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if db.Exec() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(int64(0), "").WillReturnError(fmt.Errorf("err"))
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		user := &model.Users{}
 		_, err := s.Insert(user)
 		assert.EqualError(t, err, "err")
@@ -61,7 +61,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if result.LastInsertId() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(int64(0), "").WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("err")))
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		user := &model.Users{}
 		_, err := s.Insert(user)
 		assert.EqualError(t, err, "err")
@@ -69,7 +69,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if auto-increment field type is unsupported", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		user := &testmodel.PrimaryUint64{}
 		_, err := s.Insert(user)
 		assert.ErrorContains(t, err, "unsupported auto-increment field type")
@@ -77,7 +77,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		user := &testmodel.NoAutoIncrementKey{
 			Id: 1,
 		}
@@ -89,10 +89,7 @@ func TestSaver_Insert(t *testing.T) {
 
 func TestSaver_InsertContext(t *testing.T) {
 	d := testDb()
-	newSaver := func(ex exql.Executor) exql.Saver {
-		return exql.NewSaver(ex, exql.NoCacheReflector())
-	}
-	s := newSaver(d.DB())
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			Name: "go", Age: 10,
@@ -199,7 +196,7 @@ func TestSaver_InsertContext(t *testing.T) {
 
 func TestSaver_Update(t *testing.T) {
 	d := testDb()
-	s := noCacheSaver(d.DB())
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`age`,`name`) VALUES (?, ?)",
@@ -251,7 +248,7 @@ func TestSaver_Update(t *testing.T) {
 func TestSaver_UpdateModel(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		name := "lang"
 		mock.ExpectExec(
 			"UPDATE `users` SET `name` = \\? WHERE id = \\?",
@@ -272,7 +269,7 @@ func TestSaver_UpdateModel(t *testing.T) {
 func TestSaver_UpdateModelContext(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		name := "name"
 		mock.ExpectExec(
 			"UPDATE `users` SET `name` = \\? WHERE id = \\?",
@@ -290,7 +287,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 	})
 	t.Run("should error if model invalid", func(t *testing.T) {
 		db, _, _ := sqlmock.New()
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		_, err := s.UpdateModelContext(context.Background(), nil, exql.Where("id = ?", 1))
 		assert.EqualError(t, err, "model is nil")
 	})
@@ -298,7 +295,7 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 
 func TestSaver_UpdateContext(t *testing.T) {
 	d := testDb()
-	s := noCacheSaver(d.DB())
+	s := exql.NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`age`,`name`) VALUES (?, ?)",
@@ -333,24 +330,24 @@ func TestSaver_Delete(t *testing.T) {
 		mock.ExpectExec("DELETE FROM `table` WHERE id = ?").
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		s := noCacheSaver(db)
+		s := exql.NewSaver(db)
 		_, err := s.Delete("table", exql.Where("id = ?", 1))
 		assert.NoError(t, err)
 	})
 	t.Run("should error if clause returened an error", func(t *testing.T) {
-		s := noCacheSaver(nil)
+		s := exql.NewSaver(nil)
 		res, err := s.Delete("table", exql.Where(""))
 		assert.EqualError(t, err, "DANGER: empty query")
 		assert.Nil(t, res)
 	})
 	t.Run("should error if table name is empty", func(t *testing.T) {
-		s := noCacheSaver(nil)
+		s := exql.NewSaver(nil)
 		res, err := s.Delete("", exql.Where(""))
 		assert.EqualError(t, err, "empty table name for delete query")
 		assert.Nil(t, res)
 	})
 	t.Run("should error if condition is nil ", func(t *testing.T) {
-		s := noCacheSaver(nil)
+		s := exql.NewSaver(nil)
 		res, err := s.Delete("table", nil)
 		assert.EqualError(t, err, "nil condition for delete query")
 		assert.Nil(t, res)
@@ -366,14 +363,14 @@ func TestSaver_QueryExtra(t *testing.T) {
 	setup := func(t *testing.T) (*mock_exql.MockExecutor, exql.Saver) {
 		ctrl := gomock.NewController(t)
 		ex := mock_exql.NewMockExecutor(ctrl)
-		s := noCacheSaver(ex)
+		s := exql.NewSaver(ex)
 		return ex, s
 	}
 	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, exql.Saver) {
 		ctrl := gomock.NewController(t)
 		query := mock_query.NewMockQuery(ctrl)
 		query.EXPECT().Query().Return("", nil, aErr)
-		s := noCacheSaver(nil)
+		s := exql.NewSaver(nil)
 		return query, s
 	}
 

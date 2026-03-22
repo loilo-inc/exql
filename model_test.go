@@ -119,7 +119,7 @@ func TestAggregateModelValue(t *testing.T) {
 		assert.ElementsMatch(t, []any{"val1", "val2", 1}, v.values.Values())
 	})
 	assertInvalid := func(t *testing.T, m Model, e string) {
-		s, f, err := QueryForInsert(NoCacheReflector(), m)
+		s, f, err := QueryForInsert(m)
 		assert.Nil(t, s)
 		assert.Nil(t, f)
 		assert.EqualError(t, err, e)

@@ -5,15 +5,14 @@ import (
 	"reflect"
 
 	q "github.com/loilo-inc/exql/v3/query"
-	"github.com/loilo-inc/exql/v3/util"
 )
 
 type modelSchema struct {
 	autoIncrementField *int
 	primaryKeyFields   []int
 	updatableFields    []int
-	fields             *util.SyncMap[string, int]
-	columns            *util.SyncMap[int, string]
+	fields             *syncMap[string, int]
+	columns            *syncMap[int, string]
 }
 
 type modelValue struct {
@@ -23,8 +22,8 @@ type modelValue struct {
 }
 
 func aggregateFields(t reflect.Type) (*modelSchema, error) {
-	fields := &util.SyncMap[string, int]{}
-	columns := &util.SyncMap[int, string]{}
+	fields := &syncMap[string, int]{}
+	columns := &syncMap[int, string]{}
 	exqlTagCount := 0
 	var updatableFields []int
 	var primaryKeyFields []int

@@ -11,7 +11,7 @@ import (
 user_groups has many users
 users belongs to many groups
 */
-func MapJoinedRows(db exql.DB) {
+func MapSerial(db exql.DB) {
 	query := `
 	SELECT * FROM users
 	JOIN group_users ON group_users.user_id = users.id
@@ -23,16 +23,16 @@ func MapJoinedRows(db exql.DB) {
 		return
 	}
 	defer rows.Close()
-	splitter := func(i int) string {
+	serialMapper := exql.NewSerialMapper(func(i int) string {
 		// Each column's separator is `id`
 		return "id"
-	}
+	})
 	var users []*model.Users
 	for rows.Next() {
 		var user model.Users
 		var groupUsers model.GroupUsers
 		var userGroup model.UserGroups
-		// MapJoinedRows maps columns of joined tables into multiple destination structs.
+		// Create serial mapper. It will split joined columns by logical tables.
 		// In this case, joined table and destination mappings are:
 		// |   users   |       group_users        |  user_groups  |
 		// + --------- + ------------------------ + ------------- +
@@ -40,7 +40,7 @@ func MapJoinedRows(db exql.DB) {
 		// + --------- + ------------------------ + ------------- +
 		// |   &user   |        &groupUsers       |   &userGroup  |
 		// + --------- + ------------------------ + ------------- +
-		if err := exql.MapJoinedRows(db, splitter, rows, &user, &groupUsers, &userGroup); err != nil {
+		if err := serialMapper.Map(rows, &user, &groupUsers, &userGroup); err != nil {
 			log.Fatal(err.Error())
 		}
 		users = append(users, &user)

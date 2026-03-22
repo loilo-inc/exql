@@ -12,7 +12,11 @@ func Where(str string, args ...any) q.Condition {
 	return q.Cond(str, args...)
 }
 
-func QueryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, error) {
+func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
+	return queryForInsert(noCacheReflector, modelPtr)
+}
+
+func queryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, error) {
 	ms, err := refl.GetSchema(modelPtr)
 	if err != nil {
 		return nil, nil, err
@@ -29,7 +33,11 @@ func QueryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, er
 	return b.Build(), v.autoIncrementField, nil
 }
 
-func QueryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error) {
+func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
+	return queryForBulkInsert(noCacheReflector, modelPtrs...)
+}
+
+func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
 		return nil, errors.New("empty list")
 	}

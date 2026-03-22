@@ -338,7 +338,7 @@ func TestMapRow(t *testing.T) {
 	})
 }
 
-func TestMapJoinedRows(t *testing.T) {
+func TestSerialMapper_Map(t *testing.T) {
 	db := testDb()
 	defer db.Close()
 
@@ -382,9 +382,9 @@ func TestMapJoinedRows(t *testing.T) {
 		db.DB().Exec(`DELETE FROM groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
-	splitter := func(i int) string {
+	m := exql.NewSerialMapper(func(i int) string {
 		return "id"
-	}
+	})
 	t.Run("basic", func(t *testing.T) {
 		query := `
 SELECT * FROM users
@@ -399,7 +399,7 @@ WHERE user_groups.id = ?
 			var group model.UserGroups
 			var user model.Users
 			var mem model.GroupUsers
-			err := exql.MapJoinedRows(db, splitter, rows, &user, &group, &mem)
+			err := m.Map(rows, &user, &group, &mem)
 			assert.NoError(t, err)
 			users = append(users, &user)
 		}
@@ -426,7 +426,7 @@ WHERE user_groups.id = ?
 		for rows.Next() {
 			var group model.UserGroups
 			var user model.Users
-			err := exql.MapJoinedRows(db, splitter, rows, &user, &group)
+			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
 			users = append(users, &user)
 			groups = append(groups, &group)
@@ -457,7 +457,7 @@ ORDER BY users.id
 		for rows.Next() {
 			var user model.Users
 			var group *model.UserGroups
-			err := exql.MapJoinedRows(db, splitter, rows, &user, &group)
+			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
 			users = append(users, &user)
 			groups = append(groups, group)
@@ -487,7 +487,7 @@ ORDER BY users.id
 		for rows.Next() {
 			var group *model.UserGroups
 			var user *partialUser
-			err := exql.MapJoinedRows(db, splitter, rows, &user, &group)
+			err := m.Map(rows, &user, &group)
 			assert.NoError(t, err)
 			users = append(users, user)
 			groups = append(groups, group)
@@ -507,7 +507,7 @@ ORDER BY users.id
 			assert.NoError(t, err)
 			var dest model.Fields
 			assert.True(t, rows.Next())
-			err = exql.MapJoinedRows(db, splitter, rows, &dest)
+			err = m.Map(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, &dest, field)
 		})
@@ -516,7 +516,7 @@ ORDER BY users.id
 			assert.NoError(t, err)
 			var dest *model.Fields
 			assert.True(t, rows.Next())
-			err = exql.MapJoinedRows(db, splitter, rows, &dest)
+			err = m.Map(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, dest, field)
 		})
@@ -531,13 +531,13 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
-			splitter := func(i int) string {
+			m := exql.NewSerialMapper(func(i int) string {
 				return "var"
-			}
+			})
 			for rows.Next() {
 				var user model.Users
 				var ug model.UserGroups
-				err := exql.MapJoinedRows(db, splitter, rows, &user, &ug)
+				err := m.Map(rows, &user, &ug)
 				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
 				break
 			}
@@ -551,13 +551,13 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
-			splitter := func(i int) string {
+			m := exql.NewSerialMapper(func(i int) string {
 				return "var"
-			}
+			})
 			for rows.Next() {
 				var user model.Users
 				var ug *model.UserGroups
-				err := exql.MapJoinedRows(db, splitter, rows, &user, &ug)
+				err := m.Map(rows, &user, &ug)
 				assert.EqualError(t, err, "head col mismatch: expected=var, actual=id")
 				break
 			}
@@ -577,18 +577,17 @@ WHERE users.id = ?
 		for rows.Next() {
 			var group model.UserGroups
 			var user model.Users
-			err := exql.MapJoinedRows(db, splitter, rows, &user, &group)
+			err := m.Map(rows, &user, &group)
 			assert.NotNil(t, err)
 		}
 	})
 	t.Run("should return error if dest is empty", func(t *testing.T) {
-		err := exql.MapJoinedRows(db, splitter, nil)
+		err := m.Map(nil)
 		assert.EqualError(t, err, "empty dest list")
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
 		doTest := func(i ...any) {
-			assert.Equal(t, exql.ErrMapRowSerialDestination,
-				exql.MapJoinedRows(db, splitter, nil, i...))
+			assert.Equal(t, exql.ErrMapRowSerialDestination, m.Map(nil, i...))
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0, 1, 2)

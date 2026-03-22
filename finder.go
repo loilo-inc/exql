@@ -53,9 +53,9 @@ func (f *finder) FindManyContext(ctx context.Context, q query.Query, destSlicePt
 	return nil
 }
 
-// NewFinder creates a new Finder with the given Executor and Reflecter.
-func NewFinder(ex Executor, refl Reflector) Finder {
-	return newFinder(ex, refl)
+// NewFinder creates a new Finder with the given Executor.
+func NewFinder(ex Executor) Finder {
+	return newFinder(ex, noCacheReflector)
 }
 
 func newFinder(ex Executor, refl Reflector) *finder {

@@ -14,7 +14,6 @@ import (
 type DB interface {
 	Saver
 	Finder
-	Reflector
 	// DB returns *sql.DB object.
 	DB() *sql.DB
 	// SetDB sets *sql.DB object.

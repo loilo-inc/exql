@@ -17,6 +17,11 @@ type Executor interface {
 	PrepareContext(ctx context.Context, stmt string) (*sql.Stmt, error)
 }
 
+type ReflectExecutor interface {
+	Executor
+	Reflector
+}
+
 type Model interface {
 	TableName() string
 }

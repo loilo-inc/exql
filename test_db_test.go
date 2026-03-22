@@ -25,11 +25,3 @@ func testSqlDB() *sql.DB {
 	}
 	return db
 }
-
-func noCacheSaver(ex exql.Executor) exql.Saver {
-	return exql.NewSaver(ex, exql.NoCacheReflector())
-}
-
-func noCacheFinder(ex exql.Executor) exql.Finder {
-	return exql.NewFinder(ex, exql.NoCacheReflector())
-}

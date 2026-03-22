@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-
-	"github.com/loilo-inc/exql/v3/util"
 )
 
 var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
 	noCache  bool
-	metadata util.SyncMap[string, *modelSchema]
+	metadata syncMap[string, *modelSchema]
 	mux      sync.Mutex
 }
 
@@ -60,7 +58,7 @@ func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, 
 func (r *reflector) ClearSchemaCache() {
 	r.mux.Lock()
 	defer r.mux.Unlock()
-	r.metadata = util.SyncMap[string, *modelSchema]{}
+	r.metadata = syncMap[string, *modelSchema]{}
 }
 
 func typeKey(t reflect.Type) string {
@@ -72,12 +70,10 @@ func DefaultReflector() Reflector {
 }
 
 func NoCacheReflector() Reflector {
-	return noCacheReflector()
+	return noCacheReflector
 }
 
-func noCacheReflector() *reflector {
-	return &reflector{noCache: true}
-}
+var noCacheReflector = &reflector{noCache: true}
 
 func resolveDestType(destValue *reflect.Value) (reflect.Type, error) {
 	// *Model || **Model
