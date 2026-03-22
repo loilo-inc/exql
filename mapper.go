@@ -68,9 +68,6 @@ func mapRow(
 			row.Close()
 		}
 	}()
-	if pointerOfStruct == nil {
-		return errMapDestination
-	}
 	destValue, err := resolveDestination(pointerOfStruct)
 	if err != nil {
 		return err
