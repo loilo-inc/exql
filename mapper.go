@@ -81,10 +81,6 @@ func mapRow(
 	if err := row.Err(); err != nil {
 		return err
 	}
-	err = row.Close()
-	if err != nil {
-		return err
-	}
 	return ErrRecordNotFound{}
 }
 
@@ -108,6 +104,11 @@ func mapRows(
 	rows *sql.Rows,
 	ptrOfSliceOfModelPtr any,
 ) error {
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
 	if err != nil {
 		return err
@@ -126,10 +127,6 @@ func mapRows(
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	err = rows.Close()
-	if err != nil {
-		return err
-	}
 	if cnt == 0 {
 		return ErrRecordNotFound{}
 	}
@@ -145,7 +142,7 @@ func scanRow(
 	if err != nil {
 		return err
 	}
-	md, err := refl.GetSchemaFromValue(dest, false)
+	md, err := refl.GetSchema(dest.Type(), false)
 	if err != nil {
 		return err
 	}
@@ -192,7 +189,7 @@ func mapJoinedRows(
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := refl.GetSchemaFromValue(dest, false)
+		md, err := refl.GetSchema(dest.Type(), false)
 		if err != nil {
 			return err
 		}

@@ -97,8 +97,8 @@ func TestAggregateFields(t *testing.T) {
 
 func TestAggregateModelValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
+		schema, _ := noCacheReflector.GetSchema(reflect.TypeFor[model.Users](), false)
 		user := &model.Users{Name: "go", Age: 10}
-		schema, _ := noCacheReflector.GetSchema(user)
 		m, err := schema.aggregateModelValue(user)
 		assert.NoError(t, err)
 		assert.NotNil(t, m.autoIncrementField)
@@ -106,12 +106,12 @@ func TestAggregateModelValue(t *testing.T) {
 		assert.ElementsMatch(t, []any{int64(10), "go"}, m.values.Values())
 	})
 	t.Run("multiple primary key", func(t *testing.T) {
+		schema, _ := noCacheReflector.GetSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 		data := &testmodel.MultiplePrimaryKey{
 			Pk1:   "val1",
 			Pk2:   "val2",
 			Other: 1,
 		}
-		schema, _ := noCacheReflector.GetSchema(data)
 		v, err := schema.aggregateModelValue(data)
 		assert.NoError(t, err)
 		assert.Nil(t, v.autoIncrementField)
@@ -145,7 +145,7 @@ func TestAggregateModelUpdateValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		name := "go"
 		age := int64(20)
-		schema, err := aggregateFields(reflect.TypeFor[model.UpdateUsers](), true)
+		schema, err := aggregateFields(reflect.TypeOf(&model.UpdateUsers{}), true)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, schema) {
 			return

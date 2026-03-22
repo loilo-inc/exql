@@ -22,34 +22,25 @@ func newReflector() *reflector {
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
 type Reflector interface {
-	// GetSchema returns the model schema for the given model pointer.
-	GetSchema(modelPtr any) (*modelSchema, error)
-	// GetSchemaFromValue returns the model schema for the given reflect.Value of the destination struct.
-	GetSchemaFromValue(destValue *reflect.Value, forUpdate bool) (*modelSchema, error)
+	// GetSchema returns the model schema for the given reflect.Type of the destination struct.
+	GetSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error)
+	// GetModelSchema returns the model schema for the given destination struct.
+	GetModelSchema(dest any, forUpdate bool) (*modelSchema, error)
 	// ClearSchemaCache clears the cached model schemas.
 	ClearSchemaCache()
 }
 
 var _ Reflector = (*reflector)(nil)
 
-func (r *reflector) GetSchema(modelPtr any) (*modelSchema, error) {
-	value, err := resolveDestination(modelPtr)
+func (r *reflector) GetModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
+	t, err := resolveModelType(dest)
 	if err != nil {
 		return nil, err
 	}
-	_, isModel := modelPtr.(Model)
-	_, isUpdate := modelPtr.(ModelUpdate)
-	if !isModel && !isUpdate {
-		return nil, fmt.Errorf("modelPtr must implement either Model or ModelUpdate interface")
-	}
-	return r.GetSchemaFromValue(value, isUpdate)
+	return r.GetSchema(t, forUpdate)
 }
 
-func (r *reflector) GetSchemaFromValue(destValue *reflect.Value, forUpdate bool) (*modelSchema, error) {
-	destType, err := resolveDestType(destValue)
-	if err != nil {
-		return nil, err
-	}
+func (r *reflector) GetSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error) {
 	key := typeKey(destType)
 	if !r.noCache {
 		if v, ok := r.schemas[key]; ok {
@@ -160,18 +151,13 @@ func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Va
 	return sliceType, &destValue, nil
 }
 
-// resolveDestType returns the reflect.Type of the destination struct, handling both *Model and **Model cases.
-func resolveDestType(destValue *reflect.Value) (reflect.Type, error) {
-	if !destValue.IsValid() {
-		return nil, errModelNil
-	}
-	// *Model || **Model
-	destType := destValue.Type()
-	if destValue.Kind() == reflect.Pointer {
-		destType = destType.Elem()
-	}
+func resolveModelType(destValue any) (reflect.Type, error) {
+	destType := reflect.TypeOf(destValue)
 	if destType == nil {
 		return nil, errModelNil
 	}
-	return destType, nil
+	if destType.Kind() != reflect.Pointer {
+		return nil, errMapDestination
+	}
+	return destType.Elem(), nil
 }
