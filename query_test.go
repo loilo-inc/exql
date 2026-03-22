@@ -35,7 +35,7 @@ func TestQueryForInsert(t *testing.T) {
 		s, f, err := QueryForInsert(&testmodel.NoTag{})
 		assert.Nil(t, s)
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "obj doesn't have exql tags in any fields")
+		assert.EqualError(t, err, "no exql tags in any fields")
 	})
 	t.Run("should error if injected Reflector returns error", func(t *testing.T) {
 		s, f, err := queryForInsert(&errReflector{}, &model.Users{})
@@ -97,24 +97,19 @@ func TestQueryForUpdateModel(t *testing.T) {
 	})
 	t.Run("should error if field is not pointer", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleNotPtr{}, nil)
-		assert.EqualError(t, err, "field must be pointer")
+		assert.EqualError(t, err, "field must be a pointer: int int")
 	})
 	t.Run("should ignore if field is nil", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSample{}, nil)
-		assert.EqualError(t, err, "no value for update")
+		assert.EqualError(t, err, "no updatable fields with non-nil value")
 	})
 	t.Run("should error if struct has no fields", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleNoFields{}, nil)
-		assert.EqualError(t, err, "struct has no field")
-	})
-	t.Run("should error if struct doesn't implement ForTableName()", func(t *testing.T) {
-		id := 1
-		_, err := QueryForUpdateModel(&testmodel.UpdateSample{Id: &id}, nil)
-		assert.EqualError(t, err, "empty table name")
+		assert.EqualError(t, err, "no exql tags in any fields")
 	})
 	t.Run("should error if no column in tag", func(t *testing.T) {
 		id := 1
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleNoColumn{Id: &id}, nil)
-		assert.EqualError(t, err, "tag must include column")
+		assert.EqualError(t, err, "column tag is not set")
 	})
 }

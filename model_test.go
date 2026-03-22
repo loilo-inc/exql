@@ -60,35 +60,35 @@ func TestAggregateFields(t *testing.T) {
 	})
 
 	t.Run("returns error when no exql tags are defined", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoTag{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.NoTag](), false)
 
 		assert.Nil(t, metadata)
-		assert.EqualError(t, err, "obj doesn't have exql tags in any fields")
+		assert.EqualError(t, err, "no exql tags in any fields")
 	})
 
 	t.Run("returns error when no primary key is defined", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoPrimaryKey{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.NoPrimaryKey](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "table has no primary key")
 	})
 
 	t.Run("returns error when column tag is not set", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.NoColumnTag{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.NoColumnTag](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "column tag is not set")
 	})
 
 	t.Run("returns error for pointer fields", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.UpdateSample{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.UpdateSample](), false)
 
 		assert.Nil(t, metadata)
-		assert.EqualError(t, err, "struct field must not be a pointer:  ptr")
+		assert.EqualError(t, err, "field must not be a pointer:  ptr")
 	})
 
 	t.Run("returns error for invalid tag format", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.BadTag{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.BadTag](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "duplicated tag: a")
@@ -137,6 +137,43 @@ func TestAggregateModelValue(t *testing.T) {
 		assertInvalid(t, &testmodel.NoPrimaryKey{}, "table has no primary key")
 	})
 	t.Run("shoud error if no exql tags found", func(t *testing.T) {
-		assertInvalid(t, &testmodel.NoTag{}, "obj doesn't have exql tags in any fields")
+		assertInvalid(t, &testmodel.NoTag{}, "no exql tags in any fields")
+	})
+}
+
+func TestAggregateModelUpdateValue(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		name := "go"
+		age := int64(20)
+		schema, err := aggregateFields(reflect.TypeFor[model.UpdateUsers](), true)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, schema) {
+			return
+		}
+
+		v, err := schema.aggregateModelUpdateValue(&model.UpdateUsers{
+			Name: &name,
+			Age:  &age,
+		})
+		assert.NoError(t, err)
+		if !assert.NotNil(t, v) {
+			return
+		}
+		assert.Equal(t, "users", v.tableName)
+		assert.NotNil(t, v.autoIncrementField)
+		assert.ElementsMatch(t, []string{"age", "name"}, v.values.Keys())
+		assert.ElementsMatch(t, []any{int64(20), "go"}, v.values.Values())
+	})
+
+	t.Run("no non nil update fields", func(t *testing.T) {
+		schema, err := aggregateFields(reflect.TypeFor[testmodel.UpdateSample](), true)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, schema) {
+			return
+		}
+
+		v, err := schema.aggregateModelUpdateValue(&testmodel.UpdateSample{})
+		assert.Nil(t, v)
+		assert.EqualError(t, err, "no updatable fields with non-nil value")
 	})
 }

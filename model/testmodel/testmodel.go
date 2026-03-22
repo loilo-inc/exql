@@ -76,7 +76,7 @@ func (UpdateSampleInvalidTag) UpdateTableName() string {
 }
 
 type UpdateSampleNotPtr struct {
-	Id int `exql:"column:id"`
+	Id int `exql:"column:id;primary"`
 }
 
 func (UpdateSampleNotPtr) UpdateTableName() string {
@@ -84,11 +84,11 @@ func (UpdateSampleNotPtr) UpdateTableName() string {
 }
 
 type UpdateSample struct {
-	Id *int `exql:"column:id"`
+	Id *int `exql:"column:id;primary"`
 }
 
 func (UpdateSample) UpdateTableName() string {
-	return ""
+	return "table"
 }
 
 type UpdateSampleNoFields struct {

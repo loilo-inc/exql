@@ -67,7 +67,7 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 	}
 
 	if exqlTagCount == 0 {
-		return nil, fmt.Errorf("obj doesn't have exql tags in any fields")
+		return nil, fmt.Errorf("no exql tags in any fields")
 	}
 
 	if len(primaryKeyFields) == 0 {
@@ -84,25 +84,38 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 	}, nil
 }
 
+var errTableNameEmpty = fmt.Errorf("empty table name")
+
 func (ms *modelSchema) aggregateModelValue(
 	modelPtr Model,
 ) (*modelValue, error) {
+	tableName := modelPtr.TableName()
+	if tableName == "" {
+		return nil, errTableNameEmpty
+	}
 	res, err := ms.aggregateValue(modelPtr)
 	if err != nil {
 		return nil, err
 	}
-	res.tableName = modelPtr.TableName()
+	res.tableName = tableName
 	return res, nil
 }
 
 func (ms *modelSchema) aggregateModelUpdateValue(
 	modelPtr ModelUpdate,
 ) (*modelValue, error) {
+	tableName := modelPtr.UpdateTableName()
+	if tableName == "" {
+		return nil, errTableNameEmpty
+	}
 	res, err := ms.aggregateValue(modelPtr)
 	if err != nil {
 		return nil, err
 	}
-	res.tableName = modelPtr.UpdateTableName()
+	if res.values.Size() == 0 {
+		return nil, fmt.Errorf("no updatable fields with non-nil value")
+	}
+	res.tableName = tableName
 	return res, nil
 }
 

@@ -139,7 +139,7 @@ func Test_resolveDestType(t *testing.T) {
 
 func TestReflectorGetSchema(t *testing.T) {
 	t.Run("returns schema for model pointer", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 
 		schema, err := r.GetSchema(&model.Users{})
 
@@ -153,7 +153,7 @@ func TestReflectorGetSchema(t *testing.T) {
 	})
 
 	t.Run("returns validation error for invalid destination", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 
 		schema, err := r.GetSchema(model.Users{})
 
@@ -162,7 +162,7 @@ func TestReflectorGetSchema(t *testing.T) {
 	})
 
 	t.Run("uses cached schema when cache is enabled", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 
 		s1, err := r.GetSchema(&model.Users{})
 		assert.NoError(t, err)
@@ -184,7 +184,7 @@ func TestReflectorGetSchema(t *testing.T) {
 	})
 
 	t.Run("is safe for concurrent access", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 		const goroutines = 64
 		expected, err := r.GetSchema(&model.Users{})
 		assert.NoError(t, err)
@@ -231,7 +231,7 @@ func TestReflectorGetSchema(t *testing.T) {
 
 func TestReflectorGetSchemaFromValue(t *testing.T) {
 	t.Run("supports nil struct pointer value", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 		var user *model.Users
 		v, err := resolveNullableDestination(&user)
 		assert.NoError(t, err)
@@ -243,7 +243,7 @@ func TestReflectorGetSchemaFromValue(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid value", func(t *testing.T) {
-		r := &reflector{}
+		r := newReflector()
 		v := reflect.Value{}
 
 		schema, err := r.GetSchemaFromValue(&v, false)
@@ -254,7 +254,7 @@ func TestReflectorGetSchemaFromValue(t *testing.T) {
 }
 
 func TestReflectorClearSchemaCache(t *testing.T) {
-	r := &reflector{}
+	r := newReflector()
 
 	s1, err := r.GetSchema(&model.Users{})
 	assert.NoError(t, err)
