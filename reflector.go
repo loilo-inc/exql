@@ -65,14 +65,6 @@ func typeKey(t reflect.Type) string {
 	return t.PkgPath() + "." + t.Name()
 }
 
-func DefaultReflector() Reflector {
-	return &reflector{}
-}
-
-func NoCacheReflector() Reflector {
-	return noCacheReflector
-}
-
 var noCacheReflector = &reflector{noCache: true}
 
 func resolveDestType(destValue *reflect.Value) (reflect.Type, error) {

@@ -56,7 +56,7 @@ func MapRow(
 	row *sql.Rows,
 	pointerOfStruct any,
 ) error {
-	return mapRow(NoCacheReflector(), row, pointerOfStruct)
+	return mapRow(noCacheReflector, row, pointerOfStruct)
 }
 
 func mapRow(
@@ -119,7 +119,7 @@ func MapRows(
 	rows *sql.Rows,
 	ptrOfSliceOfModelPtr any,
 ) error {
-	return mapRows(NoCacheReflector(), rows, ptrOfSliceOfModelPtr)
+	return mapRows(noCacheReflector, rows, ptrOfSliceOfModelPtr)
 }
 
 func mapRows(

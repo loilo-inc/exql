@@ -23,9 +23,3 @@ func (m *syncMap[K, V]) Load(key K) (value V, ok bool) {
 func (m *syncMap[K, V]) Store(key K, value V) {
 	m.m.Store(key, value)
 }
-
-func (m *syncMap[K, V]) Range(f func(key K, value V) bool) {
-	m.m.Range(func(k, v any) bool {
-		return f(k.(K), v.(V))
-	})
-}

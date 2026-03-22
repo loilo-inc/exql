@@ -98,7 +98,7 @@ func TestAggregateFields(t *testing.T) {
 func TestAggregateModelValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{Name: "go", Age: 10}
-		schema, _ := NoCacheReflector().GetSchema(user)
+		schema, _ := noCacheReflector.GetSchema(user)
 		m, err := schema.aggregateModelValue(user)
 		assert.NoError(t, err)
 		assert.NotNil(t, m.autoIncrementField)
@@ -111,7 +111,7 @@ func TestAggregateModelValue(t *testing.T) {
 			Pk2:   "val2",
 			Other: 1,
 		}
-		schema, _ := NoCacheReflector().GetSchema(data)
+		schema, _ := noCacheReflector.GetSchema(data)
 		v, err := schema.aggregateModelValue(data)
 		assert.NoError(t, err)
 		assert.Nil(t, v.autoIncrementField)
