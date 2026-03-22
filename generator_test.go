@@ -2,7 +2,9 @@ package exql_test
 
 import (
 	"fmt"
+	"go/format"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -65,4 +67,37 @@ func TestGenerator_Generate(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestGenerator_Generate_formatsGeneratedCode(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	mock.ExpectQuery(`show tables`).WillReturnRows(
+		sqlmock.NewRows([]string{"tables"}).
+			AddRow("user_profiles"),
+	)
+	mock.ExpectQuery(`show columns from user_profiles`).WillReturnRows(
+		sqlmock.NewRows([]string{"field", "type", "null", "key", "default", "extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, "auto_increment").
+			AddRow("name", "varchar(255)", "NO", "", nil, "").
+			AddRow("created_at", "datetime", "NO", "", nil, "").
+			AddRow("metadata", "json", "YES", "", nil, ""),
+	)
+
+	dir := t.TempDir()
+	err = exql.NewGenerator(mockDb).Generate(&exql.GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+	})
+	assert.NoError(t, err)
+
+	content, err := os.ReadFile(filepath.Join(dir, "user_profiles.go"))
+	assert.NoError(t, err)
+
+	formatted, err := format.Source(content)
+	assert.NoError(t, err)
+	assert.Equal(t, string(formatted), string(content))
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
