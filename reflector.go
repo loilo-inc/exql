@@ -3,15 +3,13 @@ package exql
 import (
 	"fmt"
 	"reflect"
-	"sync"
 )
 
 var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
-	noCache  bool
-	metadata syncMap[string, *modelSchema]
-	mux      sync.Mutex
+	noCache bool
+	schemas syncMap[string, *modelSchema]
 }
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
@@ -41,7 +39,7 @@ func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, 
 	}
 	key := typeKey(destType)
 	if !r.noCache {
-		if v, ok := r.metadata.Load(key); ok {
+		if v, ok := r.schemas.Load(key); ok {
 			return v, nil
 		}
 	}
@@ -50,15 +48,13 @@ func (r *reflector) GetSchemaFromValue(destValue *reflect.Value) (*modelSchema, 
 		return nil, err
 	}
 	if !r.noCache {
-		r.metadata.Store(key, f)
+		r.schemas.Store(key, f)
 	}
 	return f, nil
 }
 
 func (r *reflector) ClearSchemaCache() {
-	r.mux.Lock()
-	defer r.mux.Unlock()
-	r.metadata = syncMap[string, *modelSchema]{}
+	r.schemas.m.Clear()
 }
 
 func typeKey(t reflect.Type) string {

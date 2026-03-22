@@ -2,6 +2,7 @@ package exql
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/loilo-inc/exql/v3/model"
@@ -180,6 +181,51 @@ func TestReflectorGetSchema(t *testing.T) {
 		s2, err := r.GetSchema(&model.Users{})
 		assert.NoError(t, err)
 		assert.NotSame(t, s1, s2)
+	})
+
+	t.Run("is safe for concurrent access", func(t *testing.T) {
+		r := &reflector{}
+		const goroutines = 64
+		expected, err := r.GetSchema(&model.Users{})
+		assert.NoError(t, err)
+
+		results := make(chan *modelSchema, goroutines)
+		errs := make(chan error, goroutines)
+		var wg sync.WaitGroup
+		wg.Add(goroutines)
+
+		for range goroutines {
+			go func() {
+				defer wg.Done()
+				schema, err := r.GetSchema(&model.Users{})
+				if err != nil {
+					errs <- err
+					return
+				}
+				results <- schema
+			}()
+		}
+
+		wg.Wait()
+		close(results)
+		close(errs)
+
+		for err := range errs {
+			assert.NoError(t, err)
+		}
+
+		var first *modelSchema
+		count := 0
+		for schema := range results {
+			if !assert.NotNil(t, schema) {
+				continue
+			}
+			assert.Same(t, expected, schema)
+			first = schema
+			count++
+		}
+		assert.Same(t, expected, first)
+		assert.Equal(t, goroutines, count)
 	})
 }
 

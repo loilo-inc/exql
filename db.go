@@ -116,11 +116,11 @@ success:
 }
 
 func NewDB(d *sql.DB) DB {
-	reflecter := &reflector{}
+	refl := &reflector{}
 	return &db{
-		saver:     newSaver(d, reflecter),
-		finder:    newFinder(d, reflecter),
-		reflector: reflecter,
+		saver:     newSaver(d, refl),
+		finder:    newFinder(d, refl),
+		reflector: refl,
 		db:        d,
 	}
 }
@@ -148,5 +148,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return Transaction(d.db, ctx, opts, callback)
+	return transaction(d.reflector, d.db, ctx, opts, callback)
 }

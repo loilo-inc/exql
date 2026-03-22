@@ -108,11 +108,6 @@ func mapRows(
 	rows *sql.Rows,
 	ptrOfSliceOfModelPtr any,
 ) error {
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
 	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
 	if err != nil {
 		return err
