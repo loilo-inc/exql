@@ -1,7 +1,6 @@
 package query
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -86,7 +85,7 @@ func QuoteColumns(str ...string) string {
 
 func guardQuery(q string) error {
 	if q == "" {
-		return errors.New("DANGER: empty query")
+		return fmt.Errorf("DANGER: empty query")
 	}
 	return nil
 }
@@ -106,7 +105,7 @@ func QuoteColumn(col string) string {
 		char := col[i]
 		if char == '.' || char == '*' || char == '`' {
 			if start != i {
-				sb.WriteString(fmt.Sprintf("`%s`", col[start:i]))
+				fmt.Fprintf(&sb, "`%s`", col[start:i])
 			}
 			if char != '`' {
 				sb.WriteByte(char)
@@ -115,7 +114,7 @@ func QuoteColumn(col string) string {
 		}
 	}
 	if start < end {
-		sb.WriteString(fmt.Sprintf("`%s`", col[start:end]))
+		fmt.Fprintf(&sb, "`%s`", col[start:end])
 	}
 	return sb.String()
 }

@@ -1,11 +1,10 @@
 package exql
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 
 	q "github.com/loilo-inc/exql/v3/query"
-	"golang.org/x/xerrors"
 )
 
 func Where(str string, args ...any) q.Condition {
@@ -39,7 +38,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 
 func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
-		return nil, errors.New("empty list")
+		return nil, fmt.Errorf("empty list")
 	}
 	var head *modelValue
 	b := q.NewBuilder()
@@ -73,12 +72,12 @@ func QueryForUpdateModel(
 	objValue := reflect.ValueOf(updateStructPtr)
 	objType := objValue.Type()
 	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
-		return nil, xerrors.Errorf("must be pointer of struct")
+		return nil, fmt.Errorf("must be pointer of struct")
 	}
 	objType = objType.Elem()
 	values := make(map[string]any)
 	if objType.NumField() == 0 {
-		return nil, xerrors.Errorf("struct has no field")
+		return nil, fmt.Errorf("struct has no field")
 	}
 
 	for i := 0; i < objType.NumField(); i++ {
@@ -91,12 +90,12 @@ func QueryForUpdateModel(
 		if tags, err := ParseTags(tag); err != nil {
 			return nil, err
 		} else if col, ok := tags["column"]; !ok {
-			return nil, xerrors.Errorf("tag must include column")
+			return nil, fmt.Errorf("tag must include column")
 		} else {
 			colName = col
 		}
 		if f.Type.Kind() != reflect.Pointer {
-			return nil, xerrors.Errorf("field must be pointer")
+			return nil, fmt.Errorf("field must be pointer")
 		}
 		fieldValue := objValue.Elem().Field(i)
 		if !fieldValue.IsNil() {
@@ -104,12 +103,12 @@ func QueryForUpdateModel(
 		}
 	}
 	if len(values) == 0 {
-		return nil, xerrors.Errorf("no value for update")
+		return nil, fmt.Errorf("no value for update")
 	}
 
 	tableName := updateStructPtr.UpdateTableName()
 	if tableName == "" {
-		return nil, xerrors.Errorf("empty table name")
+		return nil, fmt.Errorf("empty table name")
 	}
 	b := q.NewBuilder()
 	b.Sprintf("UPDATE `%s`", tableName)

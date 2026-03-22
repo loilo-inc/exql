@@ -2,9 +2,8 @@ package exql
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
-
-	"golang.org/x/xerrors"
 )
 
 // Error returned when record not found
@@ -42,7 +41,7 @@ func NewSerialMapper(s ColumnSplitter) SerialMapper {
 	return &serialMapper{splitter: s, refl: noCacheReflector}
 }
 
-var errMapDestination = xerrors.Errorf("destination must be a pointer of struct")
+var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 
 // MapRow reads data from single row and maps those columns into destination struct.
 // pointerOfStruct MUST BE a pointer of struct.
@@ -175,7 +174,7 @@ func (m *serialMapper) Map(
 	var values []*reflect.Value
 
 	if len(dest) == 0 {
-		return xerrors.Errorf("empty dest list")
+		return fmt.Errorf("empty dest list")
 	}
 
 	for _, model := range dest {
@@ -217,7 +216,7 @@ func mapJoinedRows(
 		headCol := cols[colIndex]
 		expectedHeadCol := headColProvider(destIndex)
 		if headCol.Name() != expectedHeadCol {
-			return xerrors.Errorf(
+			return fmt.Errorf(
 				"head col mismatch: expected=%s, actual=%s",
 				expectedHeadCol, headCol.Name(),
 			)
