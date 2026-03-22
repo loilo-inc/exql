@@ -1,15 +1,14 @@
-package exql_test
+package exql
 
 import (
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql/v3"
 	"github.com/loilo-inc/exql/v3/test"
 )
 
-func testDb() exql.DB {
-	db, err := exql.Open(&exql.OpenOptions{
+func testDb() DB {
+	db, err := Open(&OpenOptions{
 		Url: test.DbUrl,
 	})
 	if err != nil {

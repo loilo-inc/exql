@@ -1,4 +1,4 @@
-package exql_test
+package exql
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v3"
 	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/mocks/mock_query"
 	"github.com/loilo-inc/exql/v3/model"
@@ -19,7 +18,7 @@ import (
 
 func TestSaver_Insert(t *testing.T) {
 	d := testDb()
-	s := exql.NewSaver(d.DB())
+	s := NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			Name: "go", Age: 10,
@@ -39,7 +38,7 @@ func TestSaver_Insert(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -53,7 +52,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if db.Exec() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(int64(0), "").WillReturnError(fmt.Errorf("err"))
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		user := &model.Users{}
 		_, err := s.Insert(user)
 		assert.EqualError(t, err, "err")
@@ -61,7 +60,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if result.LastInsertId() failed", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `users`").WithArgs(int64(0), "").WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("err")))
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		user := &model.Users{}
 		_, err := s.Insert(user)
 		assert.EqualError(t, err, "err")
@@ -69,7 +68,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should error if auto-increment field type is unsupported", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		user := &testmodel.PrimaryUint64{}
 		_, err := s.Insert(user)
 		assert.ErrorContains(t, err, "unsupported auto-increment field type")
@@ -77,7 +76,7 @@ func TestSaver_Insert(t *testing.T) {
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectExec("INSERT INTO `sampleNoAutoIncrementKey`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		user := &testmodel.NoAutoIncrementKey{
 			Id: 1,
 		}
@@ -89,7 +88,7 @@ func TestSaver_Insert(t *testing.T) {
 
 func TestSaver_InsertContext(t *testing.T) {
 	d := testDb()
-	s := exql.NewSaver(d.DB())
+	s := NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		user := &model.Users{
 			Name: "go", Age: 10,
@@ -109,7 +108,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -135,7 +134,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.UserLoginHistories
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
@@ -161,7 +160,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.UserLoginHistories
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, history.UserId, actual.UserId)
@@ -186,7 +185,7 @@ func TestSaver_InsertContext(t *testing.T) {
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
 		var actual model.Users
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
@@ -196,7 +195,7 @@ func TestSaver_InsertContext(t *testing.T) {
 
 func TestSaver_Update(t *testing.T) {
 	d := testDb()
-	s := exql.NewSaver(d.DB())
+	s := NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`age`,`name`) VALUES (?, ?)",
@@ -210,7 +209,7 @@ func TestSaver_Update(t *testing.T) {
 		result, err = s.Update("users", map[string]any{
 			"name": "lang",
 			"age":  int64(20),
-		}, exql.Where(`id = ?`, lid))
+		}, Where(`id = ?`, lid))
 		assert.NoError(t, err)
 		ra, err := result.RowsAffected()
 		assert.NoError(t, err)
@@ -218,7 +217,7 @@ func TestSaver_Update(t *testing.T) {
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, "lang", actual.Name)
 		assert.Equal(t, int64(20), actual.Age)
@@ -234,12 +233,12 @@ func TestSaver_Update(t *testing.T) {
 		assert.EqualError(t, err, "nil condition for update query")
 	})
 	t.Run("should error if map is empty", func(t *testing.T) {
-		q, err := s.Update("users", make(map[string]any), exql.Where("id = 1"))
+		q, err := s.Update("users", make(map[string]any), Where("id = 1"))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty values for set clause")
 	})
 	t.Run("should error if where clause is empty", func(t *testing.T) {
-		q, err := s.Update("users", map[string]any{"first_name": "go"}, exql.Where(""))
+		q, err := s.Update("users", map[string]any{"first_name": "go"}, Where(""))
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "DANGER: empty query")
 	})
@@ -248,14 +247,14 @@ func TestSaver_Update(t *testing.T) {
 func TestSaver_UpdateModel(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		name := "lang"
 		mock.ExpectExec(
 			"UPDATE `users` SET `name` = \\? WHERE id = \\?",
 		).WithArgs(name, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModel(&model.UpdateUsers{
 			Name: &name,
-		}, exql.Where(`id = ?`, 1))
+		}, Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -269,14 +268,14 @@ func TestSaver_UpdateModel(t *testing.T) {
 func TestSaver_UpdateModelContext(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		s := exql.NewSaver(db)
+		s := NewSaver(db)
 		name := "name"
 		mock.ExpectExec(
 			"UPDATE `users` SET `name` = \\? WHERE id = \\?",
 		).WithArgs(name, 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		result, err := s.UpdateModelContext(context.Background(), &model.UpdateUsers{
 			Name: &name,
-		}, exql.Where(`id = ?`, 1))
+		}, Where(`id = ?`, 1))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -287,15 +286,15 @@ func TestSaver_UpdateModelContext(t *testing.T) {
 	})
 	t.Run("should error if model invalid", func(t *testing.T) {
 		db, _, _ := sqlmock.New()
-		s := exql.NewSaver(db)
-		_, err := s.UpdateModelContext(context.Background(), nil, exql.Where("id = ?", 1))
+		s := NewSaver(db)
+		_, err := s.UpdateModelContext(context.Background(), nil, Where("id = ?", 1))
 		assert.EqualError(t, err, "model is nil")
 	})
 }
 
 func TestSaver_UpdateContext(t *testing.T) {
 	d := testDb()
-	s := exql.NewSaver(d.DB())
+	s := NewSaver(d.DB())
 	t.Run("basic", func(t *testing.T) {
 		result, err := d.DB().Exec(
 			"INSERT INTO `users` (`age`,`name`) VALUES (?, ?)",
@@ -309,7 +308,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		result, err = s.UpdateContext(context.Background(), "users", map[string]any{
 			"age":  int64(20),
 			"name": "lang",
-		}, exql.Where(`id = ?`, lid))
+		}, Where(`id = ?`, lid))
 		assert.NoError(t, err)
 		ra, err := result.RowsAffected()
 		assert.NoError(t, err)
@@ -317,7 +316,7 @@ func TestSaver_UpdateContext(t *testing.T) {
 		var actual model.Users
 		rows, err := d.DB().Query(`SELECT * FROM users WHERE id = ?`, lid)
 		assert.NoError(t, err)
-		err = exql.MapRow(rows, &actual)
+		err = MapRow(rows, &actual)
 		assert.NoError(t, err)
 		assert.Equal(t, "lang", actual.Name)
 		assert.Equal(t, int64(20), actual.Age)
@@ -330,24 +329,24 @@ func TestSaver_Delete(t *testing.T) {
 		mock.ExpectExec("DELETE FROM `table` WHERE id = ?").
 			WithArgs(1).
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		s := exql.NewSaver(db)
-		_, err := s.Delete("table", exql.Where("id = ?", 1))
+		s := NewSaver(db)
+		_, err := s.Delete("table", Where("id = ?", 1))
 		assert.NoError(t, err)
 	})
 	t.Run("should error if clause returened an error", func(t *testing.T) {
-		s := exql.NewSaver(nil)
-		res, err := s.Delete("table", exql.Where(""))
+		s := NewSaver(nil)
+		res, err := s.Delete("table", Where(""))
 		assert.EqualError(t, err, "DANGER: empty query")
 		assert.Nil(t, res)
 	})
 	t.Run("should error if table name is empty", func(t *testing.T) {
-		s := exql.NewSaver(nil)
-		res, err := s.Delete("", exql.Where(""))
+		s := NewSaver(nil)
+		res, err := s.Delete("", Where(""))
 		assert.EqualError(t, err, "empty table name for delete query")
 		assert.Nil(t, res)
 	})
 	t.Run("should error if condition is nil ", func(t *testing.T) {
-		s := exql.NewSaver(nil)
+		s := NewSaver(nil)
 		res, err := s.Delete("table", nil)
 		assert.EqualError(t, err, "nil condition for delete query")
 		assert.Nil(t, res)
@@ -360,17 +359,17 @@ func TestSaver_QueryExtra(t *testing.T) {
 	args := []any{1}
 	aErr := fmt.Errorf("err")
 	ctx := context.TODO()
-	setup := func(t *testing.T) (*mock_iface.MockExecutor, exql.Saver) {
+	setup := func(t *testing.T) (*mock_iface.MockExecutor, Saver) {
 		ctrl := gomock.NewController(t)
 		ex := mock_iface.NewMockExecutor(ctrl)
-		s := exql.NewSaver(ex)
+		s := NewSaver(ex)
 		return ex, s
 	}
-	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, exql.Saver) {
+	setupQueryErr := func(t *testing.T) (*mock_query.MockQuery, Saver) {
 		ctrl := gomock.NewController(t)
 		query := mock_query.NewMockQuery(ctrl)
 		query.EXPECT().Query().Return("", nil, aErr)
-		s := exql.NewSaver(nil)
+		s := NewSaver(nil)
 		return query, s
 	}
 

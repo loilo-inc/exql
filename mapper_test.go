@@ -1,4 +1,4 @@
-package exql_test
+package exql
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/loilo-inc/exql/v3"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/null"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,7 @@ type partialUser struct {
 	Name string `exql:"column:name"`
 }
 
-func setupUsers(t *testing.T, db exql.DB) []*model.Users {
+func setupUsers(t *testing.T, db DB) []*model.Users {
 	user1 := &model.Users{
 		Name: "user1",
 		Age:  10,
@@ -40,7 +39,7 @@ func setupUsers(t *testing.T, db exql.DB) []*model.Users {
 	return []*model.Users{user1, user2}
 }
 
-func setupFields(t *testing.T, db exql.DB) *model.Fields {
+func setupFields(t *testing.T, db DB) *model.Fields {
 	now := time.Unix(time.Now().Unix(), 0)
 	tinyBlob := []byte("tinyblob")
 	mediumBlob := []byte("mediumblob")
@@ -177,7 +176,7 @@ func TestMapRows(t *testing.T) {
 			assert.NoError(t, err)
 			defer rows.Close()
 			var dest []*model.Users
-			err = exql.MapRows(rows, &dest)
+			err = MapRows(rows, &dest)
 			assert.NoError(t, err)
 			assert.Equal(t, dest[0].Name, users[0].Name)
 			assert.Equal(t, dest[0].Age, users[0].Age)
@@ -191,14 +190,14 @@ func TestMapRows(t *testing.T) {
 			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
 			assert.NoError(t, err)
 			var dest []*model.Fields
-			err = exql.MapRows(rows, &dest)
+			err = MapRows(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, dest[0], field)
 		})
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
 		doTest := func(i any) {
-			assert.ErrorIs(t, exql.MapRows(nil, i), exql.ErrMapManyDestination)
+			assert.ErrorIs(t, MapRows(nil, i), errMapManyDestination)
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0)
@@ -227,8 +226,8 @@ func TestMapRows(t *testing.T) {
 		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
 		assert.NoError(t, err)
 		var dest []*model.Users
-		err = exql.MapRows(rows, &dest)
-		assert.Equal(t, exql.ErrRecordNotFound{}, err)
+		err = MapRows(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound{}, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -245,7 +244,7 @@ func TestMapRows(t *testing.T) {
 		assert.NoError(t, err)
 
 		var dest []*model.Users
-		assert.EqualError(t, exql.MapRows(rows, &dest), "err")
+		assert.EqualError(t, MapRows(rows, &dest), "err")
 	})
 }
 
@@ -261,7 +260,7 @@ func TestMapRow(t *testing.T) {
 			assert.NoError(t, err)
 			defer rows.Close()
 			var dest model.Users
-			err = exql.MapRow(rows, &dest)
+			err = MapRow(rows, &dest)
 			assert.NoError(t, err)
 			assert.Equal(t, dest.Name, users[0].Name)
 			assert.Equal(t, dest.Age, users[0].Age)
@@ -271,7 +270,7 @@ func TestMapRow(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM users WHERE id = ?", user.Id)
 			assert.NoError(t, err)
 			var p partialUser
-			err = exql.MapRow(rows, &p)
+			err = MapRow(rows, &p)
 			assert.NoError(t, err)
 			assert.Equal(t, user.Id, p.Id)
 			assert.Equal(t, user.Name, p.Name)
@@ -283,14 +282,14 @@ func TestMapRow(t *testing.T) {
 			rows, err := db.DB().Query("SELECT * FROM fields WHERE id = ?", field.Id)
 			assert.NoError(t, err)
 			var dest model.Fields
-			err = exql.MapRow(rows, &dest)
+			err = MapRow(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, &dest, field)
 		})
 	})
 	t.Run("should return error if destination is not pointer of struct", func(t *testing.T) {
 		doTest := func(i any) {
-			assert.ErrorIs(t, exql.MapRow(nil, i), exql.ErrMapDestination)
+			assert.ErrorIs(t, MapRow(nil, i), errMapDestination)
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0)
@@ -316,8 +315,8 @@ func TestMapRow(t *testing.T) {
 		rows, err := db.DB().Query(`SELECT * FROM users where id = -1`)
 		assert.NoError(t, err)
 		var dest model.Users
-		err = exql.MapRow(rows, &dest)
-		assert.Equal(t, exql.ErrRecordNotFound{}, err)
+		err = MapRow(rows, &dest)
+		assert.Equal(t, ErrRecordNotFound{}, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
@@ -334,7 +333,7 @@ func TestMapRow(t *testing.T) {
 		assert.NoError(t, err)
 
 		var dest model.Users
-		assert.EqualError(t, exql.MapRow(rows, &dest), "err")
+		assert.EqualError(t, MapRow(rows, &dest), "err")
 	})
 }
 
@@ -382,7 +381,7 @@ func TestSerialMapper_Map(t *testing.T) {
 		db.DB().Exec(`DELETE FROM groups WHERE id = ?`, group.Id)
 		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
 	}()
-	m := exql.NewSerialMapper(func(i int) string {
+	m := NewSerialMapper(func(i int) string {
 		return "id"
 	})
 	t.Run("basic", func(t *testing.T) {
@@ -531,7 +530,7 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
-			m := exql.NewSerialMapper(func(i int) string {
+			m := NewSerialMapper(func(i int) string {
 				return "var"
 			})
 			for rows.Next() {
@@ -551,7 +550,7 @@ WHERE user_groups.id = ? ORDER BY users.id LIMIT 1
 `
 			rows, err := db.DB().Query(query, group.Id)
 			assert.NoError(t, err)
-			m := exql.NewSerialMapper(func(i int) string {
+			m := NewSerialMapper(func(i int) string {
 				return "var"
 			})
 			for rows.Next() {
@@ -587,7 +586,7 @@ WHERE users.id = ?
 	})
 	t.Run("should return error if destination is invalid", func(t *testing.T) {
 		doTest := func(i ...any) {
-			assert.Equal(t, exql.ErrMapRowSerialDestination, m.Map(nil, i...))
+			assert.Equal(t, errMapRowSerialDestination, m.Map(nil, i...))
 		}
 		t.Run("int", func(t *testing.T) {
 			doTest(0, 1, 2)
@@ -619,6 +618,6 @@ WHERE users.id = ?
 	})
 }
 func TestErrRecordNotFound_Error(t *testing.T) {
-	err := exql.ErrRecordNotFound{}
+	err := ErrRecordNotFound{}
 	assert.Equal(t, "record not found", err.Error())
 }

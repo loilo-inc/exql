@@ -1,4 +1,4 @@
-package exql_test
+package exql
 
 import (
 	"fmt"
@@ -6,36 +6,34 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v3"
 	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/query"
-	"github.com/loilo-inc/exql/v3/test"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
 func TestPreparedExecutor(t *testing.T) {
-	setup := func(t *testing.T, db exql.Executor) exql.StmtExecutor {
-		pex := exql.NewStmtExecutor(db)
+	setup := func(t *testing.T, db Executor) StmtExecutor {
+		pex := NewStmtExecutor(db)
 		t.Cleanup(func() {
 			assert.Nil(t, pex.Close())
 		})
 		return pex
 	}
 	t.Run("integration", func(t *testing.T) {
-		db := test.Db()
+		db := testDb()
 		user1 := model.Users{Name: "go"}
 		user2 := model.Users{Name: "lang"}
-		err := db.Transaction(func(tx exql.Tx) error {
+		err := db.Transaction(func(tx Tx) error {
 			pex := setup(t, tx.Tx())
-			saver := exql.NewSaver(pex)
+			saver := NewSaver(pex)
 			for _, user := range []*model.Users{&user1, &user2} {
 				if _, err := saver.Insert(user); err != nil {
 					return err
 				}
 				t.Cleanup(func() {
-					db.Delete(model.UsersTableName, exql.Where("id = ?", user.Id))
+					db.Delete(model.UsersTableName, Where("id = ?", user.Id))
 				})
 			}
 			return nil
@@ -73,21 +71,21 @@ func TestPreparedExecutor(t *testing.T) {
 	t.Run("preparation error", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		stmt := "stmt"
-		testFunc := func(t *testing.T, body func(ex exql.StmtExecutor) (err error)) {
+		testFunc := func(t *testing.T, body func(ex StmtExecutor) (err error)) {
 			mock := mock_iface.NewMockExecutor(ctrl)
 			mock.EXPECT().PrepareContext(gomock.Any(), stmt).Return(nil, fmt.Errorf("err"))
-			ex := exql.NewStmtExecutor(mock)
+			ex := NewStmtExecutor(mock)
 			err := body(ex)
 			assert.EqualError(t, err, "err")
 		}
 		t.Run("Exec", func(t *testing.T) {
-			testFunc(t, func(ex exql.StmtExecutor) (err error) {
+			testFunc(t, func(ex StmtExecutor) (err error) {
 				_, err = ex.Exec(stmt)
 				return
 			})
 		})
 		t.Run("Query", func(t *testing.T) {
-			testFunc(t, func(ex exql.StmtExecutor) (err error) {
+			testFunc(t, func(ex StmtExecutor) (err error) {
 				_, err = ex.Query(stmt)
 				return
 			})
@@ -96,7 +94,7 @@ func TestPreparedExecutor(t *testing.T) {
 	t.Run("Prepare bypass to the inner executor", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		mock.ExpectPrepare("stmt").WillBeClosed()
-		ex := exql.NewStmtExecutor(db)
+		ex := NewStmtExecutor(db)
 		stmt, err := ex.Prepare("stmt")
 		stmt.Close()
 		assert.Nil(t, err)
@@ -105,7 +103,7 @@ func TestPreparedExecutor(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mock := mock_iface.NewMockExecutor(ctrl)
 		mock.EXPECT().QueryRowContext(gomock.Any(), "stmt").Return(nil)
-		ex := exql.NewStmtExecutor(mock)
+		ex := NewStmtExecutor(mock)
 		row := ex.QueryRow("stmt")
 		assert.Nil(t, row)
 	})

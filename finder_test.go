@@ -1,10 +1,9 @@
-package exql_test
+package exql
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/loilo-inc/exql/v3"
 	"github.com/loilo-inc/exql/v3/mocks/mock_query"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/query"
@@ -25,7 +24,7 @@ func TestFinder(t *testing.T) {
 			query.Cond("id in (?,?)", user1.Id, user2.Id),
 		)
 	})
-	f := exql.NewFinder(db.DB())
+	f := NewFinder(db.DB())
 	t.Run("FindContext", func(t *testing.T) {
 		t.Run("basic", func(t *testing.T) {
 			var dest model.Users
@@ -46,7 +45,7 @@ func TestFinder(t *testing.T) {
 		t.Run("should error if mapping failed", func(t *testing.T) {
 			var dest model.Users
 			err := f.Find(query.Q(`select * from users where id = -1`), &dest)
-			assert.ErrorIs(t, err, exql.ErrRecordNotFound{})
+			assert.ErrorIs(t, err, ErrRecordNotFound{})
 		})
 	})
 	t.Run("FindManyContext", func(t *testing.T) {
@@ -70,7 +69,7 @@ func TestFinder(t *testing.T) {
 		t.Run("should error if mapping failed", func(t *testing.T) {
 			var dest []*model.Users
 			err := f.FindMany(query.Q(`select * from users where id = -1`), &dest)
-			assert.ErrorIs(t, err, exql.ErrRecordNotFound{})
+			assert.ErrorIs(t, err, ErrRecordNotFound{})
 		})
 	})
 }

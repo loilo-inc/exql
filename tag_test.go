@@ -1,15 +1,14 @@
-package exql_test
+package exql
 
 import (
 	"testing"
 
-	"github.com/loilo-inc/exql/v3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParseTags(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		tags, err := exql.ParseTags("a:1;b:2;c:3")
+		tags, err := ParseTags("a:1;b:2;c:3")
 		assert.NoError(t, err)
 		assert.Equal(t, len(tags), 3)
 		assert.Equal(t, "1", tags["a"])
@@ -17,7 +16,7 @@ func TestParseTags(t *testing.T) {
 		assert.Equal(t, "3", tags["c"])
 	})
 	t.Run("key only", func(t *testing.T) {
-		tags, err := exql.ParseTags("a;b;c;")
+		tags, err := ParseTags("a;b;c;")
 		assert.NoError(t, err)
 		assert.Equal(t, len(tags), 3)
 		assert.Equal(t, "", tags["a"])
@@ -25,7 +24,7 @@ func TestParseTags(t *testing.T) {
 		assert.Equal(t, "", tags["c"])
 	})
 	assertInvalid := func(s string, e string) {
-		tags, err := exql.ParseTags(s)
+		tags, err := ParseTags(s)
 		assert.Nil(t, tags)
 		assert.EqualError(t, err, e)
 	}
