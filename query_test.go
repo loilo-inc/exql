@@ -43,6 +43,12 @@ func TestQueryForInsert(t *testing.T) {
 		assert.Nil(t, f)
 		assert.EqualError(t, err, "error reflector")
 	})
+	t.Run("should error if table name is empty", func(t *testing.T) {
+		s, f, err := queryForInsert(noCacheReflector, &testmodel.BadTableName{})
+		assert.Nil(t, s)
+		assert.Nil(t, f)
+		assert.EqualError(t, err, "empty table name")
+	})
 }
 
 func TestQueryForBulkInsert(t *testing.T) {
@@ -67,7 +73,7 @@ func TestQueryForBulkInsert(t *testing.T) {
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "error reflector")
 	})
-	t.Run("should error if model schema failed to aggregate values", func(t *testing.T) {
+	t.Run("should error if table name is empty", func(t *testing.T) {
 		q, err := queryForBulkInsert(noCacheReflector, &testmodel.BadTableName{})
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty table name")
