@@ -67,6 +67,11 @@ func TestQueryForBulkInsert(t *testing.T) {
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "error reflector")
 	})
+	t.Run("should error if model schema failed to aggregate values", func(t *testing.T) {
+		q, err := queryForBulkInsert(noCacheReflector, &testmodel.BadTableName{})
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "empty table name")
+	})
 }
 
 func TestQueryForUpdateModel(t *testing.T) {
@@ -97,7 +102,7 @@ func TestQueryForUpdateModel(t *testing.T) {
 	})
 	t.Run("should error if field is not pointer", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleNotPtr{}, nil)
-		assert.EqualError(t, err, "field must be a pointer: int int")
+		assert.EqualError(t, err, "field must be a pointer: int64 int64")
 	})
 	t.Run("should ignore if field is nil", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSample{}, nil)

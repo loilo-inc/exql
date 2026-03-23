@@ -107,4 +107,9 @@ func TestParser_ParseType(t *testing.T) {
 		assertType("json", false, "json.RawMessage")
 		assertType("json", true, "null.JSON")
 	})
+
+	t.Run("unknown", func(t *testing.T) {
+		_, err := ParseType("unknown", false)
+		assert.EqualError(t, err, "unknown type: unknown")
+	})
 }

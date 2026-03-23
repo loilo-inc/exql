@@ -82,7 +82,7 @@ func TestSaver_Insert(t *testing.T) {
 		}
 		_, err := s.Insert(user)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, user.Id)
+		assert.Equal(t, int64(1), user.Id)
 	})
 }
 

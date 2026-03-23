@@ -2,3 +2,4 @@ ignore:
   - "example/**"
   - "mocks/**"
   - "model/**"
+  - "internal/mock/**"

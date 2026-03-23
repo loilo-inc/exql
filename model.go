@@ -13,10 +13,10 @@ type modelSchema struct {
 	fields             map[string]int
 	columns            map[int]string
 	forUpdate          bool
+	key                string
 }
 
 type modelValue struct {
-	tableName          string
 	autoIncrementField *reflect.Value
 	values             q.KeyIterator[any]
 }
@@ -29,8 +29,8 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 	var autoIncrementField *int
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		tag, ok := f.Tag.Lookup("exql")
-		if !ok {
+		tag := f.Tag.Get("exql")
+		if tag == "" {
 			continue
 		}
 
@@ -77,43 +77,11 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 		fields:             fields,
 		columns:            columns,
 		forUpdate:          forUpdate,
+		key:                typeKey(t),
 	}, nil
 }
 
 var errTableNameEmpty = fmt.Errorf("empty table name")
-
-func (ms *modelSchema) aggregateModelValue(
-	modelPtr Model,
-) (*modelValue, error) {
-	tableName := modelPtr.TableName()
-	if tableName == "" {
-		return nil, errTableNameEmpty
-	}
-	res, err := ms.aggregateValue(modelPtr)
-	if err != nil {
-		return nil, err
-	}
-	res.tableName = tableName
-	return res, nil
-}
-
-func (ms *modelSchema) aggregateModelUpdateValue(
-	modelPtr ModelUpdate,
-) (*modelValue, error) {
-	tableName := modelPtr.UpdateTableName()
-	if tableName == "" {
-		return nil, errTableNameEmpty
-	}
-	res, err := ms.aggregateValue(modelPtr)
-	if err != nil {
-		return nil, err
-	}
-	if res.values.Size() == 0 {
-		return nil, fmt.Errorf("no updatable fields with non-nil value")
-	}
-	res.tableName = tableName
-	return res, nil
-}
 
 func (ms *modelSchema) aggregateValue(
 	modelPtr any,
@@ -128,6 +96,9 @@ func (ms *modelSchema) aggregateValue(
 	}
 	// *User -> User
 	objType = objType.Elem()
+	if ms.key != typeKey(objType) {
+		return nil, fmt.Errorf("model type mismatch: expected=%s, actual=%s", ms.key, typeKey(objType))
+	}
 	var autoIncrementField *reflect.Value
 	if ms.autoIncrementField != nil {
 		f := objValue.Elem().Field(*ms.autoIncrementField)

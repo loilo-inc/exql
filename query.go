@@ -20,14 +20,18 @@ func queryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, er
 	if err != nil {
 		return nil, nil, err
 	}
-	v, err := ms.aggregateModelValue(modelPtr)
+	tableName := modelPtr.TableName()
+	if tableName == "" {
+		return nil, nil, errTableNameEmpty
+	}
+	v, err := ms.aggregateValue(modelPtr)
 	if err != nil {
 		return nil, nil, err
 	}
 	b := q.NewBuilder()
 	cols := q.Cols(v.values.Keys()...)
 	vals := q.Vals(v.values.Values())
-	b.Sprintf("INSERT INTO `%s`", v.tableName)
+	b.Sprintf("INSERT INTO `%s`", tableName)
 	b.Query("(:?) VALUES (:?)", cols, vals)
 	return b.Build(), v.autoIncrementField, nil
 }
@@ -44,11 +48,15 @@ func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error
 	if err != nil {
 		return nil, err
 	}
+	tableName := modelPtrs[0].TableName()
+	if tableName == "" {
+		return nil, errTableNameEmpty
+	}
 	var head *modelValue
 	b := q.NewBuilder()
 	vals := q.NewBuilder()
 	for _, v := range modelPtrs {
-		if data, err := ms.aggregateModelValue(v); err != nil {
+		if data, err := ms.aggregateValue(v); err != nil {
 			return nil, err
 		} else {
 			if head == nil {
@@ -57,7 +65,7 @@ func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error
 			vals.Query("(:?)", q.Vals(data.values.Values()))
 		}
 	}
-	b.Sprintf("INSERT INTO `%s`", head.tableName)
+	b.Sprintf("INSERT INTO `%s`", tableName)
 	b.Query("(:?) VALUES :?", q.Cols(head.values.Keys()...), vals.Join(","))
 	return b.Build(), nil
 }
@@ -81,12 +89,19 @@ func queryForUpdateModel(
 	if err != nil {
 		return nil, err
 	}
-	v, err := ms.aggregateModelUpdateValue(updateStructPtr)
+	tableName := updateStructPtr.UpdateTableName()
+	if tableName == "" {
+		return nil, errTableNameEmpty
+	}
+	v, err := ms.aggregateValue(updateStructPtr)
 	if err != nil {
 		return nil, err
 	}
+	if v.values.Size() == 0 {
+		return nil, fmt.Errorf("no updatable fields with non-nil value")
+	}
 	b := q.NewBuilder()
-	b.Sprintf("UPDATE `%s`", v.tableName)
+	b.Sprintf("UPDATE `%s`", tableName)
 	b.Query("SET :? WHERE :?", q.Set(v.values.Map()), where)
 	return b.Build(), nil
 }

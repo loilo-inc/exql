@@ -97,83 +97,46 @@ func TestAggregateFields(t *testing.T) {
 	})
 }
 
-func TestAggregateModelValue(t *testing.T) {
+func TestModelSchema_aggregateValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		schema, _ := noCacheReflector.getSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := aggregateFields(reflect.TypeFor[model.Users](), false)
 		user := &model.Users{Name: "go", Age: 10}
-		m, err := schema.aggregateModelValue(user)
+		m, err := schema.aggregateValue(user)
 		assert.NoError(t, err)
 		assert.NotNil(t, m.autoIncrementField)
 		assert.ElementsMatch(t, []string{"age", "name"}, m.values.Keys())
 		assert.ElementsMatch(t, []any{int64(10), "go"}, m.values.Values())
 	})
 	t.Run("multiple primary key", func(t *testing.T) {
-		schema, _ := noCacheReflector.getSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
+		schema, _ := aggregateFields(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 		data := &testmodel.MultiplePrimaryKey{
 			Pk1:   "val1",
 			Pk2:   "val2",
 			Other: 1,
 		}
-		v, err := schema.aggregateModelValue(data)
+		v, err := schema.aggregateValue(data)
 		assert.NoError(t, err)
 		assert.Nil(t, v.autoIncrementField)
 		assert.ElementsMatch(t, []string{"pk1", "pk2", "other"}, v.values.Keys())
 		assert.ElementsMatch(t, []any{"val1", "val2", 1}, v.values.Values())
 	})
-	assertInvalid := func(t *testing.T, m Model, e string) {
-		s, f, err := QueryForInsert(m)
-		assert.Nil(t, s)
-		assert.Nil(t, f)
-		assert.EqualError(t, err, e)
-	}
+
 	t.Run("should error if dest is nil", func(t *testing.T) {
-		assertInvalid(t, nil, errModelNil.Error())
-	})
-	t.Run("should error if field doesn't have column tag", func(t *testing.T) {
-		assertInvalid(t, &testmodel.NoColumnTag{}, "column tag is not set")
-	})
-	t.Run("should error if field tag is invalid", func(t *testing.T) {
-		assertInvalid(t, &testmodel.BadTag{}, "duplicated tag: a")
-	})
-	t.Run("shoud error if no exql tags found", func(t *testing.T) {
-		assertInvalid(t, &testmodel.NoTag{}, "no exql tags in any fields")
-	})
-}
-
-func TestAggregateModelUpdateValue(t *testing.T) {
-	t.Run("basic", func(t *testing.T) {
-		name := "go"
-		age := int64(20)
-		schema, err := aggregateFields(reflect.TypeFor[model.UpdateUsers](), true)
-		assert.NoError(t, err)
-		if !assert.NotNil(t, schema) {
-			return
-		}
-
-		v, err := schema.aggregateModelUpdateValue(&model.UpdateUsers{
-			Name: &name,
-			Age:  &age,
-		})
-		assert.NoError(t, err)
-		if !assert.NotNil(t, v) {
-			return
-		}
-		assert.Equal(t, "users", v.tableName)
-		assert.NotNil(t, v.autoIncrementField)
-		assert.ElementsMatch(t, []string{"age", "name"}, v.values.Keys())
-		assert.ElementsMatch(t, []any{int64(20), "go"}, v.values.Values())
+		schema, _ := aggregateFields(reflect.TypeFor[model.Users](), false)
+		_, err := schema.aggregateValue(nil)
+		assert.EqualError(t, err, errModelNil.Error())
 	})
 
-	t.Run("no non nil update fields", func(t *testing.T) {
-		schema, err := aggregateFields(reflect.TypeFor[testmodel.UpdateSample](), true)
-		assert.NoError(t, err)
-		if !assert.NotNil(t, schema) {
-			return
-		}
+	t.Run("should error if dest type mismatch", func(t *testing.T) {
+		schema, _ := aggregateFields(reflect.TypeFor[model.Users](), false)
+		_, err := schema.aggregateValue(&testmodel.MultiplePrimaryKey{})
+		assert.ErrorContains(t, err, "model type mismatch")
+	})
 
-		v, err := schema.aggregateModelUpdateValue(&testmodel.UpdateSample{})
-		assert.Nil(t, v)
-		assert.EqualError(t, err, "no updatable fields with non-nil value")
+	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
+		schema, _ := aggregateFields(reflect.TypeFor[model.Users](), false)
+		_, err := schema.aggregateValue(123)
+		assert.ErrorContains(t, err, "object must be pointer of struct")
 	})
 }
 

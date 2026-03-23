@@ -3,18 +3,19 @@ package mock
 import "github.com/loilo-inc/exql/v3/iface"
 
 type Rows struct {
-	Cols     []string
-	Values   [][]any
-	Idx      int
-	ScanErr  error
-	ErrErr   error
-	CloseErr error
+	Cols      []string
+	Values    [][]any
+	Idx       int
+	ColumnErr error
+	ScanErr   error
+	ErrErr    error
+	CloseErr  error
 }
 
 var _ iface.SqlRows = (*Rows)(nil)
 
 func (r *Rows) Columns() ([]string, error) {
-	return r.Cols, nil
+	return r.Cols, r.ColumnErr
 }
 
 func (r *Rows) Next() bool {

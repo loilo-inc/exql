@@ -248,21 +248,32 @@ func TestMapRows(t *testing.T) {
 }
 
 func Test_mapRows(t *testing.T) {
+	makeRows := func() *mock.Rows {
+		return &mock.Rows{
+			Cols:   []string{"id"},
+			Values: [][]any{{1}, {2}},
+		}
+	}
 	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
-		mockDb, mock, err := sqlmock.New()
-		assert.NoError(t, err)
-		defer mockDb.Close()
-
-		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
-			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
-		)
-
-		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
-		assert.NoError(t, err)
-
+		rows := makeRows()
 		var dest []*model.Users
-		err = mapRows(&errReflector{}, rows, &dest)
+		err := mapRows(&errReflector{}, rows, &dest)
 		assert.EqualError(t, err, "error reflector")
+	})
+	t.Run("should return error if rows.Column() errors", func(t *testing.T) {
+		rows := makeRows()
+		rows.ColumnErr = fmt.Errorf("error")
+		var dest []*model.Users
+		err := mapRows(noCacheReflector, rows, &dest)
+		assert.EqualError(t, err, "error")
+	})
+
+	t.Run("should error if rows.Scan() return error", func(t *testing.T) {
+		rows := makeRows()
+		rows.ScanErr = fmt.Errorf("error")
+		var dest []*model.Users
+		err := mapRows(noCacheReflector, rows, &dest)
+		assert.EqualError(t, err, "error")
 	})
 }
 
@@ -354,21 +365,31 @@ func TestMapRow(t *testing.T) {
 }
 
 func Test_mapRow(t *testing.T) {
+	makeRows := func() *mock.Rows {
+		return &mock.Rows{
+			Cols:   []string{"id", "name", "age"},
+			Values: [][]any{{1, "user1", 10}},
+		}
+	}
 	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
-		mockDb, mock, err := sqlmock.New()
-		assert.NoError(t, err)
-		defer mockDb.Close()
-
-		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
-			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
-		)
-
-		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
-		assert.NoError(t, err)
-
+		rows := makeRows()
 		var dest model.Users
-		err = mapRow(&errReflector{}, rows, &dest)
+		err := mapRow(&errReflector{}, rows, &dest)
 		assert.EqualError(t, err, "error reflector")
+	})
+	t.Run("should return error if rows.Column() errors", func(t *testing.T) {
+		rows := makeRows()
+		rows.ColumnErr = fmt.Errorf("error")
+		var dest model.Users
+		err := mapRow(noCacheReflector, rows, &dest)
+		assert.EqualError(t, err, "error")
+	})
+	t.Run("should error if rows.Scan() return error", func(t *testing.T) {
+		rows := makeRows()
+		rows.ScanErr = fmt.Errorf("error")
+		var dest model.Users
+		err := mapRow(noCacheReflector, rows, &dest)
+		assert.EqualError(t, err, "error")
 	})
 }
 
