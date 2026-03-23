@@ -111,35 +111,7 @@ func Test_resolveDestinationMany(t *testing.T) {
 	})
 }
 
-// func Test_resolveDestType(t *testing.T) {
-// 	t.Run("struct", func(t *testing.T) {
-// 		v := reflect.ValueOf(model.Users{Id: 1, Name: "alice"})
-// 		typ, err := resolveDestType(&v)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, reflect.TypeFor[model.Users](), typ)
-// 	})
-// 	t.Run("*struct(non-nil)", func(t *testing.T) {
-// 		u := &model.Users{Id: 1, Name: "alice"}
-// 		v := reflect.ValueOf(u)
-// 		typ, err := resolveDestType(&v)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, reflect.TypeFor[model.Users](), typ)
-// 	})
-// 	t.Run("*struct(nil)", func(t *testing.T) {
-// 		var u *model.Users
-// 		v := reflect.ValueOf(u)
-// 		typ, err := resolveDestType(&v)
-// 		assert.NoError(t, err)
-// 		assert.Equal(t, reflect.TypeFor[model.Users](), typ)
-// 	})
-// 	t.Run("zero value", func(t *testing.T) {
-// 		v := reflect.Value{}
-// 		_, err := resolveDestType(&v)
-// 		assert.ErrorIs(t, errModelNil, err)
-// 	})
-// }
-
-func TestReflectorgetSchema(t *testing.T) {
+func TestReflector_getSchema(t *testing.T) {
 	t.Run("returns schema for model pointer", func(t *testing.T) {
 		r := newReflector()
 
@@ -155,7 +127,7 @@ func TestReflectorgetSchema(t *testing.T) {
 		assert.Equal(t, []int{1, 2}, schema.updatableFields)
 	})
 
-	t.Run("returns shema for model update struct", func(t *testing.T) {
+	t.Run("returns schema for model update struct", func(t *testing.T) {
 		r := newReflector()
 
 		schema, err := r.getModelSchema(&model.UpdateUsers{}, true)

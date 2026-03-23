@@ -22,29 +22,33 @@ func newReflector() Reflector {
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
 type Reflector interface {
-	getSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error)
-	getModelSchema(dest any, forUpdate bool) (*modelSchema, error)
+	getSchema(modelType reflect.Type, forUpdate bool) (*modelSchema, error)
+	getModelSchema(modelPtr any, forUpdate bool) (*modelSchema, error)
 	clearSchemaCache()
 }
 
 var _ Reflector = (*reflector)(nil)
 
-func (r *reflector) getModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
-	t, err := resolveModelType(dest)
-	if err != nil {
-		return nil, err
+func (r *reflector) getModelSchema(modelPtr any, forUpdate bool) (*modelSchema, error) {
+	destType := reflect.TypeOf(modelPtr)
+	if destType == nil {
+		return nil, errModelNil
 	}
+	if destType.Kind() != reflect.Pointer {
+		return nil, errMapDestination
+	}
+	t := destType.Elem()
 	return r.getSchema(t, forUpdate)
 }
 
-func (r *reflector) getSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error) {
-	key := typeKey(destType)
+func (r *reflector) getSchema(modelType reflect.Type, forUpdate bool) (*modelSchema, error) {
+	key := typeKey(modelType)
 	if !r.noCache {
 		if v, ok := r.schemas[key]; ok {
 			return v, nil
 		}
 	}
-	f, err := aggregateFields(destType, forUpdate)
+	f, err := aggregateFields(modelType, forUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -158,15 +162,4 @@ func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Va
 		return nil, nil, errMapManyDestination
 	}
 	return sliceType, &destValue, nil
-}
-
-func resolveModelType(destValue any) (reflect.Type, error) {
-	destType := reflect.TypeOf(destValue)
-	if destType == nil {
-		return nil, errModelNil
-	}
-	if destType.Kind() != reflect.Pointer {
-		return nil, errMapDestination
-	}
-	return destType.Elem(), nil
 }
