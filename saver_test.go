@@ -71,7 +71,7 @@ func TestSaver_Insert(t *testing.T) {
 		s := NewSaver(db)
 		user := &testmodel.PrimaryUint64{}
 		_, err := s.Insert(user)
-		assert.ErrorContains(t, err, "unsupported auto-increment field type")
+		assert.ErrorContains(t, err, "auto_increment field must be int64")
 	})
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()

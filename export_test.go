@@ -56,12 +56,12 @@ type errReflector struct {
 
 var _ Reflector = (*errReflector)(nil)
 
-func (r *errReflector) GetSchema(modelPtr reflect.Type, forUpdate bool) (*modelSchema, error) {
+func (r *errReflector) getSchema(modelPtr reflect.Type, forUpdate bool) (*modelSchema, error) {
 	return nil, fmt.Errorf("error reflector")
 }
 
-func (r *errReflector) GetModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
+func (r *errReflector) getModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
 	return nil, fmt.Errorf("error reflector")
 }
 
-func (r *errReflector) ClearSchemaCache() {}
+func (r *errReflector) clearSchemaCache() {}

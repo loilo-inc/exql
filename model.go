@@ -9,7 +9,6 @@ import (
 
 type modelSchema struct {
 	autoIncrementField *int
-	primaryKeyFields   []int
 	updatableFields    []int
 	fields             map[string]int
 	columns            map[int]string
@@ -27,7 +26,6 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 	columns := map[int]string{}
 	exqlTagCount := 0
 	var updatableFields []int
-	var primaryKeyFields []int
 	var autoIncrementField *int
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
@@ -53,12 +51,15 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 		fields[colName] = i
 		columns[i] = colName
 		exqlTagCount++
-		_, primary := tags["primary"]
-		if primary {
-			primaryKeyFields = append(primaryKeyFields, i)
-		}
 		_, autoIncrement := tags["auto_increment"]
 		if autoIncrement {
+			fType := f.Type
+			if forUpdate {
+				fType = fType.Elem()
+			}
+			if fType.Kind() != reflect.Int64 {
+				return nil, fmt.Errorf("auto_increment field must be int64")
+			}
 			autoIncrementField = &i
 		}
 		if !autoIncrement {
@@ -70,13 +71,8 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 		return nil, fmt.Errorf("no exql tags in any fields")
 	}
 
-	if len(primaryKeyFields) == 0 {
-		return nil, fmt.Errorf("table has no primary key")
-	}
-
 	return &modelSchema{
 		autoIncrementField: autoIncrementField,
-		primaryKeyFields:   primaryKeyFields,
 		updatableFields:    updatableFields,
 		fields:             fields,
 		columns:            columns,

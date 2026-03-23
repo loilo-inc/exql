@@ -14,7 +14,7 @@ type reflector struct {
 	mux     sync.Mutex
 }
 
-func newReflector() *reflector {
+func newReflector() Reflector {
 	return &reflector{
 		schemas: make(map[string]*modelSchema),
 	}
@@ -22,25 +22,22 @@ func newReflector() *reflector {
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
 type Reflector interface {
-	// GetSchema returns the model schema for the given reflect.Type of the destination struct.
-	GetSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error)
-	// GetModelSchema returns the model schema for the given destination struct.
-	GetModelSchema(dest any, forUpdate bool) (*modelSchema, error)
-	// ClearSchemaCache clears the cached model schemas.
-	ClearSchemaCache()
+	getSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error)
+	getModelSchema(dest any, forUpdate bool) (*modelSchema, error)
+	clearSchemaCache()
 }
 
 var _ Reflector = (*reflector)(nil)
 
-func (r *reflector) GetModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
+func (r *reflector) getModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
 	t, err := resolveModelType(dest)
 	if err != nil {
 		return nil, err
 	}
-	return r.GetSchema(t, forUpdate)
+	return r.getSchema(t, forUpdate)
 }
 
-func (r *reflector) GetSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error) {
+func (r *reflector) getSchema(destType reflect.Type, forUpdate bool) (*modelSchema, error) {
 	key := typeKey(destType)
 	if !r.noCache {
 		if v, ok := r.schemas[key]; ok {
@@ -59,7 +56,7 @@ func (r *reflector) GetSchema(destType reflect.Type, forUpdate bool) (*modelSche
 	return f, nil
 }
 
-func (r *reflector) ClearSchemaCache() {
+func (r *reflector) clearSchemaCache() {
 	r.mux.Lock()
 	r.schemas = make(map[string]*modelSchema)
 	r.mux.Unlock()

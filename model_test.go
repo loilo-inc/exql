@@ -11,7 +11,7 @@ import (
 
 func TestAggregateFields(t *testing.T) {
 	t.Run("builds model metadata from exql tags", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.PrimaryUint64{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[model.Users](), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
@@ -20,8 +20,7 @@ func TestAggregateFields(t *testing.T) {
 		if assert.NotNil(t, metadata.autoIncrementField) {
 			assert.Equal(t, 0, *metadata.autoIncrementField)
 		}
-		assert.Equal(t, []int{0}, metadata.primaryKeyFields)
-		assert.Equal(t, []int{1}, metadata.updatableFields)
+		assert.Equal(t, []int{1, 2}, metadata.updatableFields)
 
 		idIndex, ok := metadata.fields["id"]
 		assert.True(t, ok)
@@ -35,19 +34,22 @@ func TestAggregateFields(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, "name", colName)
 
+		colName, ok = metadata.columns[2]
+		assert.True(t, ok)
+		assert.Equal(t, "age", colName)
+
 		_, ok = metadata.fields["note"]
 		assert.False(t, ok)
 	})
 
 	t.Run("supports multiple primary keys", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeOf(testmodel.MultiplePrimaryKey{}), false)
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
 			return
 		}
 		assert.Nil(t, metadata.autoIncrementField)
-		assert.Equal(t, []int{0, 1}, metadata.primaryKeyFields)
 		assert.Equal(t, []int{0, 1, 2}, metadata.updatableFields)
 
 		pk1Index, ok := metadata.fields["pk1"]
@@ -64,13 +66,6 @@ func TestAggregateFields(t *testing.T) {
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "no exql tags in any fields")
-	})
-
-	t.Run("returns error when no primary key is defined", func(t *testing.T) {
-		metadata, err := aggregateFields(reflect.TypeFor[testmodel.NoPrimaryKey](), false)
-
-		assert.Nil(t, metadata)
-		assert.EqualError(t, err, "table has no primary key")
 	})
 
 	t.Run("returns error when column tag is not set", func(t *testing.T) {
@@ -93,11 +88,18 @@ func TestAggregateFields(t *testing.T) {
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "duplicated tag: a")
 	})
+
+	t.Run("returns error for auto_increment field with non int64 type", func(t *testing.T) {
+		metadata, err := aggregateFields(reflect.TypeFor[testmodel.PrimaryUint64](), false)
+
+		assert.Nil(t, metadata)
+		assert.EqualError(t, err, "auto_increment field must be int64")
+	})
 }
 
 func TestAggregateModelValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		schema, _ := noCacheReflector.GetSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := noCacheReflector.getSchema(reflect.TypeFor[model.Users](), false)
 		user := &model.Users{Name: "go", Age: 10}
 		m, err := schema.aggregateModelValue(user)
 		assert.NoError(t, err)
@@ -106,7 +108,7 @@ func TestAggregateModelValue(t *testing.T) {
 		assert.ElementsMatch(t, []any{int64(10), "go"}, m.values.Values())
 	})
 	t.Run("multiple primary key", func(t *testing.T) {
-		schema, _ := noCacheReflector.GetSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
+		schema, _ := noCacheReflector.getSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 		data := &testmodel.MultiplePrimaryKey{
 			Pk1:   "val1",
 			Pk2:   "val2",
@@ -132,9 +134,6 @@ func TestAggregateModelValue(t *testing.T) {
 	})
 	t.Run("should error if field tag is invalid", func(t *testing.T) {
 		assertInvalid(t, &testmodel.BadTag{}, "duplicated tag: a")
-	})
-	t.Run("should error if dest has no primary key tag", func(t *testing.T) {
-		assertInvalid(t, &testmodel.NoPrimaryKey{}, "table has no primary key")
 	})
 	t.Run("shoud error if no exql tags found", func(t *testing.T) {
 		assertInvalid(t, &testmodel.NoTag{}, "no exql tags in any fields")

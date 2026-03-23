@@ -74,7 +74,7 @@ func mapRow(
 		if err != nil {
 			return err
 		}
-		schema, err := r.GetSchema(destValue.Type(), false)
+		schema, err := r.getSchema(destValue.Type(), false)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func mapRows(
 	if err != nil {
 		return err
 	}
-	schema, err := r.GetSchema(sliceType, false)
+	schema, err := r.getSchema(sliceType, false)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func mapJoinedRows(
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := refl.GetSchema(dest.elemType, false)
+		md, err := refl.getSchema(dest.elemType, false)
 		if err != nil {
 			return err
 		}

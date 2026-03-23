@@ -16,7 +16,7 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 }
 
 func queryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, error) {
-	ms, err := refl.GetModelSchema(modelPtr, false)
+	ms, err := refl.getModelSchema(modelPtr, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -40,7 +40,7 @@ func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error
 	if len(modelPtrs) == 0 {
 		return nil, fmt.Errorf("empty list")
 	}
-	ms, err := refl.GetModelSchema(modelPtrs[0], false)
+	ms, err := refl.getModelSchema(modelPtrs[0], false)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func queryForUpdateModel(
 	if updateStructPtr == nil {
 		return nil, errModelNil
 	}
-	ms, err := refl.GetModelSchema(updateStructPtr, true)
+	ms, err := refl.getModelSchema(updateStructPtr, true)
 	if err != nil {
 		return nil, err
 	}

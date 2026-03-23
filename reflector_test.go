@@ -139,39 +139,41 @@ func Test_resolveDestinationMany(t *testing.T) {
 // 	})
 // }
 
-func TestReflectorGetSchema(t *testing.T) {
+func TestReflectorgetSchema(t *testing.T) {
 	t.Run("returns schema for model pointer", func(t *testing.T) {
 		r := newReflector()
 
-		schema, err := r.GetModelSchema(&model.Users{}, false)
+		schema, err := r.getModelSchema(&model.Users{}, false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, schema) {
 			return
 		}
-		assert.NotNil(t, schema.autoIncrementField)
-		assert.Equal(t, []int{0}, schema.primaryKeyFields)
+		if assert.NotNil(t, schema.autoIncrementField) {
+			assert.Equal(t, 0, *schema.autoIncrementField)
+		}
 		assert.Equal(t, []int{1, 2}, schema.updatableFields)
 	})
 
 	t.Run("returns shema for model update struct", func(t *testing.T) {
 		r := newReflector()
 
-		schema, err := r.GetModelSchema(&model.UpdateUsers{}, true)
+		schema, err := r.getModelSchema(&model.UpdateUsers{}, true)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, schema) {
 			return
 		}
-		assert.NotNil(t, schema.autoIncrementField)
-		assert.Equal(t, []int{0}, schema.primaryKeyFields)
+		if assert.NotNil(t, schema.autoIncrementField) {
+			assert.Equal(t, 0, *schema.autoIncrementField)
+		}
 		assert.Equal(t, []int{1, 2}, schema.updatableFields)
 	})
 
 	t.Run("returns validation error for invalid destination", func(t *testing.T) {
 		r := newReflector()
 
-		schema, err := r.GetModelSchema(model.UpdateUsers{}, false)
+		schema, err := r.getModelSchema(model.UpdateUsers{}, false)
 
 		assert.Nil(t, schema)
 		assert.ErrorIs(t, err, errMapDestination)
@@ -180,10 +182,10 @@ func TestReflectorGetSchema(t *testing.T) {
 	t.Run("uses cached schema when cache is enabled", func(t *testing.T) {
 		r := newReflector()
 
-		s1, err := r.GetModelSchema(&model.Users{}, false)
+		s1, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
 
-		s2, err := r.GetModelSchema(&model.Users{}, false)
+		s2, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
 		assert.Same(t, s1, s2)
 	})
@@ -191,10 +193,10 @@ func TestReflectorGetSchema(t *testing.T) {
 	t.Run("rebuilds schema when cache is disabled", func(t *testing.T) {
 		r := &reflector{noCache: true}
 
-		s1, err := r.GetModelSchema(&model.Users{}, false)
+		s1, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
 
-		s2, err := r.GetModelSchema(&model.Users{}, false)
+		s2, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
 		assert.NotSame(t, s1, s2)
 	})
@@ -202,7 +204,7 @@ func TestReflectorGetSchema(t *testing.T) {
 	t.Run("is safe for concurrent access", func(t *testing.T) {
 		r := newReflector()
 		const goroutines = 64
-		expected, err := r.GetModelSchema(&model.Users{}, false)
+		expected, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
 
 		results := make(chan *modelSchema, goroutines)
@@ -213,7 +215,7 @@ func TestReflectorGetSchema(t *testing.T) {
 		for range goroutines {
 			go func() {
 				defer wg.Done()
-				schema, err := r.GetModelSchema(&model.Users{}, false)
+				schema, err := r.getModelSchema(&model.Users{}, false)
 				if err != nil {
 					errs <- err
 					return
@@ -245,15 +247,15 @@ func TestReflectorGetSchema(t *testing.T) {
 	})
 }
 
-func TestReflectorClearSchemaCache(t *testing.T) {
+func TestReflectorclearSchemaCache(t *testing.T) {
 	r := newReflector()
 
-	s1, err := r.GetSchema(reflect.TypeFor[model.Users](), false)
+	s1, err := r.getSchema(reflect.TypeFor[model.Users](), false)
 	assert.NoError(t, err)
 
-	r.ClearSchemaCache()
+	r.clearSchemaCache()
 
-	s2, err := r.GetSchema(reflect.TypeFor[model.Users](), false)
+	s2, err := r.getSchema(reflect.TypeFor[model.Users](), false)
 	assert.NoError(t, err)
 	assert.NotSame(t, s1, s2)
 }
