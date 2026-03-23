@@ -264,3 +264,102 @@ func (mr *MockModelUpdateMockRecorder) UpdateTableName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTableName", reflect.TypeOf((*MockModelUpdate)(nil).UpdateTableName))
 }
+
+// MockSqlRow is a mock of SqlRow interface.
+type MockSqlRow struct {
+	ctrl     *gomock.Controller
+	recorder *MockSqlRowMockRecorder
+	isgomock struct{}
+}
+
+// MockSqlRowMockRecorder is the mock recorder for MockSqlRow.
+type MockSqlRowMockRecorder struct {
+	mock *MockSqlRow
+}
+
+// NewMockSqlRow creates a new mock instance.
+func NewMockSqlRow(ctrl *gomock.Controller) *MockSqlRow {
+	mock := &MockSqlRow{ctrl: ctrl}
+	mock.recorder = &MockSqlRowMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSqlRow) EXPECT() *MockSqlRowMockRecorder {
+	return m.recorder
+}
+
+// Close mocks base method.
+func (m *MockSqlRow) Close() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockSqlRowMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockSqlRow)(nil).Close))
+}
+
+// Columns mocks base method.
+func (m *MockSqlRow) Columns() ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Columns")
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Columns indicates an expected call of Columns.
+func (mr *MockSqlRowMockRecorder) Columns() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Columns", reflect.TypeOf((*MockSqlRow)(nil).Columns))
+}
+
+// Err mocks base method.
+func (m *MockSqlRow) Err() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Err")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Err indicates an expected call of Err.
+func (mr *MockSqlRowMockRecorder) Err() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Err", reflect.TypeOf((*MockSqlRow)(nil).Err))
+}
+
+// Next mocks base method.
+func (m *MockSqlRow) Next() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Next")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Next indicates an expected call of Next.
+func (mr *MockSqlRowMockRecorder) Next() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Next", reflect.TypeOf((*MockSqlRow)(nil).Next))
+}
+
+// Scan mocks base method.
+func (m *MockSqlRow) Scan(dest ...any) error {
+	m.ctrl.T.Helper()
+	varargs := []any{}
+	for _, a := range dest {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Scan", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Scan indicates an expected call of Scan.
+func (mr *MockSqlRowMockRecorder) Scan(dest ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockSqlRow)(nil).Scan), dest...)
+}

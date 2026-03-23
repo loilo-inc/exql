@@ -24,3 +24,11 @@ type Model interface {
 type ModelUpdate interface {
 	UpdateTableName() string
 }
+
+type SqlRow interface {
+	Columns() ([]string, error)
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
+	Close() error
+}

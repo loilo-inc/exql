@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+
+	"github.com/loilo-inc/exql/v3/iface"
 )
 
 // Error returned when record not found
@@ -60,7 +62,7 @@ func MapRow(
 
 func mapRow(
 	r Reflector,
-	row *sql.Rows,
+	row iface.SqlRow,
 	pointerOfStruct any,
 ) error {
 	defer row.Close()
@@ -110,16 +112,16 @@ func MapRows(
 
 func mapRows(
 	r Reflector,
-	rows *sql.Rows,
+	rows iface.SqlRow,
 	ptrOfSliceOfModelPtr any,
 ) error {
 	defer rows.Close()
 
-	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
+	cols, err := rows.Columns()
 	if err != nil {
 		return err
 	}
-	cols, err := rows.Columns()
+	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
 	if err != nil {
 		return err
 	}
@@ -170,7 +172,7 @@ func (m *serialMapper) Map(
 
 func mapJoinedRows(
 	refl Reflector,
-	row *sql.Rows,
+	row iface.SqlRow,
 	destList []*nullableDest,
 	headColProvider ColumnSplitter,
 ) error {
@@ -185,7 +187,7 @@ func mapJoinedRows(
 		destFields = append(destFields, md.fields)
 		destTypes[destIndex] = dest.value.Type() // Model || *Model
 	}
-	cols, err := row.ColumnTypes()
+	cols, err := row.Columns()
 	if err != nil {
 		return err
 	}
@@ -196,10 +198,10 @@ func mapJoinedRows(
 		fields := destFields[destIndex]
 		headCol := cols[colIndex]
 		expectedHeadCol := headColProvider(destIndex)
-		if headCol.Name() != expectedHeadCol {
+		if headCol != expectedHeadCol {
 			return fmt.Errorf(
 				"head col mismatch: expected=%s, actual=%s",
-				expectedHeadCol, headCol.Name(),
+				expectedHeadCol, headCol,
 			)
 		}
 		start := colIndex
@@ -213,14 +215,14 @@ func mapJoinedRows(
 			col := cols[colIndex]
 			if colIndex > start && destIndex < len(destList)-1 {
 				// Reach next column's head
-				if col.Name() == headColProvider(destIndex+1) {
+				if col == headColProvider(destIndex+1) {
 					columnCounts[destIndex] = colIndex - start
 					break
 				}
 			} else if destIndex == len(destList)-1 {
 				columnCounts[destIndex]++
 			}
-			if fIndex, ok := fields[col.Name()]; ok {
+			if fIndex, ok := fields[col]; ok {
 				f := model.Field(fIndex)
 				if destTypes[destIndex].Kind() == reflect.Struct {
 					destVals[colIndex] = f.Addr().Interface() // *(Model.Field)
@@ -250,7 +252,7 @@ func mapJoinedRows(
 		start := colIndex
 		for ; colIndex < start+columnCounts[destIndex]; colIndex++ {
 			col := cols[colIndex]
-			if fIndex, ok := fields[col.Name()]; ok {
+			if fIndex, ok := fields[col]; ok {
 				f := model.Elem().Field(fIndex)
 				if t := reflect.ValueOf(destVals[colIndex]).Elem(); t.IsNil() {
 					f.Set(reflect.Zero(t.Type().Elem())) // To set (*null.Type)(nil) as null.Type{}
