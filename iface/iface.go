@@ -25,7 +25,7 @@ type ModelUpdate interface {
 	UpdateTableName() string
 }
 
-type SqlRow interface {
+type SqlRows interface {
 	Columns() ([]string, error)
 	Next() bool
 	Scan(dest ...any) error

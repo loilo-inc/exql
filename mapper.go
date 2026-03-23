@@ -1,11 +1,8 @@
 package exql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
-
-	"github.com/loilo-inc/exql/v3/iface"
 )
 
 // Error returned when record not found
@@ -31,7 +28,7 @@ type SerialMapper interface {
 	//	var favorite UserFavorite
 	//	defer rows.Close()
 	//	err := m.Map(rows, &user, &favorite)
-	Map(rows *sql.Rows, pointersOfStruct ...any) error
+	Map(rows SqlRows, pointersOfStruct ...any) error
 }
 
 type serialMapper struct {
@@ -54,7 +51,7 @@ var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 //	var user User
 //	err := exql.MapRow(rows, &user)
 func MapRow(
-	row *sql.Rows,
+	row SqlRows,
 	pointerOfStruct any,
 ) error {
 	return mapRow(noCacheReflector, row, pointerOfStruct)
@@ -62,7 +59,7 @@ func MapRow(
 
 func mapRow(
 	r Reflector,
-	row iface.SqlRow,
+	row SqlRows,
 	pointerOfStruct any,
 ) error {
 	defer row.Close()
@@ -104,7 +101,7 @@ func mapRow(
 //	var users []*Users
 //	err := exql.MapRows(rows, &users)
 func MapRows(
-	rows *sql.Rows,
+	rows SqlRows,
 	ptrOfSliceOfModelPtr any,
 ) error {
 	return mapRows(noCacheReflector, rows, ptrOfSliceOfModelPtr)
@@ -112,7 +109,7 @@ func MapRows(
 
 func mapRows(
 	r Reflector,
-	rows iface.SqlRow,
+	rows SqlRows,
 	ptrOfSliceOfModelPtr any,
 ) error {
 	defer rows.Close()
@@ -151,7 +148,7 @@ func mapRows(
 }
 
 func (m *serialMapper) Map(
-	rows *sql.Rows,
+	rows SqlRows,
 	dest ...any,
 ) error {
 	var values []*nullableDest
@@ -172,7 +169,7 @@ func (m *serialMapper) Map(
 
 func mapJoinedRows(
 	refl Reflector,
-	row iface.SqlRow,
+	row SqlRows,
 	destList []*nullableDest,
 	headColProvider ColumnSplitter,
 ) error {

@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/loilo-inc/exql/v3/internal/mock"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/null"
 	"github.com/stretchr/testify/assert"
@@ -196,30 +197,28 @@ func TestMapRows(t *testing.T) {
 		})
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
-		doTest := func(i any) {
-			assert.ErrorIs(t, MapRows(nil, i), errMapManyDestination)
-		}
+		mockRows := &mock.Rows{}
 		t.Run("int", func(t *testing.T) {
-			doTest(0)
+			assert.ErrorIs(t, MapRows(mockRows, 0), errMapManyDestination)
 		})
 		t.Run("*int", func(t *testing.T) {
 			i := 0
-			doTest(&i)
+			assert.ErrorIs(t, MapRows(mockRows, &i), errMapManyDestination)
 		})
 		t.Run("[]struct", func(t *testing.T) {
 			var i []model.Users
-			doTest(&i)
+			assert.ErrorIs(t, MapRows(mockRows, &i), errMapManyDestination)
 		})
 		t.Run("struct", func(t *testing.T) {
 			var i model.Users
-			doTest(i)
+			assert.ErrorIs(t, MapRows(mockRows, i), errMapManyDestination)
 		})
 		t.Run("*struct", func(t *testing.T) {
 			var i model.Users
-			doTest(&i)
+			assert.ErrorIs(t, MapRows(mockRows, &i), errMapManyDestination)
 		})
 		t.Run("nil", func(t *testing.T) {
-			doTest(nil)
+			assert.ErrorIs(t, MapRows(mockRows, nil), errMapManyDestination)
 		})
 	})
 	t.Run("should return exql.ErrRecordNotFound if rows is empty", func(t *testing.T) {
@@ -307,26 +306,24 @@ func TestMapRow(t *testing.T) {
 		})
 	})
 	t.Run("should return error if destination is not pointer of struct", func(t *testing.T) {
-		doTest := func(i any) {
-			assert.ErrorIs(t, MapRow(nil, i), errMapDestination)
-		}
+		mockRows := &mock.Rows{}
 		t.Run("int", func(t *testing.T) {
-			doTest(0)
+			assert.ErrorIs(t, MapRow(mockRows, 0), errMapDestination)
 		})
 		t.Run("*int", func(t *testing.T) {
 			i := 0
-			doTest(&i)
+			assert.ErrorIs(t, MapRow(mockRows, &i), errMapDestination)
 		})
 		t.Run("slice", func(t *testing.T) {
 			var i []*model.Users
-			doTest(&i)
+			assert.ErrorIs(t, MapRow(mockRows, &i), errMapDestination)
 		})
 		t.Run("*slice", func(t *testing.T) {
 			var i []*model.Users
-			doTest(&i)
+			assert.ErrorIs(t, MapRow(mockRows, &i), errMapDestination)
 		})
 		t.Run("nil", func(t *testing.T) {
-			doTest(nil)
+			assert.ErrorIs(t, MapRow(mockRows, nil), errMapDestination)
 		})
 	})
 

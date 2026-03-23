@@ -7,3 +7,4 @@ import (
 type Executor = iface.Executor
 type Model = iface.Model
 type ModelUpdate = iface.ModelUpdate
+type SqlRows = iface.SqlRows
