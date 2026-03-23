@@ -177,3 +177,43 @@ func TestAggregateModelUpdateValue(t *testing.T) {
 		assert.EqualError(t, err, "no updatable fields with non-nil value")
 	})
 }
+
+func TestCreateReceivers(t *testing.T) {
+	schema, err := aggregateFields(reflect.TypeFor[model.Users](), false)
+	assert.NoError(t, err)
+	if !assert.NotNil(t, schema) {
+		return
+	}
+
+	dest := reflect.ValueOf(&model.Users{}).Elem()
+	receivers := schema.createReceivers([]string{"id", "unknown", "name", "age"}, &dest)
+
+	if assert.Len(t, receivers, 4) {
+		idReceiver, ok := receivers[0].(*int64)
+		if assert.True(t, ok) {
+			assert.Same(t, dest.FieldByName("Id").Addr().Interface(), idReceiver)
+			*idReceiver = 10
+		}
+
+		_, ok = receivers[1].(*noopScanner)
+		assert.True(t, ok)
+
+		nameReceiver, ok := receivers[2].(*string)
+		if assert.True(t, ok) {
+			assert.Same(t, dest.FieldByName("Name").Addr().Interface(), nameReceiver)
+			*nameReceiver = "alice"
+		}
+
+		ageReceiver, ok := receivers[3].(*int64)
+		if assert.True(t, ok) {
+			assert.Same(t, dest.FieldByName("Age").Addr().Interface(), ageReceiver)
+			*ageReceiver = 20
+		}
+	}
+
+	assert.Equal(t, model.Users{
+		Id:   10,
+		Name: "alice",
+		Age:  20,
+	}, dest.Interface())
+}
