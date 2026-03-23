@@ -3,7 +3,6 @@ package exql
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -372,26 +371,6 @@ func Test_mapRow(t *testing.T) {
 
 		var dest model.Users
 		err = mapRow(&errReflector{}, rows, &dest)
-		assert.EqualError(t, err, "error reflector")
-	})
-}
-
-func Test_scanRow(t *testing.T) {
-	t.Run("should return error if injected Reflector returns error", func(t *testing.T) {
-		mockDb, mock, err := sqlmock.New()
-		assert.NoError(t, err)
-		defer mockDb.Close()
-
-		mock.ExpectQuery(`SELECT \* FROM users where id = 1`).WillReturnRows(
-			sqlmock.NewRows([]string{"id", "name", "age"}).AddRow(1, "user1", 10),
-		)
-
-		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
-		assert.NoError(t, err)
-		assert.True(t, rows.Next())
-
-		dest := reflect.ValueOf(model.Users{})
-		err = scanRow(&errReflector{}, rows, &dest)
 		assert.EqualError(t, err, "error reflector")
 	})
 }

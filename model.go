@@ -153,3 +153,20 @@ func (ms *modelSchema) aggregateValue(
 		values:             q.NewKeyIterator(data),
 	}, nil
 }
+
+func (ms *modelSchema) createReceivers(
+	cols []string,
+	dest *reflect.Value,
+) []any {
+	destVals := make([]any, len(cols))
+	for j, col := range cols {
+		if fIndex, ok := ms.fields[col]; ok {
+			f := dest.Field(fIndex)
+			destVals[j] = f.Addr().Interface()
+		} else {
+			ns := &noopScanner{}
+			destVals[j] = ns
+		}
+	}
+	return destVals
+}

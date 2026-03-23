@@ -63,22 +63,34 @@ func mapRow(
 	row *sql.Rows,
 	pointerOfStruct any,
 ) error {
-	defer func() {
-		if row != nil {
-			row.Close()
-		}
-	}()
+	defer row.Close()
+
 	destValue, err := resolveDestination(pointerOfStruct)
 	if err != nil {
 		return err
 	}
+	scanned := false
 	if row.Next() {
-		return scanRow(r, row, destValue)
+		cols, err := row.Columns()
+		if err != nil {
+			return err
+		}
+		schema, err := r.GetSchema(destValue.Type(), false)
+		if err != nil {
+			return err
+		}
+		receivers := schema.createReceivers(cols, destValue)
+		if err := row.Scan(receivers...); err != nil {
+			return err
+		}
+		scanned = true
 	}
 	if err := row.Err(); err != nil {
 		return err
+	} else if !scanned {
+		return ErrRecordNotFound{}
 	}
-	return ErrRecordNotFound{}
+	return nil
 }
 
 // MapRows reads all data from rows and maps those columns for each destination struct.
@@ -101,12 +113,17 @@ func mapRows(
 	rows *sql.Rows,
 	ptrOfSliceOfModelPtr any,
 ) error {
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	defer rows.Close()
+
 	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
+	if err != nil {
+		return err
+	}
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	schema, err := r.GetSchema(sliceType, false)
 	if err != nil {
 		return err
 	}
@@ -114,7 +131,8 @@ func mapRows(
 	for rows.Next() {
 		// modelValue := SliceType{}
 		modelValue := reflect.New(sliceType).Elem()
-		if err := scanRow(r, rows, &modelValue); err != nil {
+		receivers := schema.createReceivers(cols, &modelValue)
+		if err := rows.Scan(receivers...); err != nil {
 			return err
 		}
 		// *dest = append(*dest, i)
@@ -128,32 +146,6 @@ func mapRows(
 		return ErrRecordNotFound{}
 	}
 	return nil
-}
-
-func scanRow(
-	refl Reflector,
-	row *sql.Rows,
-	dest *reflect.Value,
-) error {
-	cols, err := row.ColumnTypes()
-	if err != nil {
-		return err
-	}
-	md, err := refl.GetSchema(dest.Type(), false)
-	if err != nil {
-		return err
-	}
-	destVals := make([]any, len(cols))
-	for j, col := range cols {
-		if fIndex, ok := md.fields[col.Name()]; ok {
-			f := dest.Field(fIndex)
-			destVals[j] = f.Addr().Interface()
-		} else {
-			ns := &noopScanner{}
-			destVals[j] = ns
-		}
-	}
-	return row.Scan(destVals...)
 }
 
 func (m *serialMapper) Map(

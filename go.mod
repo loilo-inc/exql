@@ -13,8 +13,15 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/friendsofgo/errors v0.9.2 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/loilo-inc/exql/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/volatiletech/inflect v0.0.1 // indirect
+	github.com/volatiletech/null v8.0.0+incompatible // indirect
+	github.com/volatiletech/sqlboiler v3.7.1+incompatible // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
