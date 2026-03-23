@@ -116,6 +116,69 @@ func BenchmarkMapRows(b *testing.B) {
 	})
 }
 
+func BenchmarkInsert(b *testing.B) {
+	sqlDb := testSqlDB()
+	v2db := v2.NewDB(sqlDb)
+	v3db := NewDB(sqlDb)
+	user := &model.Users{Name: "exql", Age: 6}
+	err := resetTestDB(sqlDb)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Run("v2", func(b *testing.B) {
+		for range b.N {
+			_, err := v2db.Insert(user)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("v3", func(b *testing.B) {
+		for range b.N {
+			_, err := v3db.Insert(user)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkUpdate(b *testing.B) {
+	sqlDb := testSqlDB()
+	v2db := v2.NewDB(sqlDb)
+	v3db := NewDB(sqlDb)
+	user := &model.Users{Name: "exql", Age: 6}
+	err := resetTestDB(sqlDb)
+	if err != nil {
+		b.Fatal(err)
+	}
+	_, err = v3db.Insert(user)
+	if err != nil {
+		b.Fatal(err)
+	}
+	userUpdate := &model.UpdateUsers{Name: Ptr("lqxe"), Age: Ptr(int64(8))}
+
+	b.Run("v2", func(b *testing.B) {
+		for range b.N {
+			_, err := v2db.UpdateModel(userUpdate, v2.Where("id = ?", user.Id))
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("v3", func(b *testing.B) {
+		for range b.N {
+			_, err := v3db.UpdateModel(userUpdate, Where("id = ?", user.Id))
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
 func BenchmarkMapFind(b *testing.B) {
 	sqlDb := testSqlDB()
 	v2db := v2.NewDB(sqlDb)
