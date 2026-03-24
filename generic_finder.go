@@ -7,24 +7,24 @@ import (
 )
 
 // GenericFinder is generic version of Finder. It provides type-safe methods to execute Find query and map rows into the destination struct or slice of struct.
-type GenericFinder[T any] interface {
+type GenericFinder[T Model] interface {
 	Find(q query.Query) (*T, error)
 	FindContext(ctx context.Context, q query.Query) (*T, error)
 	FindMany(q query.Query) ([]*T, error)
 	FindManyContext(ctx context.Context, q query.Query) ([]*T, error)
 }
 
-type genericFinder[T any] struct {
+type genericFinder[T Model] struct {
 	ex   Executor
 	refl Reflector
 }
 
 // NewGenericFinder creates a new GenericFinder with the given Executor and Reflector.
-func NewGenericFinder[T any](ex Executor, db DB) GenericFinder[T] {
+func NewGenericFinder[T Model](ex Executor, db DB) GenericFinder[T] {
 	return newGenericFinder[T](ex, db)
 }
 
-func newGenericFinder[T any](ex Executor, refl Reflector) *genericFinder[T] {
+func newGenericFinder[T Model](ex Executor, refl Reflector) *genericFinder[T] {
 	return &genericFinder[T]{ex: ex, refl: refl}
 }
 
