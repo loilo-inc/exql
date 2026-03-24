@@ -71,7 +71,7 @@ func mapRow(
 	return mapRowCommon(r, row, destValue)
 }
 
-func mapRowGeneric[T any](
+func mapRowGeneric[T Model](
 	r Reflector,
 	row SqlRows,
 ) (*T, error) {
@@ -149,7 +149,7 @@ func mapRows(
 	return nil
 }
 
-func mapRowsGeneric[T any](
+func mapRowsGeneric[T Model](
 	r Reflector,
 	rows SqlRows,
 ) ([]*T, error) {

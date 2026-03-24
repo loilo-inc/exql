@@ -138,7 +138,7 @@ type Users struct {
 	Age  int64  `exql:"column:age;type:int;not null" json:"age"`
 }
 
-func (u *Users) TableName() string {
+func (u Users) TableName() string {
 	return UsersTableName
 }
 
@@ -148,7 +148,7 @@ type UpdateUsers struct {
 	Age  *int64  `exql:"column:age;type:int;not null" json:"age"`
 }
 
-func (u *UpdateUsers) UpdateTableName() string {
+func (u UpdateUsers) UpdateTableName() string {
 	return UsersTableName
 }
 
