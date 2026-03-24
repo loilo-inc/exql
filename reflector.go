@@ -14,7 +14,7 @@ type reflector struct {
 	mux     sync.Mutex
 }
 
-func newReflector() Reflector {
+func newReflector() *reflector {
 	return &reflector{
 		schemas: make(map[string]*modelSchema),
 	}

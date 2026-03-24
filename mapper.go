@@ -68,6 +68,28 @@ func mapRow(
 	if err != nil {
 		return err
 	}
+	return mapRowCommon(r, row, destValue)
+}
+
+func mapRowGeneric[T any](
+	r Reflector,
+	row SqlRows,
+) (*T, error) {
+	defer row.Close()
+
+	var dest T
+	modelValue := reflect.ValueOf(&dest).Elem()
+	if err := mapRowCommon(r, row, &modelValue); err != nil {
+		return nil, err
+	}
+	return &dest, nil
+}
+
+func mapRowCommon(
+	r Reflector,
+	row SqlRows,
+	destValue *reflect.Value,
+) error {
 	scanned := false
 	if row.Next() {
 		cols, err := row.Columns()
@@ -113,12 +135,42 @@ func mapRows(
 	ptrOfSliceOfModelPtr any,
 ) error {
 	defer rows.Close()
-
-	cols, err := rows.Columns()
+	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
 	if err != nil {
 		return err
 	}
-	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
+	if err = mapRowsCommon(r, rows, sliceType, func(modelValue reflect.Value) {
+		// *dest = append(*dest, i)
+		destValue.Elem().Set(reflect.Append(destValue.Elem(), modelValue.Addr()))
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func mapRowsGeneric[T any](
+	r Reflector,
+	rows SqlRows,
+) ([]*T, error) {
+	defer rows.Close()
+	var results []*T
+	modelType := reflect.TypeFor[T]()
+	if err := mapRowsCommon(r, rows, modelType, func(v reflect.Value) {
+		dest := v.Interface().(T)
+		results = append(results, &dest)
+	}); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func mapRowsCommon(
+	r Reflector,
+	rows SqlRows,
+	sliceType reflect.Type,
+	appendFunc func(reflect.Value),
+) error {
+	cols, err := rows.Columns()
 	if err != nil {
 		return err
 	}
@@ -134,8 +186,7 @@ func mapRows(
 		if err := rows.Scan(receivers...); err != nil {
 			return err
 		}
-		// *dest = append(*dest, i)
-		destValue.Elem().Set(reflect.Append(destValue.Elem(), modelValue.Addr()))
+		appendFunc(modelValue)
 		cnt++
 	}
 	if err := rows.Err(); err != nil {

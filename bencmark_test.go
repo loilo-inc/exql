@@ -213,6 +213,27 @@ func BenchmarkMapFind(b *testing.B) {
 			}
 		}
 	})
+
+	b.Run("v3 generic", func(b *testing.B) {
+		finder := NewGenericFinder[model.Users](v3db.DB(), v3db)
+		for i := 0; i < b.N; i++ {
+			_, err := finder.Find(q)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("v3 generic-stmt", func(b *testing.B) {
+		stmt := NewStmtExecutor(v3db.DB())
+		finder := NewGenericFinder[model.Users](stmt, v3db)
+		for range b.N {
+			_, err := finder.Find(q)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
 
 func BenchmarkFindMany(b *testing.B) {
@@ -248,6 +269,27 @@ func BenchmarkFindMany(b *testing.B) {
 		for range b.N {
 			var user []*model.Users
 			err := v3db.FindMany(q, &user)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("v3 generic", func(b *testing.B) {
+		refl := newReflector()
+		finder := newGenericFinder[model.Users](v3db.DB(), refl)
+		for i := 0; i < b.N; i++ {
+			_, err := finder.FindMany(q)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("v3 generic-stmt", func(b *testing.B) {
+		refl := newReflector()
+		stmt := NewStmtExecutor(v3db.DB())
+		finder := newGenericFinder[model.Users](stmt, refl)
+		for range b.N {
+			_, err := finder.FindMany(q)
 			if err != nil {
 				b.Fatal(err)
 			}

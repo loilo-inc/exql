@@ -184,6 +184,17 @@ func TestMapRows(t *testing.T) {
 			assert.Equal(t, dest[1].Name, users[1].Name)
 			assert.Equal(t, dest[1].Age, users[1].Age)
 		})
+		t.Run("generic", func(t *testing.T) {
+			rows, err := db.DB().Query(`SELECT * FROM users WHERE id IN (?,?) ORDER BY id`, users[0].Id, users[1].Id)
+			assert.NoError(t, err)
+			defer rows.Close()
+			users, err := mapRowsGeneric[model.Users](noCacheReflector, rows)
+			assert.NoError(t, err)
+			assert.Equal(t, users[0].Name, users[0].Name)
+			assert.Equal(t, users[0].Age, users[0].Age)
+			assert.Equal(t, users[1].Name, users[1].Name)
+			assert.Equal(t, users[1].Age, users[1].Age)
+		})
 	})
 	t.Run("fields", func(t *testing.T) {
 		field := setupFields(t, db)
@@ -194,6 +205,13 @@ func TestMapRows(t *testing.T) {
 			err = MapRows(rows, &dest)
 			assert.NoError(t, err)
 			assertFields(t, dest[0], field)
+		})
+		t.Run("generic", func(t *testing.T) {
+			rows, err := db.DB().Query(`SELECT * FROM fields WHERE id = ?`, field.Id)
+			assert.NoError(t, err)
+			fields, err := mapRowsGeneric[model.Fields](noCacheReflector, rows)
+			assert.NoError(t, err)
+			assertFields(t, fields[0], field)
 		})
 	})
 	t.Run("should return error if destination is not pointer of slice of pointer of struct", func(t *testing.T) {
@@ -303,6 +321,14 @@ func TestMapRow(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, user.Id, p.Id)
 			assert.Equal(t, user.Name, p.Name)
+		})
+		t.Run("generic", func(t *testing.T) {
+			rows, err := db.DB().Query("SELECT * FROM users WHERE id IN (?, ?) ORDER BY id", users[0].Id, users[1].Id)
+			assert.NoError(t, err)
+			defer rows.Close()
+			user, err := mapRowGeneric[model.Users](noCacheReflector, rows)
+			assert.NoError(t, err)
+			assert.Equal(t, user.Name, users[0].Name)
 		})
 	})
 	t.Run("fields", func(t *testing.T) {

@@ -7,22 +7,23 @@ import (
 )
 
 type Tx interface {
-	Saver
-	Finder
+	dbtx
 	Tx() *sql.Tx
 }
 
 type tx struct {
 	*saver
 	*finder
+	*reflector
 	tx *sql.Tx
 }
 
-func newTx(t *sql.Tx, reflector Reflector) *tx {
+func newTx(t *sql.Tx, reflector *reflector) *tx {
 	return &tx{
-		saver:  newSaver(t, reflector),
-		finder: newFinder(t, reflector),
-		tx:     t,
+		saver:     newSaver(t, reflector),
+		finder:    newFinder(t, reflector),
+		reflector: reflector,
+		tx:        t,
 	}
 }
 
@@ -34,7 +35,7 @@ func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback 
 	return transaction(noCacheReflector, db, ctx, opts, callback)
 }
 
-func transaction(reflector Reflector, db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
+func transaction(reflector *reflector, db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	sqlTx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return err
