@@ -139,12 +139,13 @@ func mapRows(
 	if err != nil {
 		return err
 	}
-	if err = mapRowsCommon(r, rows, sliceType, func(modelValue reflect.Value) {
-		// *dest = append(*dest, i)
-		destValue.Elem().Set(reflect.Append(destValue.Elem(), modelValue.Addr()))
+	destSlice := destValue.Elem()
+	if err = mapRowsCommon(r, rows, sliceType, func(modelValue *reflect.Value) {
+		destSlice = reflect.Append(destSlice, modelValue.Addr())
 	}); err != nil {
 		return err
 	}
+	destValue.Elem().Set(destSlice)
 	return nil
 }
 
@@ -155,7 +156,7 @@ func mapRowsGeneric[T any](
 	defer rows.Close()
 	var results []*T
 	modelType := reflect.TypeFor[T]()
-	if err := mapRowsCommon(r, rows, modelType, func(v reflect.Value) {
+	if err := mapRowsCommon(r, rows, modelType, func(v *reflect.Value) {
 		dest := v.Interface().(T)
 		results = append(results, &dest)
 	}); err != nil {
@@ -168,7 +169,7 @@ func mapRowsCommon(
 	r Reflector,
 	rows SqlRows,
 	sliceType reflect.Type,
-	appendFunc func(reflect.Value),
+	appendFunc func(*reflect.Value),
 ) error {
 	cols, err := rows.Columns()
 	if err != nil {
@@ -186,7 +187,7 @@ func mapRowsCommon(
 		if err := rows.Scan(receivers...); err != nil {
 			return err
 		}
-		appendFunc(modelValue)
+		appendFunc(&modelValue)
 		cnt++
 	}
 	if err := rows.Err(); err != nil {

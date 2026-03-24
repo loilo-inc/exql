@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"go.uber.org/mock/gomock"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v3/internal/mock"
+	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/null"
 	"github.com/stretchr/testify/assert"
@@ -220,8 +222,7 @@ func TestMapRows(t *testing.T) {
 			assert.ErrorIs(t, MapRows(mockRows, 0), errMapManyDestination)
 		})
 		t.Run("*int", func(t *testing.T) {
-			i := 0
-			assert.ErrorIs(t, MapRows(mockRows, &i), errMapManyDestination)
+			assert.ErrorIs(t, MapRows(mockRows, Ptr(0)), errMapManyDestination)
 		})
 		t.Run("[]struct", func(t *testing.T) {
 			var i []model.Users
@@ -262,6 +263,38 @@ func TestMapRows(t *testing.T) {
 
 		var dest []*model.Users
 		assert.EqualError(t, MapRows(rows, &dest), "err")
+	})
+
+	t.Run("should keep destination intact on error during iteration", func(t *testing.T) {
+		setup := func(t *testing.T) *mock_iface.MockSqlRow {
+			t.Helper()
+			ctrl := gomock.NewController(t)
+			mockRows := mock_iface.NewMockSqlRow(ctrl)
+			gomock.InOrder(
+				mockRows.EXPECT().Columns().Return([]string{"id"}, nil),
+				mockRows.EXPECT().Next().Return(true),
+				mockRows.EXPECT().Scan(gomock.Any()).Return(nil),
+				mockRows.EXPECT().Next().Return(true),
+				mockRows.EXPECT().Scan(gomock.Any()).Return(fmt.Errorf("err")),
+				mockRows.EXPECT().Close().Return(nil),
+			)
+			return mockRows
+		}
+		t.Run("basic", func(t *testing.T) {
+			mockRows := setup(t)
+			var dest []*model.Users
+			err := mapRows(noCacheReflector, mockRows, &dest)
+			assert.EqualError(t, err, "err")
+			assert.Nil(t, dest)
+			assert.Empty(t, dest)
+		})
+		t.Run("generic", func(t *testing.T) {
+			mockRows := setup(t)
+			users, err := mapRowsGeneric[model.Users](noCacheReflector, mockRows)
+			assert.EqualError(t, err, "err")
+			assert.Nil(t, users)
+			assert.Empty(t, users)
+		})
 	})
 }
 

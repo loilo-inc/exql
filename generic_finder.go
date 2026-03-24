@@ -19,8 +19,9 @@ type genericFinder[T any] struct {
 	refl Reflector
 }
 
-func NewGenericFinder[T any](ex Executor, refl Reflector) GenericFinder[T] {
-	return newGenericFinder[T](ex, refl)
+// NewGenericFinder creates a new GenericFinder with the given Executor and Reflector.
+func NewGenericFinder[T any](ex Executor, db DB) GenericFinder[T] {
+	return newGenericFinder[T](ex, db)
 }
 
 func newGenericFinder[T any](ex Executor, refl Reflector) *genericFinder[T] {
