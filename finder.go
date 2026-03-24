@@ -2,6 +2,7 @@ package exql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/loilo-inc/exql/v3/query"
 )
@@ -26,14 +27,11 @@ func (f *finder) Find(q query.Query, destPtrOfStruct any) error {
 
 // FindContext implements Finder
 func (f *finder) FindContext(ctx context.Context, q query.Query, destPtrOfStruct any) error {
-	if stmt, args, err := q.Query(); err != nil {
-		return err
-	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
-		return err
-	} else if err := mapRow(f.refl, rows, destPtrOfStruct); err != nil {
+	rows, err := executeQueryContext(f.ex, ctx, q)
+	if err != nil {
 		return err
 	}
-	return nil
+	return mapRow(f.refl, rows, destPtrOfStruct)
 }
 
 // FindMany implements Finder
@@ -43,14 +41,21 @@ func (f *finder) FindMany(q query.Query, destSlicePtrOfStruct any) error {
 
 // FindManyContext implements Finder
 func (f *finder) FindManyContext(ctx context.Context, q query.Query, destSlicePtrOfStruct any) error {
-	if stmt, args, err := q.Query(); err != nil {
-		return err
-	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
-		return err
-	} else if err := mapRows(f.refl, rows, destSlicePtrOfStruct); err != nil {
+	rows, err := executeQueryContext(f.ex, ctx, q)
+	if err != nil {
 		return err
 	}
-	return nil
+	return mapRows(f.refl, rows, destSlicePtrOfStruct)
+}
+
+func executeQueryContext(ex Executor, ctx context.Context, q query.Query) (*sql.Rows, error) {
+	if stmt, args, err := q.Query(); err != nil {
+		return nil, err
+	} else if rows, err := ex.QueryContext(ctx, stmt, args...); err != nil {
+		return nil, err
+	} else {
+		return rows, nil
+	}
 }
 
 // NewFinder creates a new Finder with the given Executor.

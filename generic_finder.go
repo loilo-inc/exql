@@ -35,15 +35,11 @@ func (f *genericFinder[T]) Find(q query.Query) (*T, error) {
 
 // FindContext implements GenericFinder
 func (f *genericFinder[T]) FindContext(ctx context.Context, q query.Query) (*T, error) {
-	if stmt, args, err := q.Query(); err != nil {
+	rows, err := executeQueryContext(f.ex, ctx, q)
+	if err != nil {
 		return nil, err
-	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
-		return nil, err
-	} else if result, err := mapRowGeneric[T](f.refl, rows); err != nil {
-		return nil, err
-	} else {
-		return result, nil
 	}
+	return mapRowGeneric[T](f.refl, rows)
 }
 
 // FindMany implements GenericFinder
@@ -53,13 +49,9 @@ func (f *genericFinder[T]) FindMany(q query.Query) ([]*T, error) {
 
 // FindManyContext implements GenericFinder
 func (f *genericFinder[T]) FindManyContext(ctx context.Context, q query.Query) ([]*T, error) {
-	if stmt, args, err := q.Query(); err != nil {
+	rows, err := executeQueryContext(f.ex, ctx, q)
+	if err != nil {
 		return nil, err
-	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
-		return nil, err
-	} else if result, err := mapRowsGeneric[T](f.refl, rows); err != nil {
-		return nil, err
-	} else {
-		return result, nil
 	}
+	return mapRowsGeneric[T](f.refl, rows)
 }
