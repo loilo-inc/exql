@@ -9,15 +9,13 @@ import (
 var errModelNil = fmt.Errorf("model is nil")
 
 type reflector struct {
-	noCache bool
+	cache   bool
 	schemas map[string]*modelSchema
 	mux     sync.Mutex
 }
 
 func newReflector() Reflector {
-	return &reflector{
-		schemas: make(map[string]*modelSchema),
-	}
+	return &reflector{cache: true, schemas: make(map[string]*modelSchema)}
 }
 
 // Reflector is an interface to manage model metadata used for query generation and mapping.
@@ -43,7 +41,7 @@ func (r *reflector) getModelSchema(modelPtr any, forUpdate bool) (*modelSchema, 
 
 func (r *reflector) getSchema(modelType reflect.Type, forUpdate bool) (*modelSchema, error) {
 	key := typeKey(modelType)
-	if !r.noCache {
+	if r.cache {
 		if v, ok := r.schemas[key]; ok {
 			return v, nil
 		}
@@ -52,7 +50,7 @@ func (r *reflector) getSchema(modelType reflect.Type, forUpdate bool) (*modelSch
 	if err != nil {
 		return nil, err
 	}
-	if !r.noCache {
+	if r.cache {
 		r.mux.Lock()
 		r.schemas[key] = f
 		r.mux.Unlock()
@@ -70,7 +68,7 @@ func typeKey(t reflect.Type) string {
 	return t.PkgPath() + "." + t.Name()
 }
 
-var noCacheReflector = &reflector{noCache: true}
+var noCacheReflector = &reflector{cache: false}
 
 // resolveDestination validates that the input is a pointer to a struct and returns the reflect.Value of the struct.
 func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {

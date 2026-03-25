@@ -163,7 +163,7 @@ func TestReflector_getSchema(t *testing.T) {
 	})
 
 	t.Run("rebuilds schema when cache is disabled", func(t *testing.T) {
-		r := &reflector{noCache: true}
+		r := &reflector{cache: false}
 
 		s1, err := r.getModelSchema(&model.Users{}, false)
 		assert.NoError(t, err)
