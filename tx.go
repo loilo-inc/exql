@@ -18,10 +18,10 @@ type tx struct {
 	tx *sql.Tx
 }
 
-func newTx(t *sql.Tx, reflector Reflector) *tx {
+func newTx(t *sql.Tx) *tx {
 	return &tx{
-		saver:  newSaver(t, reflector),
-		finder: newFinder(t, reflector),
+		saver:  newSaver(t),
+		finder: newFinder(t),
 		tx:     t,
 	}
 }
@@ -31,15 +31,15 @@ func (t *tx) Tx() *sql.Tx {
 }
 
 func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(noCacheReflector, db, ctx, opts, callback)
+	return transaction(db, ctx, opts, callback)
 }
 
-func transaction(reflector Reflector, db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
+func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	sqlTx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return err
 	}
-	tx := newTx(sqlTx, reflector)
+	tx := newTx(sqlTx)
 	var p any
 	txErr := func() error {
 		defer func() {

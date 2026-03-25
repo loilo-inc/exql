@@ -61,6 +61,13 @@ func TestAggregateFields(t *testing.T) {
 		assert.Equal(t, "pk2", pk2Name)
 	})
 
+	t.Run("returns error when type is not struct", func(t *testing.T) {
+		metadata, err := aggregateFields(reflect.TypeFor[int](), false)
+
+		assert.Nil(t, metadata)
+		assert.EqualError(t, err, "type must be struct")
+	})
+
 	t.Run("returns error when no exql tags are defined", func(t *testing.T) {
 		metadata, err := aggregateFields(reflect.TypeFor[testmodel.NoTag](), false)
 

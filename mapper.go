@@ -33,11 +33,10 @@ type SerialMapper interface {
 
 type serialMapper struct {
 	splitter ColumnSplitter
-	refl     Reflector
 }
 
 func NewSerialMapper(s ColumnSplitter) SerialMapper {
-	return &serialMapper{splitter: s, refl: noCacheReflector}
+	return &serialMapper{splitter: s}
 }
 
 var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
@@ -54,11 +53,10 @@ func MapRow(
 	row SqlRows,
 	pointerOfStruct any,
 ) error {
-	return mapRow(noCacheReflector, row, pointerOfStruct)
+	return mapRow(row, pointerOfStruct)
 }
 
 func mapRow(
-	r Reflector,
 	row SqlRows,
 	pointerOfStruct any,
 ) error {
@@ -74,7 +72,7 @@ func mapRow(
 		if err != nil {
 			return err
 		}
-		schema, err := r.getSchema(destValue.Type(), false)
+		schema, err := aggregateFields(destValue.Type(), false)
 		if err != nil {
 			return err
 		}
@@ -104,11 +102,10 @@ func MapRows(
 	rows SqlRows,
 	ptrOfSliceOfModelPtr any,
 ) error {
-	return mapRows(noCacheReflector, rows, ptrOfSliceOfModelPtr)
+	return mapRows(rows, ptrOfSliceOfModelPtr)
 }
 
 func mapRows(
-	r Reflector,
 	rows SqlRows,
 	ptrOfSliceOfModelPtr any,
 ) error {
@@ -122,7 +119,7 @@ func mapRows(
 	if err != nil {
 		return err
 	}
-	schema, err := r.getSchema(sliceType, false)
+	schema, err := aggregateFields(sliceType, false)
 	if err != nil {
 		return err
 	}
@@ -164,11 +161,10 @@ func (m *serialMapper) Map(
 		}
 		values = append(values, destValue)
 	}
-	return mapJoinedRows(m.refl, rows, values, m.splitter)
+	return mapJoinedRows(rows, values, m.splitter)
 }
 
 func mapJoinedRows(
-	refl Reflector,
 	row SqlRows,
 	destList []*nullableDest,
 	headColProvider ColumnSplitter,
@@ -177,7 +173,7 @@ func mapJoinedRows(
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := refl.getSchema(dest.elemType, false)
+		md, err := aggregateFields(dest.elemType, false)
 		if err != nil {
 			return err
 		}

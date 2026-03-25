@@ -2,7 +2,6 @@ package exql
 
 import (
 	"reflect"
-	"sync"
 	"testing"
 
 	"github.com/loilo-inc/exql/v3/model"
@@ -12,7 +11,7 @@ import (
 func Test_resolveDestination(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		_, err := resolveDestination(nil)
-		assert.ErrorIs(t, errMapDestination, err)
+		assert.ErrorIs(t, errModelNil, err)
 	})
 	t.Run("non-pointer", func(t *testing.T) {
 		_, err := resolveDestination(1)
@@ -40,7 +39,7 @@ func Test_resolveDestination(t *testing.T) {
 func Test_resolveNullableDestination(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		_, err := resolveNullableDestination(nil)
-		assert.ErrorIs(t, errMapRowSerialDestination, err)
+		assert.ErrorIs(t, errModelNil, err)
 	})
 	t.Run("non-pointer", func(t *testing.T) {
 		_, err := resolveNullableDestination(1)
@@ -78,7 +77,7 @@ func Test_resolveNullableDestination(t *testing.T) {
 func Test_resolveDestinationMany(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		_, _, err := resolveDestinationMany(nil)
-		assert.ErrorIs(t, errMapManyDestination, err)
+		assert.ErrorIs(t, errModelNil, err)
 	})
 	t.Run("non-pointer", func(t *testing.T) {
 		_, _, err := resolveDestinationMany([]*model.Users{})
@@ -109,129 +108,4 @@ func Test_resolveDestinationMany(t *testing.T) {
 		assert.Len(t, v.Elem().Interface(), 1)
 		assert.Equal(t, "alice", v.Elem().Index(0).Elem().FieldByName("Name").String())
 	})
-}
-
-func TestReflector_getSchema(t *testing.T) {
-	t.Run("returns schema for model pointer", func(t *testing.T) {
-		r := newReflector()
-
-		schema, err := r.getModelSchema(&model.Users{}, false)
-
-		assert.NoError(t, err)
-		if !assert.NotNil(t, schema) {
-			return
-		}
-		if assert.NotNil(t, schema.autoIncrementField) {
-			assert.Equal(t, 0, *schema.autoIncrementField)
-		}
-		assert.Equal(t, []int{1, 2}, schema.updatableFields)
-	})
-
-	t.Run("returns schema for model update struct", func(t *testing.T) {
-		r := newReflector()
-
-		schema, err := r.getModelSchema(&model.UpdateUsers{}, true)
-
-		assert.NoError(t, err)
-		if !assert.NotNil(t, schema) {
-			return
-		}
-		if assert.NotNil(t, schema.autoIncrementField) {
-			assert.Equal(t, 0, *schema.autoIncrementField)
-		}
-		assert.Equal(t, []int{1, 2}, schema.updatableFields)
-	})
-
-	t.Run("returns validation error for invalid destination", func(t *testing.T) {
-		r := newReflector()
-
-		schema, err := r.getModelSchema(model.UpdateUsers{}, false)
-
-		assert.Nil(t, schema)
-		assert.ErrorIs(t, err, errMapDestination)
-	})
-
-	t.Run("uses cached schema when cache is enabled", func(t *testing.T) {
-		r := newReflector()
-
-		s1, err := r.getModelSchema(&model.Users{}, false)
-		assert.NoError(t, err)
-
-		s2, err := r.getModelSchema(&model.Users{}, false)
-		assert.NoError(t, err)
-		assert.Same(t, s1, s2)
-	})
-
-	t.Run("rebuilds schema when cache is disabled", func(t *testing.T) {
-		r := &reflector{cache: false}
-
-		s1, err := r.getModelSchema(&model.Users{}, false)
-		assert.NoError(t, err)
-
-		s2, err := r.getModelSchema(&model.Users{}, false)
-		assert.NoError(t, err)
-		assert.NotSame(t, s1, s2)
-	})
-
-	t.Run("is safe for concurrent access", func(t *testing.T) {
-		r := newReflector()
-		const goroutines = 64
-		expected, err := r.getModelSchema(&model.Users{}, false)
-		assert.NoError(t, err)
-
-		results := make(chan *modelSchema, goroutines)
-		errs := make(chan error, goroutines)
-		var wg sync.WaitGroup
-		wg.Add(goroutines)
-
-		for range goroutines {
-			go func() {
-				defer wg.Done()
-				schema, err := r.getModelSchema(&model.Users{}, false)
-				if err != nil {
-					errs <- err
-					return
-				}
-				results <- schema
-			}()
-		}
-
-		wg.Wait()
-		close(results)
-		close(errs)
-
-		for err := range errs {
-			assert.NoError(t, err)
-		}
-
-		var first *modelSchema
-		count := 0
-		for schema := range results {
-			if !assert.NotNil(t, schema) {
-				continue
-			}
-			assert.Same(t, expected, schema)
-			first = schema
-			count++
-		}
-		assert.Same(t, expected, first)
-		assert.Equal(t, goroutines, count)
-	})
-}
-
-func TestReflectorclearSchemaCache(t *testing.T) {
-	r := newReflector()
-
-	s1, err := r.getSchema(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
-
-	r.clearSchemaCache()
-
-	s2, err := r.getSchema(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
-	assert.NotSame(t, s1, s2)
-}
-
-func Test_typeKey(t *testing.T) {
-	assert.Equal(t, "github.com/loilo-inc/exql/v3/model.Users", typeKey(reflect.TypeFor[model.Users]()))
 }

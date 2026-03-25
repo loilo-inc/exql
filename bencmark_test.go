@@ -5,7 +5,6 @@ import (
 
 	v2 "github.com/loilo-inc/exql/v2"
 	v2model "github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v3/internal/mock"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/query"
 )
@@ -13,7 +12,6 @@ import (
 func BenchmarkQueryForInsert(b *testing.B) {
 	v2user := v2model.Users{}
 	v3user := model.Users{}
-	refl := newReflector()
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			v2.QueryForInsert(&v2user)
@@ -21,7 +19,7 @@ func BenchmarkQueryForInsert(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			queryForInsert(refl, &v3user)
+			QueryForInsert(&v3user)
 		}
 	})
 }
@@ -33,7 +31,6 @@ func BenchmarkQueryForBulkInsert(b *testing.B) {
 		v2users = append(v2users, &v2model.Users{})
 		v3users = append(v3users, &model.Users{})
 	}
-	refl := newReflector()
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			v2.QueryForBulkInsert(v2users...)
@@ -41,7 +38,7 @@ func BenchmarkQueryForBulkInsert(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			queryForBulkInsert(refl, v3users...)
+			QueryForBulkInsert(v3users...)
 		}
 	})
 }
@@ -51,7 +48,6 @@ func BenchmarkQueryForUpdate(b *testing.B) {
 	v3user := model.UpdateUsers{}
 	v2where := v2.Where("id = ?", 1)
 	v3where := Where("id = ?", 1)
-	refl := newReflector()
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			v2.QueryForUpdateModel(&v2user, v2where)
@@ -59,59 +55,7 @@ func BenchmarkQueryForUpdate(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			queryForUpdateModel(refl, &v3user, v3where)
-		}
-	})
-}
-
-func BenchmarkMapRow(b *testing.B) {
-	refl := newReflector()
-	noRelf := noCacheReflector
-	b.Run("no-cache", func(b *testing.B) {
-		row := &mock.Rows{
-			Cols:   []string{"id", "name", "age"},
-			Values: [][]any{{1, "exql", 6}},
-		}
-		for range b.N {
-			var user model.Users
-			row.Idx = 0
-			mapRow(noRelf, row, &user)
-		}
-	})
-	b.Run("cache", func(b *testing.B) {
-		row := &mock.Rows{
-			Cols:   []string{"id", "name", "age"},
-			Values: [][]any{{1, "exql", 6}},
-		}
-		for range b.N {
-			var user model.Users
-			row.Idx = 0
-			mapRow(refl, row, &user)
-		}
-	})
-}
-
-func BenchmarkMapRows(b *testing.B) {
-	refl := newReflector()
-	noRelf := noCacheReflector
-	rows := &mock.Rows{
-		Cols: []string{"id", "name", "age"},
-	}
-	for range 100 {
-		rows.Values = append(rows.Values, []any{1, "exql", 6})
-	}
-	b.Run("no-cache", func(b *testing.B) {
-		for range b.N {
-			var users []*model.Users
-			rows.Idx = 0
-			mapRows(noRelf, rows, &users)
-		}
-	})
-	b.Run("cache", func(b *testing.B) {
-		for range b.N {
-			var users []*model.Users
-			rows.Idx = 0
-			mapRows(refl, rows, &users)
+			QueryForUpdateModel(&v3user, v3where)
 		}
 	})
 }

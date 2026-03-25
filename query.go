@@ -12,11 +12,11 @@ func Where(str string, args ...any) q.Condition {
 }
 
 func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
-	return queryForInsert(noCacheReflector, modelPtr)
-}
-
-func queryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, error) {
-	ms, err := refl.getModelSchema(modelPtr, false)
+	dest, err := resolveDestination(modelPtr)
+	if err != nil {
+		return nil, nil, err
+	}
+	ms, err := aggregateFields(dest.Type(), false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,14 +37,14 @@ func queryForInsert(refl Reflector, modelPtr Model) (q.Query, *reflect.Value, er
 }
 
 func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
-	return queryForBulkInsert(noCacheReflector, modelPtrs...)
-}
-
-func queryForBulkInsert[T Model](refl Reflector, modelPtrs ...T) (q.Query, error) {
 	if len(modelPtrs) == 0 {
 		return nil, fmt.Errorf("empty list")
 	}
-	ms, err := refl.getModelSchema(modelPtrs[0], false)
+	destType, err := resolveDestination(modelPtrs[0])
+	if err != nil {
+		return nil, err
+	}
+	ms, err := aggregateFields(destType.Type(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -74,18 +74,14 @@ func QueryForUpdateModel(
 	updateStructPtr ModelUpdate,
 	where q.Condition,
 ) (q.Query, error) {
-	return queryForUpdateModel(noCacheReflector, updateStructPtr, where)
-}
-
-func queryForUpdateModel(
-	refl Reflector,
-	updateStructPtr ModelUpdate,
-	where q.Condition,
-) (q.Query, error) {
 	if updateStructPtr == nil {
 		return nil, errModelNil
 	}
-	ms, err := refl.getModelSchema(updateStructPtr, true)
+	dest, err := resolveDestination(updateStructPtr)
+	if err != nil {
+		return nil, err
+	}
+	ms, err := aggregateFields(dest.Type(), true)
 	if err != nil {
 		return nil, err
 	}

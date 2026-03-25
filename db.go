@@ -31,7 +31,6 @@ type DB interface {
 type db struct {
 	*saver
 	*finder
-	refl  Reflector
 	db    *sql.DB
 	mutex sync.Mutex
 }
@@ -116,17 +115,14 @@ success:
 }
 
 func NewDB(d *sql.DB) DB {
-	refl := newReflector()
 	return &db{
-		saver:  newSaver(d, refl),
-		finder: newFinder(d, refl),
-		refl:   refl,
+		saver:  newSaver(d),
+		finder: newFinder(d),
 		db:     d,
 	}
 }
 
 func (d *db) Close() error {
-	d.refl.clearSchemaCache()
 	return d.db.Close()
 }
 
@@ -140,7 +136,6 @@ func (d *db) SetDB(db *sql.DB) {
 	d.db = db
 	d.saver.ex = db
 	d.finder.ex = db
-	d.refl.clearSchemaCache()
 }
 
 func (d *db) Transaction(callback func(tx Tx) error) error {
@@ -148,5 +143,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(d.refl, d.db, ctx, opts, callback)
+	return transaction(d.db, ctx, opts, callback)
 }

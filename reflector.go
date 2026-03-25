@@ -3,77 +3,14 @@ package exql
 import (
 	"fmt"
 	"reflect"
-	"sync"
 )
 
 var errModelNil = fmt.Errorf("model is nil")
 
-type reflector struct {
-	cache   bool
-	schemas map[string]*modelSchema
-	mux     sync.Mutex
-}
-
-func newReflector() Reflector {
-	return &reflector{cache: true, schemas: make(map[string]*modelSchema)}
-}
-
-// Reflector is an interface to manage model metadata used for query generation and mapping.
-type Reflector interface {
-	getSchema(modelType reflect.Type, forUpdate bool) (*modelSchema, error)
-	getModelSchema(modelPtr any, forUpdate bool) (*modelSchema, error)
-	clearSchemaCache()
-}
-
-var _ Reflector = (*reflector)(nil)
-
-func (r *reflector) getModelSchema(modelPtr any, forUpdate bool) (*modelSchema, error) {
-	destType := reflect.TypeOf(modelPtr)
-	if destType == nil {
-		return nil, errModelNil
-	}
-	if destType.Kind() != reflect.Pointer {
-		return nil, errMapDestination
-	}
-	t := destType.Elem()
-	return r.getSchema(t, forUpdate)
-}
-
-func (r *reflector) getSchema(modelType reflect.Type, forUpdate bool) (*modelSchema, error) {
-	key := typeKey(modelType)
-	if r.cache {
-		if v, ok := r.schemas[key]; ok {
-			return v, nil
-		}
-	}
-	f, err := aggregateFields(modelType, forUpdate)
-	if err != nil {
-		return nil, err
-	}
-	if r.cache {
-		r.mux.Lock()
-		r.schemas[key] = f
-		r.mux.Unlock()
-	}
-	return f, nil
-}
-
-func (r *reflector) clearSchemaCache() {
-	r.mux.Lock()
-	r.schemas = make(map[string]*modelSchema)
-	r.mux.Unlock()
-}
-
-func typeKey(t reflect.Type) string {
-	return t.PkgPath() + "." + t.Name()
-}
-
-var noCacheReflector = &reflector{cache: false}
-
 // resolveDestination validates that the input is a pointer to a struct and returns the reflect.Value of the struct.
 func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
 	if pointerOfStruct == nil {
-		return nil, errMapDestination
+		return nil, errModelNil
 	}
 	destValue := reflect.ValueOf(pointerOfStruct)
 	// any -> (*Model)
@@ -99,7 +36,7 @@ type nullableDest struct {
 // resolveNullableDestination validates that the input is a pointer to a struct or a pointer to a pointer to a struct and returns the reflect.Value of the struct.
 func resolveNullableDestination(dest any) (*nullableDest, error) {
 	if dest == nil {
-		return nil, errMapRowSerialDestination
+		return nil, errModelNil
 	}
 	// any -> (*Model) || (**Model)
 	destValue := reflect.ValueOf(dest)
@@ -136,7 +73,7 @@ var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice o
 // resolveDestinationMany validates that the input is a pointer to a slice of pointers to struct and returns the reflect.Type of the struct and the reflect.Value of the destination slice.
 func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Value, error) {
 	if ptrOfSliceOfModelPtr == nil {
-		return nil, nil, errMapManyDestination
+		return nil, nil, errModelNil
 	}
 	destValue := reflect.ValueOf(ptrOfSliceOfModelPtr)
 	// any -> *[]*Model
@@ -160,4 +97,8 @@ func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Va
 		return nil, nil, errMapManyDestination
 	}
 	return sliceType, &destValue, nil
+}
+
+func typeKey(t reflect.Type) string {
+	return t.PkgPath() + "." + t.Name()
 }

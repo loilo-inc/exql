@@ -2,8 +2,6 @@ package exql
 
 import (
 	"database/sql"
-	"fmt"
-	"reflect"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -50,18 +48,3 @@ func resetTestDB(db *sql.DB) error {
 	}
 	return nil
 }
-
-type errReflector struct {
-}
-
-var _ Reflector = (*errReflector)(nil)
-
-func (r *errReflector) getSchema(modelPtr reflect.Type, forUpdate bool) (*modelSchema, error) {
-	return nil, fmt.Errorf("error reflector")
-}
-
-func (r *errReflector) getModelSchema(dest any, forUpdate bool) (*modelSchema, error) {
-	return nil, fmt.Errorf("error reflector")
-}
-
-func (r *errReflector) clearSchemaCache() {}

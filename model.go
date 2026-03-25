@@ -22,6 +22,9 @@ type modelValue struct {
 }
 
 func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("type must be struct")
+	}
 	fields := map[string]int{}
 	columns := map[int]string{}
 	exqlTagCount := 0

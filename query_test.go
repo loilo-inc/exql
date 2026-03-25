@@ -31,20 +31,20 @@ func TestQueryForInsert(t *testing.T) {
 		assert.Equal(t, exp, stmt)
 		assert.ElementsMatch(t, args, []any{user.Age, user.Name})
 	})
-	t.Run("should error if Reflector returns error", func(t *testing.T) {
-		s, f, err := QueryForInsert(&testmodel.NoTag{})
+	t.Run("should error if model is nil", func(t *testing.T) {
+		s, f, err := QueryForInsert(nil)
 		assert.Nil(t, s)
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "no exql tags in any fields")
+		assert.EqualError(t, err, "model is nil")
 	})
-	t.Run("should error if injected Reflector returns error", func(t *testing.T) {
-		s, f, err := queryForInsert(&errReflector{}, &model.Users{})
+	t.Run("should error if model is not pointer", func(t *testing.T) {
+		s, f, err := QueryForInsert(testmodel.BadTag{})
 		assert.Nil(t, s)
 		assert.Nil(t, f)
-		assert.EqualError(t, err, "error reflector")
+		assert.EqualError(t, err, errMapDestination.Error())
 	})
 	t.Run("should error if table name is empty", func(t *testing.T) {
-		s, f, err := queryForInsert(noCacheReflector, &testmodel.BadTableName{})
+		s, f, err := QueryForInsert(&testmodel.BadTableName{})
 		assert.Nil(t, s)
 		assert.Nil(t, f)
 		assert.EqualError(t, err, "empty table name")
@@ -68,13 +68,23 @@ func TestQueryForBulkInsert(t *testing.T) {
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty list")
 	})
-	t.Run("should error if injected Reflector returns error", func(t *testing.T) {
-		q, err := queryForBulkInsert(&errReflector{}, &model.Users{})
+	t.Run("should error if modeil is nil", func(t *testing.T) {
+		q, err := QueryForBulkInsert[Model](nil)
 		assert.Nil(t, q)
-		assert.EqualError(t, err, "error reflector")
+		assert.EqualError(t, err, "model is nil")
+	})
+	t.Run("should error if one of models is nil", func(t *testing.T) {
+		q, err := QueryForBulkInsert[Model](&model.Users{}, nil)
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "model is nil")
+	})
+	t.Run("should error if model is not pointer", func(t *testing.T) {
+		q, err := QueryForBulkInsert(testmodel.BadTag{})
+		assert.Nil(t, q)
+		assert.EqualError(t, err, errMapDestination.Error())
 	})
 	t.Run("should error if table name is empty", func(t *testing.T) {
-		q, err := queryForBulkInsert(noCacheReflector, &testmodel.BadTableName{})
+		q, err := QueryForBulkInsert(&testmodel.BadTableName{})
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "empty table name")
 	})
@@ -105,6 +115,10 @@ func TestQueryForUpdateModel(t *testing.T) {
 	t.Run("should error if has invalid tag", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleInvalidTag{}, nil)
 		assert.EqualError(t, err, "invalid tag format")
+	})
+	t.Run("should error if is not pointer", func(t *testing.T) {
+		_, err := QueryForUpdateModel(testmodel.UpdateSample{}, nil)
+		assert.ErrorIs(t, err, errMapDestination)
 	})
 	t.Run("should error if field is not pointer", func(t *testing.T) {
 		_, err := QueryForUpdateModel(&testmodel.UpdateSampleNotPtr{}, nil)
