@@ -9,6 +9,7 @@ type upsertModelSchema struct {
 	autoIncrementField *int
 	columns            []column
 	forUpdate          bool
+	modelType          reflect.Type
 }
 
 type column struct {
@@ -78,6 +79,7 @@ func parseUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, erro
 		autoIncrementField: autoIncrementField,
 		columns:            columns,
 		forUpdate:          forUpdate,
+		modelType:          t,
 	}, nil
 }
 

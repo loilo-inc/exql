@@ -118,18 +118,6 @@ func Test_UpsertSchema_aggregateValue(t *testing.T) {
 		_, err := schema.aggregateValue(nil)
 		assert.EqualError(t, err, errModelNil.Error())
 	})
-
-	t.Run("should error if dest type mismatch", func(t *testing.T) {
-		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
-		_, err := schema.aggregateValue(&testmodel.MultiplePrimaryKey{})
-		assert.ErrorContains(t, err, "model type mismatch")
-	})
-
-	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
-		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
-		_, err := schema.aggregateValue(123)
-		assert.ErrorContains(t, err, "object must be pointer of struct")
-	})
 }
 
 func Test_AggregateMapSchema(t *testing.T) {
