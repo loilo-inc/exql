@@ -3,16 +3,17 @@ package exql
 import (
 	"fmt"
 	"reflect"
-
-	q "github.com/loilo-inc/exql/v3/query"
 )
 
 type upsertModelSchema struct {
 	autoIncrementField *int
-	updatableFields    []int
-	columns            map[int]string
+	columns            []column
 	forUpdate          bool
-	key                string
+}
+
+type column struct {
+	index int
+	name  string
 }
 
 type mapModelSchema struct {
@@ -21,16 +22,15 @@ type mapModelSchema struct {
 
 type modelValue struct {
 	autoIncrementField *reflect.Value
-	values             q.KeyIterator[any]
+	values             map[string]any
 }
 
-func aggregateUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, error) {
+func parseUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, error) {
 	if t.Kind() != reflect.Struct {
 		return nil, errTypeNotStruct
 	}
-	columns := map[int]string{}
 	exqlTagCount := 0
-	var updatableFields []int
+	var columns []column
 	var autoIncrementField *int
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
@@ -49,11 +49,10 @@ func aggregateUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, 
 		if err != nil {
 			return nil, err
 		}
-		colName, ok := tags["column"]
-		if !ok || colName == "" {
+		colName := tags["column"]
+		if colName == "" {
 			return nil, fmt.Errorf("column tag is not set")
 		}
-		columns[i] = colName
 		exqlTagCount++
 		_, autoIncrement := tags["auto_increment"]
 		if autoIncrement {
@@ -67,7 +66,7 @@ func aggregateUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, 
 			autoIncrementField = &i
 		}
 		if !autoIncrement {
-			updatableFields = append(updatableFields, i)
+			columns = append(columns, column{index: i, name: colName})
 		}
 	}
 
@@ -77,14 +76,12 @@ func aggregateUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, 
 
 	return &upsertModelSchema{
 		autoIncrementField: autoIncrementField,
-		updatableFields:    updatableFields,
 		columns:            columns,
 		forUpdate:          forUpdate,
-		key:                typeKey(t),
 	}, nil
 }
 
-func aggregateMapSchema(t reflect.Type) (*mapModelSchema, error) {
+func parseMapSchema(t reflect.Type) (*mapModelSchema, error) {
 	if t.Kind() != reflect.Struct {
 		return nil, errTypeNotStruct
 	}
@@ -100,8 +97,8 @@ func aggregateMapSchema(t reflect.Type) (*mapModelSchema, error) {
 		if err != nil {
 			return nil, err
 		}
-		colName, ok := tags["column"]
-		if !ok || colName == "" {
+		colName := tags["column"]
+		if colName == "" {
 			return nil, fmt.Errorf("column tag is not set")
 		}
 		fields[colName] = i
@@ -115,43 +112,31 @@ func aggregateMapSchema(t reflect.Type) (*mapModelSchema, error) {
 	return &mapModelSchema{fields: fields}, nil
 }
 
-var errTableNameEmpty = fmt.Errorf("empty table name")
-
 func (ms *upsertModelSchema) aggregateValue(
 	modelPtr any,
 ) (*modelValue, error) {
 	if modelPtr == nil {
 		return nil, errModelNil
 	}
-	objValue := reflect.ValueOf(modelPtr)
-	objType := objValue.Type()
-	if objType.Kind() != reflect.Pointer || objType.Elem().Kind() != reflect.Struct {
-		return nil, fmt.Errorf("object must be pointer of struct")
-	}
-	// *User -> User
-	objType = objType.Elem()
-	if ms.key != typeKey(objType) {
-		return nil, fmt.Errorf("model type mismatch: expected=%s, actual=%s", ms.key, typeKey(objType))
-	}
+	// Must be a pointer of struct. Ensured by aggregateUpsertSchema.
+	objValue := reflect.ValueOf(modelPtr).Elem()
 	var autoIncrementField *reflect.Value
 	if ms.autoIncrementField != nil {
-		f := objValue.Elem().Field(*ms.autoIncrementField)
+		f := objValue.Field(*ms.autoIncrementField)
 		autoIncrementField = &f
 	}
 	var data = map[string]any{}
-	for _, idx := range ms.updatableFields {
-		f := objValue.Elem().Field(idx)
-		col := ms.columns[idx]
+	for _, v := range ms.columns {
+		f := objValue.Field(v.index)
 		if !ms.forUpdate {
-			data[col] = f.Interface()
+			data[v.name] = f.Interface()
 		} else if !f.IsNil() {
-			col := ms.columns[idx]
-			data[col] = f.Elem().Interface()
+			data[v.name] = f.Elem().Interface()
 		}
 	}
 	return &modelValue{
 		autoIncrementField: autoIncrementField,
-		values:             q.NewKeyIterator(data),
+		values:             data,
 	}, nil
 }
 
@@ -173,3 +158,4 @@ func (ms *mapModelSchema) createReceivers(
 }
 
 var errTypeNotStruct = fmt.Errorf("type must be struct")
+var errTableNameEmpty = fmt.Errorf("empty table name")

@@ -16,7 +16,7 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	ms, err := aggregateUpsertSchema(dest.Type(), false)
+	ms, err := parseUpsertSchema(dest.Type(), false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -29,8 +29,9 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 		return nil, nil, err
 	}
 	b := q.NewBuilder()
-	cols := q.Cols(v.values.Keys()...)
-	vals := q.Vals(v.values.Values())
+	iter := q.NewKeyIterator(v.values)
+	cols := q.Cols(iter.Keys()...)
+	vals := q.Vals(iter.Values())
 	b.Sprintf("INSERT INTO `%s`", tableName)
 	b.Query("(:?) VALUES (:?)", cols, vals)
 	return b.Build(), v.autoIncrementField, nil
@@ -44,7 +45,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 	if err != nil {
 		return nil, err
 	}
-	ms, err := aggregateUpsertSchema(destType.Type(), false)
+	ms, err := parseUpsertSchema(destType.Type(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -52,21 +53,22 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 	if tableName == "" {
 		return nil, errTableNameEmpty
 	}
-	var head *modelValue
+	var cols q.Query
 	b := q.NewBuilder()
 	vals := q.NewBuilder()
 	for _, v := range modelPtrs {
-		if data, err := ms.aggregateValue(v); err != nil {
+		data, err := ms.aggregateValue(v)
+		if err != nil {
 			return nil, err
-		} else {
-			if head == nil {
-				head = data
-			}
-			vals.Query("(:?)", q.Vals(data.values.Values()))
 		}
+		iter := q.NewKeyIterator(data.values)
+		if cols == nil {
+			cols = q.Cols(iter.Keys()...)
+		}
+		vals.Query("(:?)", q.Vals(iter.Values()))
 	}
 	b.Sprintf("INSERT INTO `%s`", tableName)
-	b.Query("(:?) VALUES :?", q.Cols(head.values.Keys()...), vals.Join(","))
+	b.Query("(:?) VALUES :?", cols, vals.Join(","))
 	return b.Build(), nil
 }
 
@@ -81,7 +83,7 @@ func QueryForUpdateModel(
 	if err != nil {
 		return nil, err
 	}
-	ms, err := aggregateUpsertSchema(dest.Type(), true)
+	ms, err := parseUpsertSchema(dest.Type(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +95,11 @@ func QueryForUpdateModel(
 	if err != nil {
 		return nil, err
 	}
-	if v.values.Size() == 0 {
+	if len(v.values) == 0 {
 		return nil, fmt.Errorf("no updatable fields with non-nil value")
 	}
 	b := q.NewBuilder()
 	b.Sprintf("UPDATE `%s`", tableName)
-	b.Query("SET :? WHERE :?", q.Set(v.values.Map()), where)
+	b.Query("SET :? WHERE :?", q.Set(v.values), where)
 	return b.Build(), nil
 }

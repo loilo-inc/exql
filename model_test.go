@@ -11,7 +11,7 @@ import (
 
 func TestAggregateUpsertSchema(t *testing.T) {
 	t.Run("builds model metadata from exql tags", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[model.Users](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
@@ -20,74 +20,64 @@ func TestAggregateUpsertSchema(t *testing.T) {
 		if assert.NotNil(t, metadata.autoIncrementField) {
 			assert.Equal(t, 0, *metadata.autoIncrementField)
 		}
-		assert.Equal(t, []int{1, 2}, metadata.updatableFields)
-
-		colName, ok := metadata.columns[1]
-		assert.True(t, ok)
-		assert.Equal(t, "name", colName)
-
-		colName, ok = metadata.columns[2]
-		assert.True(t, ok)
-		assert.Equal(t, "age", colName)
-
+		assert.Equal(t, []column{
+			{index: 1, name: "name"},
+			{index: 2, name: "age"},
+		}, metadata.columns)
 	})
 
 	t.Run("supports multiple primary keys", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
 			return
 		}
 		assert.Nil(t, metadata.autoIncrementField)
-		assert.Equal(t, []int{0, 1, 2}, metadata.updatableFields)
-
-		pk1Index, ok := metadata.columns[0]
-		assert.True(t, ok)
-		assert.Equal(t, "pk1", pk1Index)
-
-		pk2Name, ok := metadata.columns[1]
-		assert.True(t, ok)
-		assert.Equal(t, "pk2", pk2Name)
+		assert.Equal(t, []column{
+			{index: 0, name: "pk1"},
+			{index: 1, name: "pk2"},
+			{index: 2, name: "other"},
+		}, metadata.columns)
 	})
 
 	t.Run("returns error when type is not struct", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[int](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[int](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "type must be struct")
 	})
 
 	t.Run("returns error when no exql tags are defined", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.NoTag](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.NoTag](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "no exql tags in any fields")
 	})
 
 	t.Run("returns error when column tag is not set", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.NoColumnTag](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.NoColumnTag](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "column tag is not set")
 	})
 
 	t.Run("returns error for pointer fields", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.UpdateSample](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.UpdateSample](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "field must not be a pointer:  ptr")
 	})
 
 	t.Run("returns error for invalid tag format", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.BadTag](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.BadTag](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "duplicated tag: a")
 	})
 
 	t.Run("returns error for auto_increment field with non int64 type", func(t *testing.T) {
-		metadata, err := aggregateUpsertSchema(reflect.TypeFor[testmodel.PrimaryUint64](), false)
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.PrimaryUint64](), false)
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "auto_increment field must be int64")
@@ -96,16 +86,18 @@ func TestAggregateUpsertSchema(t *testing.T) {
 
 func Test_UpsertSchema_aggregateValue(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		schema, _ := aggregateUpsertSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
 		user := &model.Users{Name: "go", Age: 10}
 		m, err := schema.aggregateValue(user)
 		assert.NoError(t, err)
 		assert.NotNil(t, m.autoIncrementField)
-		assert.ElementsMatch(t, []string{"age", "name"}, m.values.Keys())
-		assert.ElementsMatch(t, []any{int64(10), "go"}, m.values.Values())
+		assert.Equal(t, map[string]any{
+			"name": "go",
+			"age":  int64(10),
+		}, m.values)
 	})
 	t.Run("multiple primary key", func(t *testing.T) {
-		schema, _ := aggregateUpsertSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
+		schema, _ := parseUpsertSchema(reflect.TypeFor[testmodel.MultiplePrimaryKey](), false)
 		data := &testmodel.MultiplePrimaryKey{
 			Pk1:   "val1",
 			Pk2:   "val2",
@@ -114,24 +106,27 @@ func Test_UpsertSchema_aggregateValue(t *testing.T) {
 		v, err := schema.aggregateValue(data)
 		assert.NoError(t, err)
 		assert.Nil(t, v.autoIncrementField)
-		assert.ElementsMatch(t, []string{"pk1", "pk2", "other"}, v.values.Keys())
-		assert.ElementsMatch(t, []any{"val1", "val2", 1}, v.values.Values())
+		assert.Equal(t, map[string]any{
+			"pk1":   "val1",
+			"pk2":   "val2",
+			"other": 1,
+		}, v.values)
 	})
 
 	t.Run("should error if dest is nil", func(t *testing.T) {
-		schema, _ := aggregateUpsertSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
 		_, err := schema.aggregateValue(nil)
 		assert.EqualError(t, err, errModelNil.Error())
 	})
 
 	t.Run("should error if dest type mismatch", func(t *testing.T) {
-		schema, _ := aggregateUpsertSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
 		_, err := schema.aggregateValue(&testmodel.MultiplePrimaryKey{})
 		assert.ErrorContains(t, err, "model type mismatch")
 	})
 
 	t.Run("should error if dest is not pointer of struct", func(t *testing.T) {
-		schema, _ := aggregateUpsertSchema(reflect.TypeFor[model.Users](), false)
+		schema, _ := parseUpsertSchema(reflect.TypeFor[model.Users](), false)
 		_, err := schema.aggregateValue(123)
 		assert.ErrorContains(t, err, "object must be pointer of struct")
 	})
@@ -139,7 +134,7 @@ func Test_UpsertSchema_aggregateValue(t *testing.T) {
 
 func Test_AggregateMapSchema(t *testing.T) {
 	t.Run("builds model metadata from exql tags", func(t *testing.T) {
-		metadata, err := aggregateMapSchema(reflect.TypeFor[model.Users]())
+		metadata, err := parseMapSchema(reflect.TypeFor[model.Users]())
 
 		assert.NoError(t, err)
 		if !assert.NotNil(t, metadata) {
@@ -157,25 +152,25 @@ func Test_AggregateMapSchema(t *testing.T) {
 		assert.False(t, ok)
 	})
 	t.Run("returns error when type is not struct", func(t *testing.T) {
-		metadata, err := aggregateMapSchema(reflect.TypeFor[int]())
+		metadata, err := parseMapSchema(reflect.TypeFor[int]())
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "type must be struct")
 	})
 	t.Run("returns error when no exql tags are defined", func(t *testing.T) {
-		metadata, err := aggregateMapSchema(reflect.TypeFor[testmodel.NoTag]())
+		metadata, err := parseMapSchema(reflect.TypeFor[testmodel.NoTag]())
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "no exql tags in any fields")
 	})
 	t.Run("returns error when column tag is not set", func(t *testing.T) {
-		metadata, err := aggregateMapSchema(reflect.TypeFor[testmodel.NoColumnTag]())
+		metadata, err := parseMapSchema(reflect.TypeFor[testmodel.NoColumnTag]())
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "column tag is not set")
 	})
 	t.Run("returns error for invalid tag format", func(t *testing.T) {
-		metadata, err := aggregateMapSchema(reflect.TypeFor[testmodel.BadTag]())
+		metadata, err := parseMapSchema(reflect.TypeFor[testmodel.BadTag]())
 
 		assert.Nil(t, metadata)
 		assert.EqualError(t, err, "duplicated tag: a")
@@ -183,7 +178,7 @@ func Test_AggregateMapSchema(t *testing.T) {
 }
 
 func Test_MapSchema_CreateReceivers(t *testing.T) {
-	schema, err := aggregateMapSchema(reflect.TypeFor[model.Users]())
+	schema, err := parseMapSchema(reflect.TypeFor[model.Users]())
 	assert.NoError(t, err)
 	if !assert.NotNil(t, schema) {
 		return
