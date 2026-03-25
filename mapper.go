@@ -72,7 +72,7 @@ func mapRow(
 		if err != nil {
 			return err
 		}
-		schema, err := aggregateFields(destValue.Type(), false)
+		schema, err := aggregateMapSchema(destValue.Type())
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func mapRows(
 	if err != nil {
 		return err
 	}
-	schema, err := aggregateFields(sliceType, false)
+	schema, err := aggregateMapSchema(sliceType)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func mapJoinedRows(
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		md, err := aggregateFields(dest.elemType, false)
+		md, err := aggregateMapSchema(dest.elemType)
 		if err != nil {
 			return err
 		}

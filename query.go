@@ -16,7 +16,7 @@ func QueryForInsert(modelPtr Model) (q.Query, *reflect.Value, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	ms, err := aggregateFields(dest.Type(), false)
+	ms, err := aggregateUpsertSchema(dest.Type(), false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -44,7 +44,7 @@ func QueryForBulkInsert[T Model](modelPtrs ...T) (q.Query, error) {
 	if err != nil {
 		return nil, err
 	}
-	ms, err := aggregateFields(destType.Type(), false)
+	ms, err := aggregateUpsertSchema(destType.Type(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func QueryForUpdateModel(
 	if err != nil {
 		return nil, err
 	}
-	ms, err := aggregateFields(dest.Type(), true)
+	ms, err := aggregateUpsertSchema(dest.Type(), true)
 	if err != nil {
 		return nil, err
 	}

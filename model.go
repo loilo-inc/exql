@@ -7,13 +7,16 @@ import (
 	q "github.com/loilo-inc/exql/v3/query"
 )
 
-type modelSchema struct {
+type upsertModelSchema struct {
 	autoIncrementField *int
 	updatableFields    []int
-	fields             map[string]int
 	columns            map[int]string
 	forUpdate          bool
 	key                string
+}
+
+type mapModelSchema struct {
+	fields map[string]int
 }
 
 type modelValue struct {
@@ -21,11 +24,10 @@ type modelValue struct {
 	values             q.KeyIterator[any]
 }
 
-func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
+func aggregateUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, error) {
 	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("type must be struct")
+		return nil, errTypeNotStruct
 	}
-	fields := map[string]int{}
 	columns := map[int]string{}
 	exqlTagCount := 0
 	var updatableFields []int
@@ -51,7 +53,6 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 		if !ok || colName == "" {
 			return nil, fmt.Errorf("column tag is not set")
 		}
-		fields[colName] = i
 		columns[i] = colName
 		exqlTagCount++
 		_, autoIncrement := tags["auto_increment"]
@@ -74,19 +75,49 @@ func aggregateFields(t reflect.Type, forUpdate bool) (*modelSchema, error) {
 		return nil, fmt.Errorf("no exql tags in any fields")
 	}
 
-	return &modelSchema{
+	return &upsertModelSchema{
 		autoIncrementField: autoIncrementField,
 		updatableFields:    updatableFields,
-		fields:             fields,
 		columns:            columns,
 		forUpdate:          forUpdate,
 		key:                typeKey(t),
 	}, nil
 }
 
+func aggregateMapSchema(t reflect.Type) (*mapModelSchema, error) {
+	if t.Kind() != reflect.Struct {
+		return nil, errTypeNotStruct
+	}
+	fields := map[string]int{}
+	exqlTagCount := 0
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		tag := f.Tag.Get("exql")
+		if tag == "" {
+			continue
+		}
+		tags, err := ParseTags(tag)
+		if err != nil {
+			return nil, err
+		}
+		colName, ok := tags["column"]
+		if !ok || colName == "" {
+			return nil, fmt.Errorf("column tag is not set")
+		}
+		fields[colName] = i
+		exqlTagCount++
+	}
+
+	if exqlTagCount == 0 {
+		return nil, fmt.Errorf("no exql tags in any fields")
+	}
+
+	return &mapModelSchema{fields: fields}, nil
+}
+
 var errTableNameEmpty = fmt.Errorf("empty table name")
 
-func (ms *modelSchema) aggregateValue(
+func (ms *upsertModelSchema) aggregateValue(
 	modelPtr any,
 ) (*modelValue, error) {
 	if modelPtr == nil {
@@ -124,7 +155,7 @@ func (ms *modelSchema) aggregateValue(
 	}, nil
 }
 
-func (ms *modelSchema) createReceivers(
+func (ms *mapModelSchema) createReceivers(
 	cols []string,
 	dest *reflect.Value,
 ) []any {
@@ -140,3 +171,5 @@ func (ms *modelSchema) createReceivers(
 	}
 	return destVals
 }
+
+var errTypeNotStruct = fmt.Errorf("type must be struct")

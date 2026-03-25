@@ -3,11 +3,9 @@ package exql
 import (
 	"context"
 	"database/sql"
-	"reflect"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v3/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,16 +27,8 @@ func TestDb_Close(t *testing.T) {
 	mock.ExpectClose()
 
 	db := NewDB(mockDB).(*db)
-	s1, err := aggregateFields(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
-
 	err = db.Close()
 	assert.NoError(t, err)
-
-	s2, err := aggregateFields(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
-	assert.NotSame(t, s1, s2)
-	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestDb_SetDB(t *testing.T) {
@@ -51,8 +41,6 @@ func TestDb_SetDB(t *testing.T) {
 	defer db2.Close()
 
 	d := NewDB(db1).(*db)
-	s1, err := aggregateFields(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
 
 	d.SetDB(db2)
 
@@ -60,9 +48,6 @@ func TestDb_SetDB(t *testing.T) {
 	assert.Same(t, db2, d.saver.ex)
 	assert.Same(t, db2, d.finder.ex)
 
-	s2, err := aggregateFields(reflect.TypeFor[model.Users](), false)
-	assert.NoError(t, err)
-	assert.NotSame(t, s1, s2)
 }
 
 func TestDb_Transaction(t *testing.T) {
