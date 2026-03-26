@@ -39,7 +39,7 @@ func TestParser_ParseType(t *testing.T) {
 			{"tinyint", "int64", "int64", "null.Int64", "null.Int64"},
 			{"smallint", "int64", "int64", "null.Int64", "null.Int64"},
 			{"mediumint", "int64", "int64", "null.Int64", "null.Int64"},
-			{"bigint", "int64", "int64", "null.Int64", "null.Int64"},
+			{"bigint", "int64", "uint64", "null.Int64", "null.Uint64"},
 		}
 		for _, v := range list {
 			title := v[0].(string)
