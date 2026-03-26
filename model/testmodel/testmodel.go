@@ -68,6 +68,14 @@ func (s *PrimaryUint64) TableName() string {
 	return "samplePrimaryUint64"
 }
 
+type InvalidAutoIncrement struct {
+	Id string `exql:"column:id;primary;auto_increment"`
+}
+
+func (s *InvalidAutoIncrement) TableName() string {
+	return "sampleInvalidAutoIncrement"
+}
+
 type UpdateSampleInvalidTag struct {
 	Id *int `exql:"column::"`
 }

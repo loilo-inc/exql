@@ -3,6 +3,7 @@ package exql
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -66,12 +67,10 @@ func TestSaver_Insert(t *testing.T) {
 		assert.EqualError(t, err, "err")
 	})
 	t.Run("should error if auto-increment field type is unsupported", func(t *testing.T) {
-		db, mock, _ := sqlmock.New()
-		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").WillReturnResult(sqlmock.NewResult(11, 1))
-		s := NewSaver(db)
-		user := &testmodel.PrimaryUint64{}
+		s := NewSaver(mock_iface.NewMockExecutor(gomock.NewController(t)))
+		user := &testmodel.InvalidAutoIncrement{}
 		_, err := s.Insert(user)
-		assert.ErrorContains(t, err, "auto_increment field must be int64")
+		assert.EqualError(t, err, "auto_increment field must be int64 or uint64")
 	})
 	t.Run("should not assign lid in case of not auto_increment", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
@@ -164,6 +163,18 @@ func TestSaver_InsertContext(t *testing.T) {
 		assert.Equal(t, lid, actual.Id)
 		assert.Equal(t, user.Name, actual.Name)
 		assert.Equal(t, user.Age, actual.Age)
+	})
+
+	t.Run("should preserve wrapped uint64 insert ids returned as negative int64", func(t *testing.T) {
+		db, mock, _ := sqlmock.New()
+		const wrappedID = uint64(math.MaxUint64)
+		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").
+			WillReturnResult(sqlmock.NewResult(-1, 1))
+		s := NewSaver(db)
+		user := &testmodel.PrimaryUint64{}
+		_, err := s.InsertContext(t.Context(), user)
+		assert.NoError(t, err)
+		assert.Equal(t, wrappedID, user.Id)
 	})
 }
 

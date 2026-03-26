@@ -61,8 +61,9 @@ func parseUpsertSchema(t reflect.Type, forUpdate bool) (*upsertModelSchema, erro
 			if forUpdate {
 				fType = fType.Elem()
 			}
-			if fType.Kind() != reflect.Int64 {
-				return nil, fmt.Errorf("auto_increment field must be int64")
+			kind := fType.Kind()
+			if kind != reflect.Int64 && kind != reflect.Uint64 {
+				return nil, fmt.Errorf("auto_increment field must be int64 or uint64")
 			}
 			autoIncrementField = &i
 		}

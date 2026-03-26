@@ -24,9 +24,9 @@ type Fields struct {
 	IntNullableField               null.Int64      `exql:"column:int_nullable_field;type:int" json:"int_nullable_field"`
 	IntUnsignedNullableField       null.Int64      `exql:"column:int_unsigned_nullable_field;type:int unsigned" json:"int_unsigned_nullable_field"`
 	BigintField                    int64           `exql:"column:bigint_field;type:bigint;not null" json:"bigint_field"`
-	BigintUnsignedField            int64           `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
+	BigintUnsignedField            uint64          `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
 	BigintNullableField            null.Int64      `exql:"column:bigint_nullable_field;type:bigint" json:"bigint_nullable_field"`
-	BigintUnsignedNullableField    null.Int64      `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
+	BigintUnsignedNullableField    null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
 	FloatField                     float32         `exql:"column:float_field;type:float;not null" json:"float_field"`
 	FloatNullField                 null.Float32    `exql:"column:float_null_field;type:float" json:"float_null_field"`
 	DoubleField                    float64         `exql:"column:double_field;type:double;not null" json:"double_field"`
@@ -86,9 +86,9 @@ type UpdateFields struct {
 	IntNullableField               *null.Int64      `exql:"column:int_nullable_field;type:int" json:"int_nullable_field"`
 	IntUnsignedNullableField       *null.Int64      `exql:"column:int_unsigned_nullable_field;type:int unsigned" json:"int_unsigned_nullable_field"`
 	BigintField                    *int64           `exql:"column:bigint_field;type:bigint;not null" json:"bigint_field"`
-	BigintUnsignedField            *int64           `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
+	BigintUnsignedField            *uint64          `exql:"column:bigint_unsigned_field;type:bigint unsigned;not null" json:"bigint_unsigned_field"`
 	BigintNullableField            *null.Int64      `exql:"column:bigint_nullable_field;type:bigint" json:"bigint_nullable_field"`
-	BigintUnsignedNullableField    *null.Int64      `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
+	BigintUnsignedNullableField    *null.Uint64     `exql:"column:bigint_unsigned_nullable_field;type:bigint unsigned" json:"bigint_unsigned_nullable_field"`
 	FloatField                     *float32         `exql:"column:float_field;type:float;not null" json:"float_field"`
 	FloatNullField                 *null.Float32    `exql:"column:float_null_field;type:float" json:"float_null_field"`
 	DoubleField                    *float64         `exql:"column:double_field;type:double;not null" json:"double_field"`

@@ -76,11 +76,22 @@ func TestAggregateUpsertSchema(t *testing.T) {
 		assert.EqualError(t, err, "duplicated tag: a")
 	})
 
-	t.Run("returns error for auto_increment field with non int64 type", func(t *testing.T) {
+	t.Run("supports uint64 auto_increment field", func(t *testing.T) {
 		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.PrimaryUint64](), false)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, metadata) {
+			return
+		}
+		if assert.NotNil(t, metadata.autoIncrementField) {
+			assert.Equal(t, 0, *metadata.autoIncrementField)
+		}
+	})
+
+	t.Run("returns error for auto_increment field with non int64/uint64 type", func(t *testing.T) {
+		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.InvalidAutoIncrement](), false)
 
 		assert.Nil(t, metadata)
-		assert.EqualError(t, err, "auto_increment field must be int64")
+		assert.EqualError(t, err, "auto_increment field must be int64 or uint64")
 	})
 }
 
