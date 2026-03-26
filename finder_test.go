@@ -47,6 +47,12 @@ func TestFinder(t *testing.T) {
 			err := f.Find(query.Q(`select * from users where id = -1`), &dest)
 			assert.ErrorIs(t, err, ErrRecordNotFound{})
 		})
+		t.Run("must read the first record only", func(t *testing.T) {
+			var dest model.Users
+			err := f.Find(query.Q(`select * from users where id in (?,?)`, user1.Id, user2.Id), &dest)
+			assert.NoError(t, err)
+			assert.Equal(t, user1.Id, dest.Id)
+		})
 	})
 	t.Run("FindManyContext", func(t *testing.T) {
 		t.Run("basic", func(t *testing.T) {

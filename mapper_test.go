@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"go.uber.org/mock/gomock"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v3/internal/mock"
+	"github.com/loilo-inc/exql/v3/mocks/mock_iface"
 	"github.com/loilo-inc/exql/v3/model"
 	"github.com/loilo-inc/exql/v3/model/testmodel"
 	"github.com/loilo-inc/exql/v3/null"
@@ -343,6 +345,20 @@ func TestMapRow(t *testing.T) {
 		var dest model.Users
 		err = MapRow(rows, &dest)
 		assert.Equal(t, ErrRecordNotFound{}, err)
+	})
+
+	t.Run("should ignore extra rows and map the first record only", func(t *testing.T) {
+		row := mock_iface.NewMockSqlRow(gomock.NewController(t))
+		gomock.InOrder(
+			row.EXPECT().Next().Return(true),
+			row.EXPECT().Columns().Return([]string{"id", "name"}, nil),
+			row.EXPECT().Scan(gomock.Any(), gomock.Any()).Return(nil),
+			row.EXPECT().Err().Return(nil),
+			row.EXPECT().Close().Return(nil),
+		)
+		var dest model.Users
+		err := MapRow(row, &dest)
+		assert.NoError(t, err)
 	})
 
 	t.Run("should return error when rows.Error() return error", func(t *testing.T) {
