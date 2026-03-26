@@ -72,6 +72,10 @@ type InvalidAutoIncrement struct {
 	Id string `exql:"column:id;primary;auto_increment"`
 }
 
+func (s *InvalidAutoIncrement) TableName() string {
+	return "sampleInvalidAutoIncrement"
+}
+
 type UpdateSampleInvalidTag struct {
 	Id *int `exql:"column::"`
 }
