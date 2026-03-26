@@ -98,7 +98,3 @@ func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Va
 	}
 	return sliceType, &destValue, nil
 }
-
-func typeKey(t reflect.Type) string {
-	return t.PkgPath() + "." + t.Name()
-}

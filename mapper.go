@@ -102,13 +102,6 @@ func MapRows(
 	rows SqlRows,
 	ptrOfSliceOfModelPtr any,
 ) error {
-	return mapRows(rows, ptrOfSliceOfModelPtr)
-}
-
-func mapRows(
-	rows SqlRows,
-	ptrOfSliceOfModelPtr any,
-) error {
 	defer rows.Close()
 
 	cols, err := rows.Columns()

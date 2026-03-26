@@ -31,10 +31,6 @@ func (t *tx) Tx() *sql.Tx {
 }
 
 func Transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(db, ctx, opts, callback)
-}
-
-func transaction(db *sql.DB, ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
 	sqlTx, err := db.BeginTx(ctx, opts)
 	if err != nil {
 		return err

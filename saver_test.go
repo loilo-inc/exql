@@ -140,32 +140,6 @@ func TestSaver_InsertContext(t *testing.T) {
 		assert.Equal(t, history.UserId, actual.UserId)
 		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
 	})
-	t.Run("inserting to composite primary key table", func(t *testing.T) {
-		history := &model.UserLoginHistories{
-			UserId:    1,
-			CreatedAt: time.Now(),
-		}
-		result, err := s.InsertContext(context.Background(), history)
-		assert.NoError(t, err)
-		assert.False(t, history.Id == 0)
-		defer func() {
-			d.DB().Exec(`DELETE FROM user_login_histries WHERE id = ?`, history.Id)
-		}()
-		r, err := result.RowsAffected()
-		assert.NoError(t, err)
-		assert.Equal(t, int64(1), r)
-		lid, err := result.LastInsertId()
-		assert.NoError(t, err)
-		assert.Equal(t, history.Id, lid)
-		rows, err := d.DB().Query(`SELECT * FROM user_login_histories WHERE id = ?`, lid)
-		assert.NoError(t, err)
-		var actual model.UserLoginHistories
-		err = MapRow(rows, &actual)
-		assert.NoError(t, err)
-		assert.Equal(t, lid, actual.Id)
-		assert.Equal(t, history.UserId, actual.UserId)
-		assert.Equal(t, history.CreatedAt.Round(time.Second), actual.CreatedAt.Round(time.Second))
-	})
 	t.Run("inserting to no auto_increment key table", func(t *testing.T) {
 		user := &model.Users{
 			Name: "go", Age: 10,

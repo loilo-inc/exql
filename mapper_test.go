@@ -258,7 +258,7 @@ func Test_mapRows(t *testing.T) {
 		rows := makeRows()
 		rows.ColumnErr = fmt.Errorf("error")
 		var dest []*model.Users
-		err := mapRows(rows, &dest)
+		err := MapRows(rows, &dest)
 		assert.EqualError(t, err, "error")
 	})
 
@@ -266,7 +266,7 @@ func Test_mapRows(t *testing.T) {
 		rows := makeRows()
 		rows.ScanErr = fmt.Errorf("error")
 		var dest []*model.Users
-		err := mapRows(rows, &dest)
+		err := MapRows(rows, &dest)
 		assert.EqualError(t, err, "error")
 	})
 }
@@ -423,7 +423,7 @@ func TestSerialMapper_Map(t *testing.T) {
 	defer func() {
 		db.DB().Exec(`DELETE FROM users WHERE id IN (?,?,?)`, user1.Id, user2.Id, user3.Id)
 		db.DB().Exec(`DELETE FROM groups WHERE id = ?`, group.Id)
-		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member1.Id)
+		db.DB().Exec(`DELETE from group_users WHERE id IN (?,?)`, member1.Id, member2.Id)
 	}()
 	m := NewSerialMapper(func(i int) string {
 		return "id"

@@ -143,5 +143,5 @@ func (d *db) Transaction(callback func(tx Tx) error) error {
 }
 
 func (d *db) TransactionWithContext(ctx context.Context, opts *sql.TxOptions, callback func(tx Tx) error) error {
-	return transaction(d.db, ctx, opts, callback)
+	return Transaction(d.db, ctx, opts, callback)
 }

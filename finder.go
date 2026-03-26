@@ -46,7 +46,7 @@ func (f *finder) FindManyContext(ctx context.Context, q query.Query, destSlicePt
 		return err
 	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
 		return err
-	} else if err := mapRows(rows, destSlicePtrOfStruct); err != nil {
+	} else if err := MapRows(rows, destSlicePtrOfStruct); err != nil {
 		return err
 	}
 	return nil
