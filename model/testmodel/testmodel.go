@@ -11,6 +11,7 @@ func (*MultiplePrimaryKey) TableName() string {
 }
 
 type NoTag struct {
+	Id int64
 }
 
 func (*NoTag) TableName() string {
@@ -18,7 +19,7 @@ func (*NoTag) TableName() string {
 }
 
 type BadTableName struct {
-	Id int `exql:"column:id;primary;auto_increment"`
+	Id int64 `exql:"column:id;primary;auto_increment"`
 }
 
 func (BadTableName) TableName() string {
@@ -26,7 +27,7 @@ func (BadTableName) TableName() string {
 }
 
 type NoPrimaryKey struct {
-	Id int `exql:"column:id;auto_increment"`
+	Id int64 `exql:"column:id;auto_increment"`
 }
 
 func (NoPrimaryKey) TableName() string {
@@ -34,7 +35,7 @@ func (NoPrimaryKey) TableName() string {
 }
 
 type NoColumnTag struct {
-	Id int `exql:"primary;auto_increment"`
+	Id int64 `exql:"primary;auto_increment"`
 }
 
 func (NoColumnTag) TableName() string {
@@ -42,7 +43,7 @@ func (NoColumnTag) TableName() string {
 }
 
 type BadTag struct {
-	Id int `exql:"a;a:1"`
+	Id int64 `exql:"a;a:1"`
 }
 
 func (BadTag) TableName() string {
@@ -50,7 +51,7 @@ func (BadTag) TableName() string {
 }
 
 type NoAutoIncrementKey struct {
-	Id   int    `exql:"column:id;primary"`
+	Id   int64  `exql:"column:id;primary"`
 	Name string `exql:"column:name"`
 }
 
@@ -65,4 +66,43 @@ type PrimaryUint64 struct {
 
 func (s *PrimaryUint64) TableName() string {
 	return "samplePrimaryUint64"
+}
+
+type UpdateSampleInvalidTag struct {
+	Id *int `exql:"column::"`
+}
+
+func (UpdateSampleInvalidTag) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSampleNotPtr struct {
+	Id int64 `exql:"column:id;primary"`
+}
+
+func (UpdateSampleNotPtr) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSample struct {
+	Id *int64 `exql:"column:id;primary"`
+}
+
+func (UpdateSample) UpdateTableName() string {
+	return "table"
+}
+
+type UpdateSampleNoFields struct {
+}
+
+func (UpdateSampleNoFields) UpdateTableName() string {
+	return ""
+}
+
+type UpdateSampleNoColumn struct {
+	Id *int `exql:"row:id"`
+}
+
+func (UpdateSampleNoColumn) UpdateTableName() string {
+	return "table"
 }

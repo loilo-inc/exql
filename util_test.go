@@ -1,14 +1,13 @@
-package exql_test
+package exql
 
 import (
 	"testing"
 
-	"github.com/loilo-inc/exql/v3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPtr(t *testing.T) {
 	var str = "str"
-	ptr := exql.Ptr(str)
+	ptr := Ptr(str)
 	assert.Equal(t, "str", *ptr)
 }

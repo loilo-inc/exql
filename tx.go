@@ -9,19 +9,21 @@ import (
 type Tx interface {
 	Saver
 	Finder
-	Mapper
 	Tx() *sql.Tx
 }
 
 type tx struct {
 	*saver
 	*finder
-	*mapper
 	tx *sql.Tx
 }
 
 func newTx(t *sql.Tx) *tx {
-	return &tx{saver: newSaver(t), finder: newFinder(t), mapper: &mapper{}, tx: t}
+	return &tx{
+		saver:  newSaver(t),
+		finder: newFinder(t),
+		tx:     t,
+	}
 }
 
 func (t *tx) Tx() *sql.Tx {

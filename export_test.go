@@ -1,11 +1,27 @@
 package exql
 
-var ErrMapRowSerialDestination = errMapRowSerialDestination
-var ErrMapDestination = errMapDestination
-var ErrMapManyDestination = errMapManyDestination
+import (
+	"database/sql"
 
-type Adb = db
+	_ "github.com/go-sql-driver/mysql"
+)
 
-func NewFinder(ex Executor) *finder {
-	return newFinder(ex)
+const dbUrl = "root:@tcp(127.0.0.1:13326)/exql?charset=utf8mb4&parseTime=True&loc=Local"
+
+func testDb() DB {
+	db, err := Open(&OpenOptions{
+		Url: dbUrl,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func testSqlDB() *sql.DB {
+	db, err := sql.Open("mysql", dbUrl)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }

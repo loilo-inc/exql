@@ -1,0 +1,100 @@
+package exql
+
+import (
+	"fmt"
+	"reflect"
+)
+
+var errModelNil = fmt.Errorf("model is nil")
+
+// resolveDestination validates that the input is a pointer to a struct and returns the reflect.Value of the struct.
+func resolveDestination(pointerOfStruct any) (*reflect.Value, error) {
+	if pointerOfStruct == nil {
+		return nil, errModelNil
+	}
+	destValue := reflect.ValueOf(pointerOfStruct)
+	// any -> (*Model)
+	destType := destValue.Type()
+	if destType.Kind() != reflect.Pointer {
+		return nil, errMapDestination
+	}
+	// (*Model) -> Model
+	destValue = destValue.Elem()
+	if destValue.Kind() != reflect.Struct {
+		return nil, errMapDestination
+	}
+	return &destValue, nil
+}
+
+var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
+
+type nullableDest struct {
+	elemType reflect.Type
+	value    *reflect.Value
+}
+
+// resolveNullableDestination validates that the input is a pointer to a struct or a pointer to a pointer to a struct and returns the reflect.Value of the struct.
+func resolveNullableDestination(dest any) (*nullableDest, error) {
+	if dest == nil {
+		return nil, errModelNil
+	}
+	// any -> (*Model) || (**Model)
+	destValue := reflect.ValueOf(dest)
+	if destValue.Kind() != reflect.Pointer {
+		return nil, errMapRowSerialDestination
+	}
+	destValue = destValue.Elem()
+	switch destValue.Kind() {
+	case reflect.Struct:
+		// *Model -> Model
+		return &nullableDest{
+			elemType: destValue.Type(),
+			value:    &destValue,
+		}, nil
+	case reflect.Pointer:
+		// **Model -> *Model (nil only)
+		elemType := destValue.Type().Elem()
+		if elemType.Kind() != reflect.Struct {
+			return nil, errMapRowSerialDestination
+		}
+		if !destValue.IsNil() {
+			return nil, errMapRowSerialDestination
+		}
+		return &nullableDest{
+			elemType: elemType,
+			value:    &destValue,
+		}, nil
+	}
+	return nil, errMapRowSerialDestination
+}
+
+var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
+
+// resolveDestinationMany validates that the input is a pointer to a slice of pointers to struct and returns the reflect.Type of the struct and the reflect.Value of the destination slice.
+func resolveDestinationMany(ptrOfSliceOfModelPtr any) (reflect.Type, *reflect.Value, error) {
+	if ptrOfSliceOfModelPtr == nil {
+		return nil, nil, errModelNil
+	}
+	destValue := reflect.ValueOf(ptrOfSliceOfModelPtr)
+	// any -> *[]*Model
+	destType := destValue.Type()
+	if destType.Kind() != reflect.Pointer {
+		return nil, nil, errMapManyDestination
+	}
+	// *[]*Model -> []*Model
+	destType = destType.Elem()
+	if destType.Kind() != reflect.Slice {
+		return nil, nil, errMapManyDestination
+	}
+	// []*Model -> *Model
+	sliceType := destType.Elem()
+	if sliceType.Kind() != reflect.Pointer {
+		return nil, nil, errMapManyDestination
+	}
+	// *Model -> Model
+	sliceType = sliceType.Elem()
+	if sliceType.Kind() != reflect.Struct {
+		return nil, nil, errMapManyDestination
+	}
+	return sliceType, &destValue, nil
+}

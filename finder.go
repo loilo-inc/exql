@@ -52,6 +52,11 @@ func (f *finder) FindManyContext(ctx context.Context, q query.Query, destSlicePt
 	return nil
 }
 
+// NewFinder creates a new Finder with the given Executor.
+func NewFinder(ex Executor) Finder {
+	return newFinder(ex)
+}
+
 func newFinder(ex Executor) *finder {
 	return &finder{ex: ex}
 }

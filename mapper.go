@@ -1,7 +1,6 @@
 package exql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 )
@@ -13,26 +12,7 @@ func (e ErrRecordNotFound) Error() string {
 	return "record not found"
 }
 
-// Deprecated: Use Finder It will be removed in next version.
-type Mapper interface {
-	// Deprecated: Use Find or MapRow. It will be removed in next version.
-	Map(rows *sql.Rows, destPtr any) error
-	// Deprecated: Use FindContext or MapRows. It will be removed in next version.
-	MapMany(rows *sql.Rows, destSlicePtr any) error
-}
-
-type mapper struct{}
-
-// Map reads data from single row and maps those columns into destination struct.
-func (m *mapper) Map(rows *sql.Rows, destPtr any) error {
-	return MapRow(rows, destPtr)
-}
-
-// MapMany reads all data from rows and maps those columns for each destination struct.
-func (m *mapper) MapMany(rows *sql.Rows, destSlicePtr any) error {
-	return MapRows(rows, destSlicePtr)
-}
-
+// ColumnSplitter is a function type for providing head column name for each destination struct in SerialMapper.
 type ColumnSplitter func(i int) string
 
 // SerialMapper is an interface for mapping a joined row into one or more destinations serially.
@@ -48,7 +28,7 @@ type SerialMapper interface {
 	//	var favorite UserFavorite
 	//	defer rows.Close()
 	//	err := m.Map(rows, &user, &favorite)
-	Map(rows *sql.Rows, pointersOfStruct ...any) error
+	Map(rows SqlRows, pointersOfStruct ...any) error
 }
 
 type serialMapper struct {
@@ -69,38 +49,39 @@ var errMapDestination = fmt.Errorf("destination must be a pointer of struct")
 //
 //	var user User
 //	err := exql.MapRow(rows, &user)
-func MapRow(row *sql.Rows, pointerOfStruct any) error {
-	defer func() {
-		if row != nil {
-			row.Close()
-		}
-	}()
-	if pointerOfStruct == nil {
-		return errMapDestination
-	}
-	destValue := reflect.ValueOf(pointerOfStruct)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return errMapDestination
-	}
-	destValue = destValue.Elem()
-	if destValue.Kind() != reflect.Struct {
-		return errMapDestination
-	}
-	if row.Next() {
-		return mapRow(row, &destValue)
-	}
-	if err := row.Err(); err != nil {
-		return err
-	}
-	err := row.Close()
+func MapRow(
+	row SqlRows,
+	pointerOfStruct any,
+) error {
+	defer row.Close()
+
+	destValue, err := resolveDestination(pointerOfStruct)
 	if err != nil {
 		return err
 	}
-	return ErrRecordNotFound{}
+	scanned := false
+	if row.Next() {
+		cols, err := row.Columns()
+		if err != nil {
+			return err
+		}
+		schema, err := parseMapSchema(destValue.Type())
+		if err != nil {
+			return err
+		}
+		receivers := schema.createReceivers(cols, destValue)
+		if err := row.Scan(receivers...); err != nil {
+			return err
+		}
+		scanned = true
+	}
+	if err := row.Err(); err != nil {
+		return err
+	} else if !scanned {
+		return ErrRecordNotFound{}
+	}
+	return nil
 }
-
-var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice of struct")
 
 // MapRows reads all data from rows and maps those columns for each destination struct.
 // pointerOfSliceOfStruct MUST BE a pointer of slice of pointer of struct.
@@ -110,36 +91,30 @@ var errMapManyDestination = fmt.Errorf("destination must be a pointer of slice o
 //
 //	var users []*Users
 //	err := exql.MapRows(rows, &users)
-func MapRows(rows *sql.Rows, structPtrOrSlicePtr any) error {
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
-	if structPtrOrSlicePtr == nil {
-		return errMapManyDestination
+func MapRows(
+	rows SqlRows,
+	ptrOfSliceOfModelPtr any,
+) error {
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return err
 	}
-	destValue := reflect.ValueOf(structPtrOrSlicePtr)
-	destType := destValue.Type()
-	if destType.Kind() != reflect.Pointer {
-		return errMapManyDestination
+	sliceType, destValue, err := resolveDestinationMany(ptrOfSliceOfModelPtr)
+	if err != nil {
+		return err
 	}
-	destType = destType.Elem()
-	if destType.Kind() != reflect.Slice {
-		return errMapManyDestination
+	schema, err := parseMapSchema(sliceType)
+	if err != nil {
+		return err
 	}
-	// []*Model -> *Model
-	sliceType := destType.Elem()
-	if sliceType.Kind() != reflect.Pointer {
-		return errMapManyDestination
-	}
-	// *Model -> Model
-	sliceType = sliceType.Elem()
 	cnt := 0
 	for rows.Next() {
 		// modelValue := SliceType{}
 		modelValue := reflect.New(sliceType).Elem()
-		if err := mapRow(rows, &modelValue); err != nil {
+		receivers := schema.createReceivers(cols, &modelValue)
+		if err := rows.Scan(receivers...); err != nil {
 			return err
 		}
 		// *dest = append(*dest, i)
@@ -149,112 +124,49 @@ func MapRows(rows *sql.Rows, structPtrOrSlicePtr any) error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	err := rows.Close()
-	if err != nil {
-		return err
-	}
 	if cnt == 0 {
 		return ErrRecordNotFound{}
 	}
 	return nil
 }
 
-func mapRow(
-	row *sql.Rows,
-	dest *reflect.Value,
+func (m *serialMapper) Map(
+	rows SqlRows,
+	dest ...any,
 ) error {
-	fields, err := aggregateFields(dest)
-	if err != nil {
-		return err
-	}
-	cols, err := row.ColumnTypes()
-	if err != nil {
-		return err
-	}
-	destVals := make([]any, len(cols))
-	for j, col := range cols {
-		if fIndex, ok := fields[col.Name()]; ok {
-			f := dest.Field(fIndex)
-			destVals[j] = f.Addr().Interface()
-		} else {
-			ns := &noopScanner{}
-			destVals[j] = ns
-		}
-	}
-	return row.Scan(destVals...)
-}
-
-func aggregateFields(dest *reflect.Value) (map[string]int, error) {
-	// *Model || **Model
-	destType := dest.Type()
-	if dest.Kind() == reflect.Pointer {
-		destType = destType.Elem()
-	}
-	fields := make(map[string]int)
-	for i := 0; i < destType.NumField(); i++ {
-		f := destType.Field(i)
-		tag := f.Tag.Get("exql")
-		if tag != "" {
-			if f.Type.Kind() == reflect.Pointer {
-				return nil, fmt.Errorf("struct field must not be a pointer")
-			}
-			tags, err := ParseTags(tag)
-			if err != nil {
-				return nil, err
-			}
-			col := tags["column"]
-			fields[col] = i
-		}
-	}
-	return fields, nil
-}
-
-var errMapRowSerialDestination = fmt.Errorf("destination must be either *(struct) or *((*struct)(nil))")
-
-func (s *serialMapper) Map(rows *sql.Rows, dest ...any) error {
-	var values []*reflect.Value
+	var values []*nullableDest
 
 	if len(dest) == 0 {
 		return fmt.Errorf("empty dest list")
 	}
 
 	for _, model := range dest {
-		v := reflect.ValueOf(model)
-		if v.Kind() != reflect.Pointer {
-			return errMapRowSerialDestination
+		destValue, err := resolveNullableDestination(model)
+		if err != nil {
+			return err
 		}
-		v = v.Elem()
-		if v.Kind() == reflect.Struct {
-			values = append(values, &v)
-		} else if v.Kind() != reflect.Pointer {
-			return errMapRowSerialDestination
-		} else if !v.IsNil() || v.Type().Elem().Kind() != reflect.Struct {
-			return errMapRowSerialDestination
-		} else {
-			values = append(values, &v)
-
-		}
+		values = append(values, destValue)
 	}
-	return mapRowSerial(rows, values, s.splitter)
+	return mapJoinedRows(rows, values, m.splitter)
 }
 
-func mapRowSerial(
-	row *sql.Rows,
-	destList []*reflect.Value,
+func mapJoinedRows(
+	row SqlRows,
+	destList []*nullableDest,
 	headColProvider ColumnSplitter,
 ) error {
 	// *Model || **Model
 	var destFields []map[string]int
 	destTypes := map[int]reflect.Type{}
 	for destIndex, dest := range destList {
-		fields, err := aggregateFields(dest)
+		md, err := parseMapSchema(dest.elemType)
 		if err != nil {
 			return err
 		}
-		destFields = append(destFields, fields)
-		destTypes[destIndex] = dest.Type() // Model || *Model
+		destFields = append(destFields, md.fields)
+		destTypes[destIndex] = dest.value.Type() // Model || *Model
 	}
-	cols, err := row.ColumnTypes()
+	cols, err := row.Columns()
 	if err != nil {
 		return err
 	}
@@ -265,15 +177,15 @@ func mapRowSerial(
 		fields := destFields[destIndex]
 		headCol := cols[colIndex]
 		expectedHeadCol := headColProvider(destIndex)
-		if headCol.Name() != expectedHeadCol {
+		if headCol != expectedHeadCol {
 			return fmt.Errorf(
 				"head col mismatch: expected=%s, actual=%s",
-				expectedHeadCol, headCol.Name(),
+				expectedHeadCol, headCol,
 			)
 		}
 		start := colIndex
 		ns := &noopScanner{}
-		model := dest
+		model := dest.value
 		if destTypes[destIndex].Kind() == reflect.Pointer {
 			m := reflect.New(destTypes[destIndex].Elem()).Elem() // Model
 			model = &m
@@ -282,14 +194,14 @@ func mapRowSerial(
 			col := cols[colIndex]
 			if colIndex > start && destIndex < len(destList)-1 {
 				// Reach next column's head
-				if col.Name() == headColProvider(destIndex+1) {
+				if col == headColProvider(destIndex+1) {
 					columnCounts[destIndex] = colIndex - start
 					break
 				}
 			} else if destIndex == len(destList)-1 {
 				columnCounts[destIndex]++
 			}
-			if fIndex, ok := fields[col.Name()]; ok {
+			if fIndex, ok := fields[col]; ok {
 				f := model.Field(fIndex)
 				if destTypes[destIndex].Kind() == reflect.Struct {
 					destVals[colIndex] = f.Addr().Interface() // *(Model.Field)
@@ -319,7 +231,7 @@ func mapRowSerial(
 		start := colIndex
 		for ; colIndex < start+columnCounts[destIndex]; colIndex++ {
 			col := cols[colIndex]
-			if fIndex, ok := fields[col.Name()]; ok {
+			if fIndex, ok := fields[col]; ok {
 				f := model.Elem().Field(fIndex)
 				if t := reflect.ValueOf(destVals[colIndex]).Elem(); t.IsNil() {
 					f.Set(reflect.Zero(t.Type().Elem())) // To set (*null.Type)(nil) as null.Type{}
@@ -328,7 +240,7 @@ func mapRowSerial(
 				}
 			}
 		}
-		dest.Set(model) // dest = *Model
+		dest.value.Set(model) // dest = *Model
 	}
 
 	return nil

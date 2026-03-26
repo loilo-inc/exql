@@ -1,12 +1,10 @@
-package exql_test
+package exql
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v3"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +14,7 @@ func TestParser_ParseTable(t *testing.T) {
 		assert.NoError(t, err)
 		defer mockDb.Close()
 
-		p := exql.NewParser()
+		p := NewParser()
 
 		mock.ExpectQuery(`show columns from users`).WillReturnRows(
 			sqlmock.NewRows([]string{"field", "type"}).
@@ -31,7 +29,7 @@ func TestParser_ParseTable(t *testing.T) {
 
 func TestParser_ParseType(t *testing.T) {
 	assertType := func(s string, nullable bool, tp any) {
-		ret, err := exql.ParseType(s, nullable)
+		ret, err := ParseType(s, nullable)
 		assert.NoError(t, err)
 		assert.Equal(t, ret, tp)
 	}
@@ -108,5 +106,10 @@ func TestParser_ParseType(t *testing.T) {
 	t.Run("json", func(t *testing.T) {
 		assertType("json", false, "json.RawMessage")
 		assertType("json", true, "null.JSON")
+	})
+
+	t.Run("unknown", func(t *testing.T) {
+		_, err := ParseType("unknown", false)
+		assert.EqualError(t, err, "unknown type: unknown")
 	})
 }

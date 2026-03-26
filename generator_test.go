@@ -1,4 +1,4 @@
-package exql_test
+package exql
 
 import (
 	"fmt"
@@ -6,17 +6,15 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/loilo-inc/exql/v3"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerator_Generate(t *testing.T) {
-	for version, db := range map[string]exql.DB{
+	for version, db := range map[string]DB{
 		"mysql8": testDb(),
 	} {
 		t.Run(version, func(t *testing.T) {
-			g := exql.NewGenerator(db.DB())
+			g := NewGenerator(db.DB())
 			checkFiles := func(dir string, elements []string) {
 				entries, err := os.ReadDir(dir)
 				assert.NoError(t, err)
@@ -28,7 +26,7 @@ func TestGenerator_Generate(t *testing.T) {
 			}
 			t.Run("basic", func(t *testing.T) {
 				dir := t.TempDir()
-				err := g.Generate(&exql.GenerateOptions{
+				err := g.Generate(&GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 				})
@@ -37,7 +35,7 @@ func TestGenerator_Generate(t *testing.T) {
 			})
 			t.Run("exclude", func(t *testing.T) {
 				dir := t.TempDir()
-				err := g.Generate(&exql.GenerateOptions{
+				err := g.Generate(&GenerateOptions{
 					OutDir:  dir,
 					Package: "dist",
 					Exclude: []string{"fields"},
@@ -57,8 +55,8 @@ func TestGenerator_Generate(t *testing.T) {
 						RowError(0, fmt.Errorf("err")))
 
 				dir := t.TempDir()
-				assert.EqualError(t, exql.NewGenerator(mockDb).
-					Generate(&exql.GenerateOptions{
+				assert.EqualError(t, NewGenerator(mockDb).
+					Generate(&GenerateOptions{
 						OutDir:  dir,
 						Package: "dist",
 					}), "err")
