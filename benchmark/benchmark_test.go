@@ -1,17 +1,18 @@
-package exql
+package benchmark
 
 import (
 	"testing"
 
 	v2 "github.com/loilo-inc/exql/v2"
 	v2model "github.com/loilo-inc/exql/v2/model"
-	"github.com/loilo-inc/exql/v3/model"
-	"github.com/loilo-inc/exql/v3/query"
+	v3 "github.com/loilo-inc/exql/v3"
+	v3model "github.com/loilo-inc/exql/v3/model"
+	query "github.com/loilo-inc/exql/v3/query"
 )
 
 func BenchmarkQueryForInsert(b *testing.B) {
 	v2user := v2model.Users{}
-	v3user := model.Users{}
+	v3user := v3model.Users{}
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			v2.QueryForInsert(&v2user)
@@ -19,17 +20,17 @@ func BenchmarkQueryForInsert(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			QueryForInsert(&v3user)
+			v3.QueryForInsert(&v3user)
 		}
 	})
 }
 
 func BenchmarkQueryForBulkInsert(b *testing.B) {
 	var v2users []*v2model.Users
-	var v3users []*model.Users
+	var v3users []*v3model.Users
 	for range 100 {
 		v2users = append(v2users, &v2model.Users{})
-		v3users = append(v3users, &model.Users{})
+		v3users = append(v3users, &v3model.Users{})
 	}
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -38,16 +39,16 @@ func BenchmarkQueryForBulkInsert(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			QueryForBulkInsert(v3users...)
+			v3.QueryForBulkInsert(v3users...)
 		}
 	})
 }
 
 func BenchmarkQueryForUpdate(b *testing.B) {
 	v2user := v2model.UpdateUsers{}
-	v3user := model.UpdateUsers{}
+	v3user := v3model.UpdateUsers{}
 	v2where := v2.Where("id = ?", 1)
-	v3where := Where("id = ?", 1)
+	v3where := v3.Where("id = ?", 1)
 	b.Run("v2", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			v2.QueryForUpdateModel(&v2user, v2where)
@@ -55,16 +56,16 @@ func BenchmarkQueryForUpdate(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			QueryForUpdateModel(&v3user, v3where)
+			v3.QueryForUpdateModel(&v3user, v3where)
 		}
 	})
 }
 
 func BenchmarkInsert(b *testing.B) {
-	sqlDb := testSqlDB()
+	sqlDb := testSqlDB(b)
 	v2db := v2.NewDB(sqlDb)
-	v3db := NewDB(sqlDb)
-	user := &model.Users{Name: "exql", Age: 6}
+	v3db := v3.NewDB(sqlDb)
+	user := &v3model.Users{Name: "exql", Age: 6}
 	err := resetTestDB(sqlDb)
 	if err != nil {
 		b.Fatal(err)
@@ -90,10 +91,10 @@ func BenchmarkInsert(b *testing.B) {
 }
 
 func BenchmarkUpdate(b *testing.B) {
-	sqlDb := testSqlDB()
+	sqlDb := testSqlDB(b)
 	v2db := v2.NewDB(sqlDb)
-	v3db := NewDB(sqlDb)
-	user := &model.Users{Name: "exql", Age: 6}
+	v3db := v3.NewDB(sqlDb)
+	user := &v3model.Users{Name: "exql", Age: 6}
 	err := resetTestDB(sqlDb)
 	if err != nil {
 		b.Fatal(err)
@@ -102,7 +103,7 @@ func BenchmarkUpdate(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	userUpdate := &model.UpdateUsers{Name: Ptr("lqxe"), Age: Ptr(int64(8))}
+	userUpdate := &v3model.UpdateUsers{Name: v3.Ptr("lqxe"), Age: v3.Ptr(int64(8))}
 
 	b.Run("v2", func(b *testing.B) {
 		for range b.N {
@@ -115,7 +116,7 @@ func BenchmarkUpdate(b *testing.B) {
 
 	b.Run("v3", func(b *testing.B) {
 		for range b.N {
-			_, err := v3db.UpdateModel(userUpdate, Where("id = ?", user.Id))
+			_, err := v3db.UpdateModel(userUpdate, v3.Where("id = ?", user.Id))
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -124,10 +125,10 @@ func BenchmarkUpdate(b *testing.B) {
 }
 
 func BenchmarkMapFind(b *testing.B) {
-	sqlDb := testSqlDB()
+	sqlDb := testSqlDB(b)
 	v2db := v2.NewDB(sqlDb)
-	v3db := NewDB(sqlDb)
-	user := &model.Users{Name: "exql", Age: 6}
+	v3db := v3.NewDB(sqlDb)
+	user := &v3model.Users{Name: "exql", Age: 6}
 	err := resetTestDB(sqlDb)
 	if err != nil {
 		b.Fatal(err)
@@ -150,7 +151,7 @@ func BenchmarkMapFind(b *testing.B) {
 
 	b.Run("v3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			var user model.Users
+			var user v3model.Users
 			err := v3db.Find(q, &user)
 			if err != nil {
 				b.Fatal(err)
@@ -160,18 +161,18 @@ func BenchmarkMapFind(b *testing.B) {
 }
 
 func BenchmarkFindMany(b *testing.B) {
-	sqlDb := testSqlDB()
+	sqlDb := testSqlDB(b)
 	err := resetTestDB(sqlDb)
 	if err != nil {
 		b.Fatal(err)
 	}
-	var users []*model.Users
+	var users []*v3model.Users
 	for range 100 {
-		users = append(users, &model.Users{Name: "exql", Age: 6})
+		users = append(users, &v3model.Users{Name: "exql", Age: 6})
 	}
 
 	v2db := v2.NewDB(sqlDb)
-	v3db := NewDB(sqlDb)
+	v3db := v3.NewDB(sqlDb)
 
 	insertQuery, _ := v2.QueryForBulkInsert(users...)
 	if _, err := v2db.Exec(insertQuery); err != nil {
@@ -190,7 +191,7 @@ func BenchmarkFindMany(b *testing.B) {
 	})
 	b.Run("v3", func(b *testing.B) {
 		for range b.N {
-			var user []*model.Users
+			var user []*v3model.Users
 			err := v3db.FindMany(q, &user)
 			if err != nil {
 				b.Fatal(err)

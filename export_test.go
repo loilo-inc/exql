@@ -25,26 +25,3 @@ func testSqlDB() *sql.DB {
 	}
 	return db
 }
-
-func resetTestDB(db *sql.DB) error {
-	db.Exec("SET FOREIGN_KEY_CHECKS=0")
-	defer db.Exec("SET FOREIGN_KEY_CHECKS=1")
-
-	_, err := db.Exec("TRUNCATE TABLE `group_users`")
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec("TRUNCATE TABLE `users`")
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec("TRUNCATE TABLE `user_groups`")
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec("TRUNCATE TABLE `fields`")
-	if err != nil {
-		return err
-	}
-	return nil
-}
