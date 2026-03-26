@@ -29,7 +29,7 @@ func (f *finder) FindContext(ctx context.Context, q query.Query, destPtrOfStruct
 		return err
 	} else if rows, err := f.ex.QueryContext(ctx, stmt, args...); err != nil {
 		return err
-	} else if err := mapRow(rows, destPtrOfStruct); err != nil {
+	} else if err := MapRow(rows, destPtrOfStruct); err != nil {
 		return err
 	}
 	return nil

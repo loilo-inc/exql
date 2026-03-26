@@ -73,6 +73,11 @@ func TestQueryForBulkInsert(t *testing.T) {
 		assert.Nil(t, q)
 		assert.EqualError(t, err, "model is nil")
 	})
+	t.Run("should error if parseUpsertSchema returns error", func(t *testing.T) {
+		q, err := QueryForBulkInsert(&testmodel.BadTag{})
+		assert.Nil(t, q)
+		assert.EqualError(t, err, "duplicated tag: a")
+	})
 	t.Run("should error if one of models is nil", func(t *testing.T) {
 		q, err := QueryForBulkInsert[Model](&model.Users{}, nil)
 		assert.Nil(t, q)

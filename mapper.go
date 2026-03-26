@@ -53,13 +53,6 @@ func MapRow(
 	row SqlRows,
 	pointerOfStruct any,
 ) error {
-	return mapRow(row, pointerOfStruct)
-}
-
-func mapRow(
-	row SqlRows,
-	pointerOfStruct any,
-) error {
 	defer row.Close()
 
 	destValue, err := resolveDestination(pointerOfStruct)

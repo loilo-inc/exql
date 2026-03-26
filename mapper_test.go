@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/loilo-inc/exql/v3/internal/mock"
 	"github.com/loilo-inc/exql/v3/model"
+	"github.com/loilo-inc/exql/v3/model/testmodel"
 	"github.com/loilo-inc/exql/v3/null"
 	"github.com/stretchr/testify/assert"
 )
@@ -245,9 +246,6 @@ func TestMapRows(t *testing.T) {
 		var dest []*model.Users
 		assert.EqualError(t, MapRows(rows, &dest), "err")
 	})
-}
-
-func Test_mapRows(t *testing.T) {
 	makeRows := func() *mock.Rows {
 		return &mock.Rows{
 			Cols:   []string{"id"},
@@ -268,6 +266,13 @@ func Test_mapRows(t *testing.T) {
 		var dest []*model.Users
 		err := MapRows(rows, &dest)
 		assert.EqualError(t, err, "error")
+	})
+
+	t.Run("should error if parseMapSchema return error", func(t *testing.T) {
+		rows := makeRows()
+		var dest []*testmodel.BadTag
+		err := MapRows(rows, &dest)
+		assert.EqualError(t, err, "duplicated tag: a")
 	})
 }
 
@@ -349,6 +354,7 @@ func TestMapRow(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "first_name", "last_name"}).
 				AddRow(1, "user1", "name").
 				RowError(0, fmt.Errorf("err")))
+		mock.ExpectClose()
 
 		rows, err := mockDb.Query(`SELECT * FROM users where id = 1`)
 		assert.NoError(t, err)
@@ -356,9 +362,6 @@ func TestMapRow(t *testing.T) {
 		var dest model.Users
 		assert.EqualError(t, MapRow(rows, &dest), "err")
 	})
-}
-
-func Test_mapRow(t *testing.T) {
 	makeRows := func() *mock.Rows {
 		return &mock.Rows{
 			Cols:   []string{"id", "name", "age"},
@@ -369,15 +372,20 @@ func Test_mapRow(t *testing.T) {
 		rows := makeRows()
 		rows.ColumnErr = fmt.Errorf("error")
 		var dest model.Users
-		err := mapRow(rows, &dest)
+		err := MapRow(rows, &dest)
 		assert.EqualError(t, err, "error")
 	})
 	t.Run("should error if rows.Scan() return error", func(t *testing.T) {
 		rows := makeRows()
 		rows.ScanErr = fmt.Errorf("error")
 		var dest model.Users
-		err := mapRow(rows, &dest)
+		err := MapRow(rows, &dest)
 		assert.EqualError(t, err, "error")
+	})
+	t.Run("should error if parseMapSchema return error", func(t *testing.T) {
+		rows := makeRows()
+		err := MapRow(rows, &testmodel.BadTag{})
+		assert.EqualError(t, err, "duplicated tag: a")
 	})
 }
 
