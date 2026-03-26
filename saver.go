@@ -61,6 +61,10 @@ func (s *saver) InsertContext(ctx context.Context, modelPtr Model) (sql.Result, 
 		case reflect.Int64:
 			autoIncrField.Set(reflect.ValueOf(lid))
 		case reflect.Uint64:
+			// go-sql-driver/mysql exposes auto-increment IDs through the int64-based
+			// LastInsertId API, even when MySQL reports an unsigned value. Preserve
+			// the raw bit pattern here so wrapped negative lid values map back to
+			// the original uint64 identifier.
 			autoIncrField.Set(reflect.ValueOf(uint64(lid)))
 		}
 	}

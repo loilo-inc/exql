@@ -165,16 +165,16 @@ func TestSaver_InsertContext(t *testing.T) {
 		assert.Equal(t, user.Age, actual.Age)
 	})
 
-	t.Run("should cast int64 to uint64 for auto_increment field if field type is uint64", func(t *testing.T) {
+	t.Run("should preserve wrapped uint64 insert ids returned as negative int64", func(t *testing.T) {
 		db, mock, _ := sqlmock.New()
-		var incremented uint64 = math.MaxInt64 + 1
+		const wrappedID = uint64(math.MaxUint64)
 		mock.ExpectExec("INSERT INTO `samplePrimaryUint64`").
-			WillReturnResult(sqlmock.NewResult(int64(incremented), 1))
+			WillReturnResult(sqlmock.NewResult(-1, 1))
 		s := NewSaver(db)
 		user := &testmodel.PrimaryUint64{}
 		_, err := s.InsertContext(t.Context(), user)
 		assert.NoError(t, err)
-		assert.Equal(t, incremented, user.Id)
+		assert.Equal(t, wrappedID, user.Id)
 	})
 }
 

@@ -87,7 +87,7 @@ func TestAggregateUpsertSchema(t *testing.T) {
 		}
 	})
 
-	t.Run("returns error for auto_increment field with non int64 type", func(t *testing.T) {
+	t.Run("returns error for auto_increment field with non int64/uint64 type", func(t *testing.T) {
 		metadata, err := parseUpsertSchema(reflect.TypeFor[testmodel.InvalidAutoIncrement](), false)
 
 		assert.Nil(t, metadata)
