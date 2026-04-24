@@ -11,6 +11,9 @@ type Builder struct {
 
 // Sprintf is short-hand for fmt.Sprintf.
 //
+// WARNING: The formatted result is embedded as raw SQL with no escaping.
+// Never pass user-controlled input as a %s argument — use ? placeholders and V() instead.
+//
 // Example:
 //
 //	b.Sprintf("%s", "go")

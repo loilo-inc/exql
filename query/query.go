@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var placeholderRe = regexp.MustCompile(`:?\?`)
+
 type Query interface {
 	Query() (string, []any, error)
 }
@@ -29,9 +31,8 @@ func (f *query) Query() (sqlStmt string, sqlArgs []any, resErr error) {
 	args := f.args
 	sb := &strings.Builder{}
 	var argIdx = 0
-	reg := regexp.MustCompile(`:?\?`)
 	for {
-		match := reg.FindStringIndex(str)
+		match := placeholderRe.FindStringIndex(str)
 		if match == nil {
 			break
 		}
@@ -231,6 +232,12 @@ func Vals[T any](vals []T) Query {
 }
 
 // Set transforms map into "key = value" assignment expression in SQL.
+//
+// WARNING: map keys become column names with no field filtering.
+// Never pass a map derived directly from user input (e.g. JSON body) — an attacker
+// could update unintended columns such as is_admin or role.
+// Always construct the map from an explicitly whitelisted set of fields.
+//
 // Example:
 //
 //	values := map[string]any{ "name": "go", "age": 20}
