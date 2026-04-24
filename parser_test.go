@@ -16,7 +16,7 @@ func TestParser_ParseTable(t *testing.T) {
 
 		p := NewParser()
 
-		mock.ExpectQuery(`show columns from users`).WillReturnRows(
+		mock.ExpectQuery("show columns from `users`").WillReturnRows(
 			sqlmock.NewRows([]string{"field", "type"}).
 				AddRow("id", "int(11)").
 				RowError(0, fmt.Errorf("err")))
@@ -24,6 +24,21 @@ func TestParser_ParseTable(t *testing.T) {
 		table, err := p.ParseTable(mockDb, "users")
 		assert.Nil(t, table)
 		assert.EqualError(t, err, "err")
+	})
+}
+
+func TestParser_ParseTable_SQLInjection(t *testing.T) {
+	t.Run("should return error when table name contains backtick", func(t *testing.T) {
+		mockDb, mock, err := sqlmock.New()
+		assert.NoError(t, err)
+		defer mockDb.Close()
+
+		p := NewParser()
+
+		table, err := p.ParseTable(mockDb, "`users`")
+		assert.Nil(t, table)
+		assert.EqualError(t, err, "invalid table name: \"`users`\"")
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 

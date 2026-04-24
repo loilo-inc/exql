@@ -53,7 +53,7 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 		opts.Package = "model"
 	}
 	if _, err := os.Stat(opts.OutDir); os.IsNotExist(err) {
-		err := os.Mkdir(opts.OutDir, 0777)
+		err := os.Mkdir(opts.OutDir, 0750)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 	}
 	if fmted, err := format.Source(buf.Bytes()); err != nil {
 		return err
-	} else if err := os.WriteFile(outFile, fmted, os.ModePerm); err != nil {
+	} else if err := os.WriteFile(outFile, fmted, 0640); err != nil {
 		return err
 	}
 	return nil
