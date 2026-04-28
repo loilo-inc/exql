@@ -115,7 +115,10 @@ func (c *Column) field(goFiledType string) string {
 }
 
 func (p *parser) ParseTable(db *sql.DB, table string) (*Table, error) {
-	rows, err := db.Query(fmt.Sprintf("show columns from %s", table))
+	if strings.ContainsRune(table, '`') {
+		return nil, fmt.Errorf("invalid table name: %q", table)
+	}
+	rows, err := db.Query(fmt.Sprintf("show columns from `%s`", table))
 	if err != nil {
 		return nil, err
 	}
