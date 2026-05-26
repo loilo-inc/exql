@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -107,4 +108,31 @@ func TestGenerator_Generate(t *testing.T) {
 				Package: "dist",
 			}), "columns err")
 	})
+}
+
+func TestGenerator_Generate_EscapesTableNameGoLiteral(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	table := `x";func init(){panic(1)};var _="`
+	mock.ExpectQuery(`show tables`).WillReturnRows(sqlmock.NewRows([]string{"tables"}).AddRow(table))
+	mock.ExpectQuery(regexp.QuoteMeta(fmt.Sprintf("show columns from `%s`", table))).WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{OutDir: dir, Package: "dist"})
+	assert.NoError(t, err)
+
+	entries, err := os.ReadDir(dir)
+	assert.NoError(t, err)
+	if assert.Len(t, entries, 1) {
+		content, err := os.ReadFile(filepath.Join(dir, entries[0].Name()))
+		assert.NoError(t, err)
+		assert.Contains(t, string(content), `const XfuncInitpanic1varTableName = "x\";func init(){panic(1)};var _=\""`)
+		assert.NotContains(t, string(content), "\nfunc init()")
+	}
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

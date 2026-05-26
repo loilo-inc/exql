@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -26,15 +27,16 @@ type GenerateOptions struct {
 }
 
 type templateData struct {
-	Imports       string
-	Model         string
-	ModelLower    string
-	M             string
-	Package       string
-	Fields        string
-	UpdaterFields string
-	ScannedFields string
-	TableName     string
+	Imports            string
+	Model              string
+	ModelLower         string
+	M                  string
+	Package            string
+	Fields             string
+	UpdaterFields      string
+	ScannedFields      string
+	TableName          string
+	TableNameGoLiteral string
 }
 
 func NewGenerator(db *sql.DB) Generator {
@@ -120,15 +122,16 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		}
 	}
 	data := &templateData{
-		Imports:       strings.Join(imports, "\n"),
-		Model:         strcase.ToCamel(table.TableName),
-		ModelLower:    strcase.ToLowerCamel(table.TableName),
-		M:             table.TableName[0:1],
-		UpdaterFields: updateFields.String(),
-		Package:       opt.Package,
-		Fields:        fields.String(),
-		TableName:     tableName,
-		ScannedFields: scannedFields.String(),
+		Imports:            strings.Join(imports, "\n"),
+		Model:              strcase.ToCamel(table.TableName),
+		ModelLower:         strcase.ToLowerCamel(table.TableName),
+		M:                  table.TableName[0:1],
+		UpdaterFields:      updateFields.String(),
+		Package:            opt.Package,
+		Fields:             fields.String(),
+		TableName:          tableName,
+		TableNameGoLiteral: strconv.Quote(tableName),
+		ScannedFields:      scannedFields.String(),
 	}
 	outFile := filepath.Join(
 		opt.OutDir,
@@ -167,5 +170,5 @@ func ({{.M}} *Update{{.Model}}) UpdateTableName() string {
 	return {{.Model}}TableName
 }
 
-const {{.Model}}TableName = "{{.TableName}}"
+const {{.Model}}TableName = {{.TableNameGoLiteral}}
 `
