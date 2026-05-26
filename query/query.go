@@ -142,6 +142,9 @@ func (g groupedQuery) Query() (string, []any, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	if err := guardQuery(stmt); err != nil {
+		return "", nil, err
+	}
 	return "(" + stmt + ")", args, nil
 }
 

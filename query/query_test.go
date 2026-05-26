@@ -6,6 +6,20 @@ import (
 	q "github.com/loilo-inc/exql/v3/query"
 )
 
+type emptyCondition struct{}
+
+func (emptyCondition) Query() (string, []any, error) {
+	return "", nil, nil
+}
+
+func (emptyCondition) And(string, ...any) {}
+
+func (emptyCondition) Or(string, ...any) {}
+
+func (emptyCondition) AndCond(q.Condition) {}
+
+func (emptyCondition) OrCond(q.Condition) {}
+
 func TestQuery(t *testing.T) {
 	assertQuery(t, q.V(1, 2), "?,?", 1, 2)
 	assertQuery(t, q.Vals([]int{1, 2}), "?,?", 1, 2)
@@ -66,6 +80,12 @@ func TestCondition(t *testing.T) {
 
 	t.Run("should error if query retuerned an error", func(t *testing.T) {
 		cond := q.CondFrom(q.Q(""))
+		assertQueryErr(t, cond, "DANGER: empty query")
+	})
+
+	t.Run("should error if grouped condition returned an empty query", func(t *testing.T) {
+		cond := q.Cond("id = ?", 1)
+		cond.AndCond(emptyCondition{})
 		assertQueryErr(t, cond, "DANGER: empty query")
 	})
 }
