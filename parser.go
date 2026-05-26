@@ -19,45 +19,6 @@ func NewParser() Parser {
 	return &parser{}
 }
 
-type Table struct {
-	TableName string    `json:"table_name"`
-	Columns   []*Column `json:"columns"`
-}
-
-func (t *Table) Fields() []string {
-	var ret []string
-	for _, c := range t.Columns {
-		ret = append(ret, c.Field())
-	}
-	return ret
-}
-func (t *Table) HasNullField() bool {
-	for _, c := range t.Columns {
-		if c.Nullable {
-			return true
-		}
-	}
-	return false
-}
-
-func (t *Table) HasTimeField() bool {
-	for _, c := range t.Columns {
-		if c.GoFieldType == "time.Time" {
-			return true
-		}
-	}
-	return false
-}
-
-func (t *Table) HasJsonField() bool {
-	for _, c := range t.Columns {
-		if c.GoFieldType == "json.RawMessage" {
-			return true
-		}
-	}
-	return false
-}
-
 type Column struct {
 	FieldName    string         `json:"field_name"`
 	FieldType    string         `json:"field_type"`
