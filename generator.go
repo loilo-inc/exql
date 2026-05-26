@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -35,6 +36,7 @@ type templateData struct {
 	UpdaterFields string
 	ScannedFields string
 	TableName     string
+	TableNameGoLiteral string
 }
 
 func NewGenerator(db *sql.DB) Generator {
@@ -128,6 +130,7 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		Package:       opt.Package,
 		Fields:        fields.String(),
 		TableName:     tableName,
+		TableNameGoLiteral: strconv.Quote(tableName),
 		ScannedFields: scannedFields.String(),
 	}
 	outFile := filepath.Join(
@@ -167,5 +170,5 @@ func ({{.M}} *Update{{.Model}}) UpdateTableName() string {
 	return {{.Model}}TableName
 }
 
-const {{.Model}}TableName = "{{.TableName}}"
+const {{.Model}}TableName = {{.TableNameGoLiteral}}
 `
