@@ -47,10 +47,23 @@ func TestCondition(t *testing.T) {
 		cond.AndCond(q.Cond("foo = ?", "foo"))
 		cond.OrCond(q.Cond("var = ?", "var"))
 		assertQuery(t, cond,
-			"id = ? AND name = ? OR age in (?,?) AND foo = ? OR var = ?",
+			"id = ? AND name = ? OR age in (?,?) AND (foo = ?) OR (var = ?)",
 			1, "go", 20, 21, "foo", "var",
 		)
 	})
+	t.Run("nested conditions are grouped", func(t *testing.T) {
+		tenantScoped := q.Cond("tenant_id = ?", 1)
+		byIDOrEmail := q.Cond("id = ?", 10)
+		byIDOrEmail.Or("email = ?", "user@example.com")
+
+		tenantScoped.AndCond(byIDOrEmail)
+
+		assertQuery(t, tenantScoped,
+			"tenant_id = ? AND (id = ? OR email = ?)",
+			1, 10, "user@example.com",
+		)
+	})
+
 	t.Run("should error if query retuerned an error", func(t *testing.T) {
 		cond := q.CondFrom(q.Q(""))
 		assertQueryErr(t, cond, "DANGER: empty query")
