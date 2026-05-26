@@ -208,20 +208,34 @@ func TestGenerator_Generate_PropagatesWriteError(t *testing.T) {
 }
 
 func TestValidateMappedModelFileName(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		assert.NoError(t, validateMappedModelFileName("users.go"))
-	})
+	for _, name := range []string{
+		"users.go",
+		"user_groups.go",
+		"user-groups_1.go",
+		"Users1.go",
+	} {
+		t.Run("valid "+name, func(t *testing.T) {
+			assert.NoError(t, validateMappedModelFileName(name))
+		})
+	}
 
 	for _, name := range []string{
 		"",
 		".",
 		"..",
+		".go",
+		"users",
+		"users.go.txt",
+		"user.name.go",
+		"user name.go",
+		"user;name.go",
+		"ユーザー.go",
 		"../users.go",
 		"/tmp/users.go",
 		"nested/users.go",
 		`nested\users.go`,
 	} {
-		t.Run(name, func(t *testing.T) {
+		t.Run("invalid "+name, func(t *testing.T) {
 			assert.Error(t, validateMappedModelFileName(name))
 		})
 	}

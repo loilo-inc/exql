@@ -21,7 +21,7 @@ type GenerateOptions struct {
 	Package string
 	Exclude []string
 	// FileNameMap maps table names to output file names.
-	// Values must be file names only: no absolute paths, path separators, "." or "..".
+	// Values must match [A-Za-z0-9_-]+.go.
 	FileNameMap map[string]string
 }
 
@@ -105,17 +105,22 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 }
 
 func validateMappedModelFileName(name string) error {
-	if name == "" {
-		return fmt.Errorf("invalid model file name %q: empty file name", name)
+	if !strings.HasSuffix(name, ".go") {
+		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
 	}
-	if filepath.IsAbs(name) {
-		return fmt.Errorf("invalid model file name %q: absolute paths are not allowed", name)
+	base := strings.TrimSuffix(name, ".go")
+	if base == "" {
+		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
 	}
-	if name == "." || name == ".." {
-		return fmt.Errorf("invalid model file name %q: path traversal is not allowed", name)
-	}
-	if strings.ContainsAny(name, `/\`) {
-		return fmt.Errorf("invalid model file name %q: path separators are not allowed", name)
+	for _, r := range base {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '_' ||
+			r == '-' {
+			continue
+		}
+		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
 	}
 	return nil
 }
