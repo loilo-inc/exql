@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
+	"regexp"
 )
 
 type Generator interface {
@@ -24,6 +24,8 @@ type GenerateOptions struct {
 	// Values must match [A-Za-z0-9_-]+.go.
 	FileNameMap map[string]string
 }
+
+var safeModelFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+\.go$`)
 
 func NewGenerator(db *sql.DB) Generator {
 	return &generator{db: db}
@@ -105,21 +107,7 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 }
 
 func validateMappedModelFileName(name string) error {
-	if !strings.HasSuffix(name, ".go") {
-		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
-	}
-	base := strings.TrimSuffix(name, ".go")
-	if base == "" {
-		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
-	}
-	for _, r := range base {
-		if (r >= 'a' && r <= 'z') ||
-			(r >= 'A' && r <= 'Z') ||
-			(r >= '0' && r <= '9') ||
-			r == '_' ||
-			r == '-' {
-			continue
-		}
+	if !safeModelFileNamePattern.MatchString(name) {
 		return fmt.Errorf("invalid model file name %q: must match [A-Za-z0-9_-]+.go", name)
 	}
 	return nil
