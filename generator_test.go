@@ -2,9 +2,9 @@ package exql
 
 import (
 	"fmt"
-	"regexp"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
