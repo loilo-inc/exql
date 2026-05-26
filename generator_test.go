@@ -192,13 +192,37 @@ func TestGenerator_Generate_PropagatesWriteError(t *testing.T) {
 			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
 	)
 
+	dir := t.TempDir()
+	err = os.Mkdir(filepath.Join(dir, "users.go"), 0750)
+	assert.NoError(t, err)
+
 	err = NewGenerator(mockDb).Generate(&GenerateOptions{
-		OutDir:  t.TempDir(),
+		OutDir:  dir,
 		Package: "dist",
 		FileNameMap: map[string]string{
-			table: filepath.Join("missing", "users.go"),
+			table: "users.go",
 		},
 	})
 	assert.Error(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestValidateMappedModelFileName(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		assert.NoError(t, validateMappedModelFileName("users.go"))
+	})
+
+	for _, name := range []string{
+		"",
+		".",
+		"..",
+		"../users.go",
+		"/tmp/users.go",
+		"nested/users.go",
+		`nested\users.go`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.Error(t, validateMappedModelFileName(name))
+		})
+	}
 }

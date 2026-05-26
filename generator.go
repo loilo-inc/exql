@@ -2,10 +2,12 @@ package exql
 
 import (
 	"database/sql"
+	"fmt"
 	"go/format"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Generator interface {
@@ -15,9 +17,11 @@ type generator struct {
 	db *sql.DB
 }
 type GenerateOptions struct {
-	OutDir      string
-	Package     string
-	Exclude     []string
+	OutDir  string
+	Package string
+	Exclude []string
+	// FileNameMap maps table names to output file names.
+	// Values must be file names only: no absolute paths, path separators, "." or "..".
 	FileNameMap map[string]string
 }
 
@@ -82,6 +86,9 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 	}
 	outFileName := modelFile.Name
 	if mappedFileName, ok := opt.FileNameMap[tableName]; ok {
+		if err := validateMappedModelFileName(mappedFileName); err != nil {
+			return err
+		}
 		outFileName = mappedFileName
 	}
 	outFile := filepath.Join(
@@ -94,5 +101,21 @@ func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) er
 		return err
 	}
 	log.Printf("generated file: %s", outFile)
+	return nil
+}
+
+func validateMappedModelFileName(name string) error {
+	if name == "" {
+		return fmt.Errorf("invalid model file name %q: empty file name", name)
+	}
+	if filepath.IsAbs(name) {
+		return fmt.Errorf("invalid model file name %q: absolute paths are not allowed", name)
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("invalid model file name %q: path traversal is not allowed", name)
+	}
+	if strings.ContainsAny(name, `/\`) {
+		return fmt.Errorf("invalid model file name %q: path separators are not allowed", name)
+	}
 	return nil
 }
