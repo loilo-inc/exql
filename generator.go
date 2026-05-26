@@ -27,6 +27,11 @@ type GenerateOptions struct {
 
 var safeModelFileNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+\.go$`)
 
+type modelFileOutput struct {
+	path   string
+	source []byte
+}
+
 func NewGenerator(db *sql.DB) Generator {
 	return &generator{db: db}
 }
@@ -68,41 +73,57 @@ func (d *generator) Generate(opts *GenerateOptions) error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
+	var outputs []*modelFileOutput
+	seenPaths := map[string]string{}
 	for _, table := range tables {
-		if err := d.generateModelFile(table, opts); err != nil {
+		output, err := d.generateModelFile(table, opts)
+		if err != nil {
+			return err
+		}
+		if prevTable, ok := seenPaths[output.path]; ok {
+			return fmt.Errorf("duplicate generated model file %q for tables %q and %q", output.path, prevTable, table)
+		}
+		seenPaths[output.path] = table
+		outputs = append(outputs, output)
+	}
+	for _, output := range outputs {
+		if err := writeModelFile(output); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) error {
+func (d *generator) generateModelFile(tableName string, opt *GenerateOptions) (*modelFileOutput, error) {
 	p := NewParser()
 	table, err := p.ParseTable(d.db, tableName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	modelFile, err := table.GenerateModelFile(opt.Package)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	outFileName := modelFile.Name
 	if mappedFileName, ok := opt.FileNameMap[tableName]; ok {
 		if err := validateMappedModelFileName(mappedFileName); err != nil {
-			return err
+			return nil, err
 		}
 		outFileName = mappedFileName
 	}
-	outFile := filepath.Join(
-		opt.OutDir,
-		outFileName,
-	)
-	if fmted, err := format.Source(modelFile.Source); err != nil {
+	return &modelFileOutput{
+		path:   filepath.Join(opt.OutDir, outFileName),
+		source: modelFile.Source,
+	}, nil
+}
+
+func writeModelFile(output *modelFileOutput) error {
+	if fmted, err := format.Source(output.source); err != nil {
 		return err
-	} else if err := os.WriteFile(outFile, fmted, 0640); err != nil {
+	} else if err := os.WriteFile(output.path, fmted, 0640); err != nil {
 		return err
 	}
-	log.Printf("generated file: %s", outFile)
+	log.Printf("generated file: %s", output.path)
 	return nil
 }
 

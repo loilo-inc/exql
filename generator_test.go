@@ -180,6 +180,43 @@ func TestGenerator_Generate_UsesFileNameMap(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestGenerator_Generate_ReturnsErrorForDuplicateFileNames(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	mock.ExpectQuery(`show tables`).WillReturnRows(
+		sqlmock.NewRows([]string{"tables"}).
+			AddRow("users").
+			AddRow("user_groups"),
+	)
+	mock.ExpectQuery("show columns from `users`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+	mock.ExpectQuery("show columns from `user_groups`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+		FileNameMap: map[string]string{
+			"users":       "models.go",
+			"user_groups": "models.go",
+		},
+	})
+	assert.ErrorContains(t, err, "duplicate generated model file")
+	assert.ErrorContains(t, err, "users")
+	assert.ErrorContains(t, err, "user_groups")
+	entries, readErr := os.ReadDir(dir)
+	assert.NoError(t, readErr)
+	assert.Empty(t, entries)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestGenerator_Generate_PropagatesWriteError(t *testing.T) {
 	mockDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
