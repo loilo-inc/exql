@@ -1,7 +1,9 @@
 package exql
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -134,5 +136,69 @@ func TestGenerator_Generate_EscapesTableNameGoLiteral(t *testing.T) {
 		assert.Contains(t, string(content), `const XfuncInitpanic1varTableName = "x\";func init(){panic(1)};var _=\""`)
 		assert.NotContains(t, string(content), "\nfunc init()")
 	}
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGenerator_Generate_UsesFileNameMap(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	table := "evil/foo"
+	mock.ExpectQuery(`show tables`).WillReturnRows(sqlmock.NewRows([]string{"tables"}).AddRow(table))
+	mock.ExpectQuery(regexp.QuoteMeta(fmt.Sprintf("show columns from `%s`", table))).WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	var logBuf bytes.Buffer
+	oldLogOutput := log.Writer()
+	oldLogFlags := log.Flags()
+	log.SetOutput(&logBuf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(oldLogOutput)
+		log.SetFlags(oldLogFlags)
+	})
+
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+		FileNameMap: map[string]string{
+			table: "evil.go",
+		},
+	})
+	assert.NoError(t, err)
+
+	outFile := filepath.Join(dir, "evil.go")
+	content, err := os.ReadFile(outFile)
+	assert.NoError(t, err)
+	assert.Contains(t, string(content), "package dist")
+	assert.Contains(t, string(content), `"evil/foo"`)
+	assert.Contains(t, logBuf.String(), outFile)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGenerator_Generate_PropagatesWriteError(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	table := "users"
+	mock.ExpectQuery(`show tables`).WillReturnRows(sqlmock.NewRows([]string{"tables"}).AddRow(table))
+	mock.ExpectQuery("show columns from `users`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  t.TempDir(),
+		Package: "dist",
+		FileNameMap: map[string]string{
+			table: filepath.Join("missing", "users.go"),
+		},
+	})
+	assert.Error(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
