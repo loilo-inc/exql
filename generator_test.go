@@ -1,7 +1,9 @@
 package exql
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -135,4 +137,143 @@ func TestGenerator_Generate_EscapesTableNameGoLiteral(t *testing.T) {
 		assert.NotContains(t, string(content), "\nfunc init()")
 	}
 	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGenerator_Generate_UsesFileNameMap(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	table := "evil/foo"
+	mock.ExpectQuery(`show tables`).WillReturnRows(sqlmock.NewRows([]string{"tables"}).AddRow(table))
+	mock.ExpectQuery(regexp.QuoteMeta(fmt.Sprintf("show columns from `%s`", table))).WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	var logBuf bytes.Buffer
+	oldLogOutput := log.Writer()
+	oldLogFlags := log.Flags()
+	log.SetOutput(&logBuf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(oldLogOutput)
+		log.SetFlags(oldLogFlags)
+	})
+
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+		FileNameMap: map[string]string{
+			table: "evil.go",
+		},
+	})
+	assert.NoError(t, err)
+
+	outFile := filepath.Join(dir, "evil.go")
+	content, err := os.ReadFile(outFile)
+	assert.NoError(t, err)
+	assert.Contains(t, string(content), "package dist")
+	assert.Contains(t, string(content), `"evil/foo"`)
+	assert.Contains(t, logBuf.String(), outFile)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGenerator_Generate_ReturnsErrorForDuplicateFileNames(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	mock.ExpectQuery(`show tables`).WillReturnRows(
+		sqlmock.NewRows([]string{"tables"}).
+			AddRow("users").
+			AddRow("user_groups"),
+	)
+	mock.ExpectQuery("show columns from `users`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+	mock.ExpectQuery("show columns from `user_groups`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+		FileNameMap: map[string]string{
+			"users":       "models.go",
+			"user_groups": "models.go",
+		},
+	})
+	assert.ErrorContains(t, err, "duplicate generated model file")
+	assert.ErrorContains(t, err, "users")
+	assert.ErrorContains(t, err, "user_groups")
+	entries, readErr := os.ReadDir(dir)
+	assert.NoError(t, readErr)
+	assert.Empty(t, entries)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestGenerator_Generate_PropagatesWriteError(t *testing.T) {
+	mockDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer mockDb.Close()
+
+	table := "users"
+	mock.ExpectQuery(`show tables`).WillReturnRows(sqlmock.NewRows([]string{"tables"}).AddRow(table))
+	mock.ExpectQuery("show columns from `users`").WillReturnRows(
+		sqlmock.NewRows([]string{"Field", "Type", "Null", "Key", "Default", "Extra"}).
+			AddRow("id", "int(11)", "NO", "PRI", nil, ""),
+	)
+
+	dir := t.TempDir()
+	err = os.Mkdir(filepath.Join(dir, "users.go"), 0750)
+	assert.NoError(t, err)
+
+	err = NewGenerator(mockDb).Generate(&GenerateOptions{
+		OutDir:  dir,
+		Package: "dist",
+		FileNameMap: map[string]string{
+			table: "users.go",
+		},
+	})
+	assert.Error(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestValidateMappedModelFileName(t *testing.T) {
+	for _, name := range []string{
+		"users.go",
+		"user_groups.go",
+		"user-groups_1.go",
+		"Users1.go",
+	} {
+		t.Run("valid "+name, func(t *testing.T) {
+			assert.NoError(t, validateMappedModelFileName(name))
+		})
+	}
+
+	for _, name := range []string{
+		"",
+		".",
+		"..",
+		".go",
+		"users",
+		"users.go.txt",
+		"user.name.go",
+		"user name.go",
+		"user;name.go",
+		"ユーザー.go",
+		"../users.go",
+		"/tmp/users.go",
+		"nested/users.go",
+		`nested\users.go`,
+	} {
+		t.Run("invalid "+name, func(t *testing.T) {
+			assert.Error(t, validateMappedModelFileName(name))
+		})
+	}
 }
