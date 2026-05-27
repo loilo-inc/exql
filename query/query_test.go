@@ -6,6 +6,20 @@ import (
 	q "github.com/loilo-inc/exql/v3/query"
 )
 
+type emptyCondition struct{}
+
+func (emptyCondition) Query() (string, []any, error) {
+	return "", nil, nil
+}
+
+func (emptyCondition) And(string, ...any) {}
+
+func (emptyCondition) Or(string, ...any) {}
+
+func (emptyCondition) AndCond(q.Condition) {}
+
+func (emptyCondition) OrCond(q.Condition) {}
+
 func TestQuery(t *testing.T) {
 	assertQuery(t, q.V(1, 2), "?,?", 1, 2)
 	assertQuery(t, q.Vals([]int{1, 2}), "?,?", 1, 2)
@@ -47,12 +61,31 @@ func TestCondition(t *testing.T) {
 		cond.AndCond(q.Cond("foo = ?", "foo"))
 		cond.OrCond(q.Cond("var = ?", "var"))
 		assertQuery(t, cond,
-			"id = ? AND name = ? OR age in (?,?) AND foo = ? OR var = ?",
+			"id = ? AND name = ? OR age in (?,?) AND (foo = ?) OR (var = ?)",
 			1, "go", 20, 21, "foo", "var",
 		)
 	})
+	t.Run("nested conditions are grouped", func(t *testing.T) {
+		tenantScoped := q.Cond("tenant_id = ?", 1)
+		byIDOrEmail := q.Cond("id = ?", 10)
+		byIDOrEmail.Or("email = ?", "user@example.com")
+
+		tenantScoped.AndCond(byIDOrEmail)
+
+		assertQuery(t, tenantScoped,
+			"tenant_id = ? AND (id = ? OR email = ?)",
+			1, 10, "user@example.com",
+		)
+	})
+
 	t.Run("should error if query retuerned an error", func(t *testing.T) {
 		cond := q.CondFrom(q.Q(""))
+		assertQueryErr(t, cond, "DANGER: empty query")
+	})
+
+	t.Run("should error if grouped condition returned an empty query", func(t *testing.T) {
+		cond := q.Cond("id = ?", 1)
+		cond.AndCond(emptyCondition{})
 		assertQueryErr(t, cond, "DANGER: empty query")
 	})
 }

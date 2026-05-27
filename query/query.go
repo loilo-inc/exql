@@ -111,11 +111,11 @@ func (c *cond) Or(str string, args ...any) {
 }
 
 func (c *cond) AndCond(other Condition) {
-	c.append("AND", other)
+	c.append("AND", groupedQuery{inner: other})
 }
 
 func (c *cond) OrCond(other Condition) {
-	c.append("OR", other)
+	c.append("OR", groupedQuery{inner: other})
 }
 
 func (c *cond) Query() (string, []any, error) {
@@ -131,6 +131,21 @@ func (c *cond) append(sep string, other ...Query) {
 			c.base.append(joiner, v)
 		}
 	}
+}
+
+type groupedQuery struct {
+	inner Query
+}
+
+func (g groupedQuery) Query() (string, []any, error) {
+	stmt, args, err := g.inner.Query()
+	if err != nil {
+		return "", nil, err
+	}
+	if err := guardQuery(stmt); err != nil {
+		return "", nil, err
+	}
+	return "(" + stmt + ")", args, nil
 }
 
 type chain struct {
