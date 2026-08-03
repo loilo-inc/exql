@@ -5,11 +5,16 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 10
-
+    groups:
+      all:
+        patterns:
+          - "*"
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
-    open-pull-requests-limit: 10
+    groups:
+      all:
+        patterns:
+          - "*"
