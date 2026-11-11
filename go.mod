@@ -1,6 +1,6 @@
 module github.com/loilo-inc/exql/v3
 
-go 1.25
+go 1.27.4
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
